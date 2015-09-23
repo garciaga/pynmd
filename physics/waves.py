@@ -695,18 +695,18 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
     """
     
     # Remove mean from the data
-    eta -= eta.mean()    
+    etaw = eta - eta.mean()    
     
     # Compute variance of original time series
-    var_ts = np.var(eta)
+    var_ts = np.var(etaw)
     
     # Data windowing
     if window:
-        tmpwindow = scipy.signal.hanning(eta.shape[0])
-        eta *= tmpwindow
+        tmpwindow = scipy.signal.hanning(etaw.shape[0])
+        etaw *= tmpwindow
     
     # Compute variance spectrum
-    freq,spec = gsignal.psdraw(eta,ot[2]-ot[1])
+    freq,spec = gsignal.psdraw(etaw,ot[2]-ot[1])
     
     # If data has been windowed we must boost the variance of the spectrum
     # to match the original time series

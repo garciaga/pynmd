@@ -100,8 +100,12 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
     may need to edit this file.
     
     Notes:
-    ------
-    Need to test for 2DH simulations.
+    ------    
+    
+    TODO:
+    -----
+    1. Need to test for 2DH simulations.
+    2. Add support for exponential vertical layers
     
     '''
 
@@ -391,6 +395,15 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
         nc.variables['h'][:] = h
         
     
+    # Create s_rho vector
+    if s_rho:
+        ds    = 1.0/s_rho
+        sigma = np.arange(ds/2.0,1-ds/2.0,ds)
+        nc.createVariable('s_rho','f8',('s_rho'))
+        nc.variables['s_rho'].longname = 's-coordinate at cell centers'
+        nc.variables['s_rho'].positive = 'up'
+        nc.variables['s_rho'].notes = 'small s_rho means close to bottom'
+        nc.variables['s_rho'][:] = sigma 
     
     # Create time vector
     nc.createVariable('ocean_time','f8','ocean_time')
@@ -540,8 +553,7 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
             
             tmpvar = np.loadtxt(workfld + '/' + aa + '_' + '%05.0f' % 1)
             if s_rho == 1:
-                nc.variables[aa][:] = np.expand_dims(
-                                                     np.expand_dims(tmpvar,
+                nc.variables[aa][:] = np.expand_dims(np.expand_dims(tmpvar,
                                                                     axis=0),
                                                      axis=0)
             else:
@@ -750,4 +762,51 @@ def nc_runup(nc,r_depth=0.01):
     
     # Done
     return runup,x_runup
+    
+
+#===============================================================================
+# Depth averaged currents
+#===============================================================================
+def depth_average(u,eta,h):
+    """
+    Compute depth-averaged currents from NHwave output
+    
+    USAGE:
+    ------
+    ubar = depth_average(u,eta,h)
+    
+    Parameters:
+    -----------
+    u            : flow matrix (3D or 2D)
+    eta          : water surface elevation (2D or 1D)
+    h            : bottom (2D or 1D)
+       
+    Output:
+    -------
+    ubar         : Depth-averaged currents
+       
+    Notes:
+    ------
+    Uniform vertical grid supported (IVGRD = 1)
+        
+    """
+    
+    # Preallocate variables
+    ubar = np.zeros_like(eta) * np.NAN
+       
+    # Compute vertical coordinate system
+    ds    = 1.0/u.shape[0]
+    #sigma = np.arange(ds/2.0,1-ds/2.0,ds)
+    
+    # Loop over the array
+    for aa in range(ubar.shape[0]):
+        
+        # Total water depth
+        D = eta[aa] + h[aa]
+        
+        # Depth average
+        ubar[aa] =  np.sum(ds*D*u[:,aa])/D
+    
+    return ubar
+    
     
