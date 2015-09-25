@@ -43,6 +43,27 @@ from collections import defaultdict
 import pynmd.physics.waves as gwaves
 
 #===============================================================================
+# Pyroms subroutine to write NetCDF fields
+#===============================================================================
+def create_nc_var(nc, name, dimensions, units=None, longname=None):
+    '''
+    Not for standalone use
+    '''
+    nc.createVariable(name, 'f8', dimensions)
+    if units is not None:
+        nc.variables[name].units = units
+    if longname is not None:
+        nc.variables[name].long_name = longname    
+
+# Append NetCDF variable        
+def append_nc_var(nc,var,name,tstep):
+    '''
+    Not for standalone use
+    '''
+    nc.variables[name][tstep,...] = var
+
+
+#===============================================================================
 # Vorticity
 #===============================================================================
 
