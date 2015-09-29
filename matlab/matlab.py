@@ -18,6 +18,7 @@ none
 # Import modules
 import datetime
 import numpy as np
+from scipy import io as sio
 
 # ==============================================================================
 # Tools to convert from datenum (matlab) to datetime (python)
@@ -44,3 +45,37 @@ def datenum_to_datetime(ma_datenum):
                    
     return py_datetime
     
+
+#===============================================================================
+# Read pre-hdf5 matfiles
+#===============================================================================
+def read_mat(matfile):
+    '''
+    Read matfiles prior to v7.3 (i.e. not HDF5)
+    
+    USAGE:
+    ------
+    s = matlab.read_mat(matfile)
+    
+    PARAMETERS:
+    -----------
+    matfile : Full path to the matfile to read
+    
+    RETURNS:
+    --------
+    s      : data structure of matfile
+    
+    NOTES:
+    ------
+    This function is really a wrapper for 
+    s = sio.loadmat(matfile,squeeze_me=True,struct_as_record=False)
+    '''
+    
+    try:
+        s = sio.loadmat(matfile,squeeze_me=True,struct_as_record=False)        
+    except NotImplementedError:
+        print('Could not read mat file, it may be HDF5')
+        print('If that is the case use h5py module to read')
+        s = []
+        
+    return s
