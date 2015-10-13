@@ -229,14 +229,14 @@ def dispersion_booij(period,h,wh,u=None):
     
     # Depth averaged ambient velocity
     if u is None:
-        u = 0
+        u = 0.0
 
     # Compute radian frequency
     sigma = (2.0*np.pi)/period
     
     # Initialize wave number
-    #kinit = 0.0001                # Manually initialize
-    kinit = dispersion(period,h,u) # Initialize with Airy dispersion relation
+    #kinit = 0.0001                     # Manually initialize
+    kinit = dispersion(period,h+wh/2,u) # Initialize with Airy dispersion relation
     
     # Booij (1981) dispersion function        
     def f(k,sigma,h,wh,u):
