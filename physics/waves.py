@@ -53,6 +53,7 @@ def idispersion(k,h):
     OUTPUT:
     -------
     sigma  : radian frequency [Hz]
+    
     '''
 
     # Get radian wave frequency
