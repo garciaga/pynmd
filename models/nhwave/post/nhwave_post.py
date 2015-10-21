@@ -258,17 +258,17 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
                 inpinfo['bc_zn'] = tmpline.split()[2]
             elif "WAVEMAKER" == tmpline.split()[0]:
                 inpinfo['wavemaker'] = tmpline.split()[2]
-            elif("Xsource_West" == tmpline.split()[2] and 
-                 inpinfo['wavemaker'][0:3] = 'INT'):
+            elif "Xsource_West" == tmpline.split()[0] and \
+                 inpinfo['wavemaker'][0:3] == 'INT':
                 inpinfo['xsource_west'] = tmpline.split()[2]
-            elif("Xsource_East" == tmpline.split()[2] and 
-                 inpinfo['wavemaker'][0:3] = 'INT'):
+            elif "Xsource_East" == tmpline.split()[0] and \
+                 inpinfo['wavemaker'][0:3] == 'INT':
                 inpinfo['xsource_east'] = tmpline.split()[2]
-            elif("Ysource_Suth" == tmpline.split()[2] and 
-                 inpinfo['wavemaker'][0:3] = 'INT'):
+            elif "Ysource_Suth" == tmpline.split()[0] and \
+                 inpinfo['wavemaker'][0:3] == 'INT':
                 inpinfo['ysource_suth'] = tmpline.split()[2]
-            elif("Ysource_Nrth" == tmpline.split()[2] and 
-                 inpinfo['wavemaker'][0:3] = 'INT'):
+            elif "Ysource_Nrth" == tmpline.split()[0] and \
+                 inpinfo['wavemaker'][0:3] == 'INT':
                 inpinfo['xsource_nrth'] = tmpline.split()[2]               
             elif "SPONGE_ON" == tmpline.split()[0]:
                 inpinfo['sponge'] = tmpline.split()[2]
