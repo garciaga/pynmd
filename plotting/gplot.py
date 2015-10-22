@@ -52,7 +52,7 @@ def get_colormap_colors(N,cmapname='jet'):
     PARAMETERS:
     -----------
     N          : Number of colors to return
-    cmapname   : Name of colormap (defaults to jet of course)
+    cmapname   : Name of colormap (defaults to jet)
     
     RETURNS:
     --------
