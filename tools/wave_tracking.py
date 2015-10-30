@@ -197,6 +197,10 @@ def local_extrema(x,ot,sten,clean=True):
     
     if sum(ind_noise_max)>0:
         ind_max = np.delete(ind_max,rmv_ind_max)
+        
+    # If no waves where found then exit ----------------------------------------
+    if np.size(ind_max) < 1 or np.size(ind_min) < 1:
+        return ind_min,ind_max
 
     # Index clean up (optional) ------------------------------------------------
     if clean:
