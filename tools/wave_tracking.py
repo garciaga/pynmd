@@ -429,13 +429,16 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
             tmp_wh = np.ones((ot_lag.shape[1],)) * np.NAN            
             tmp_wh[0] = wh[0][aa]
             
-            
         # Loop over transects
         for bb in range(1,ot_lag.shape[1]):
                     
             # Find another index within the window we are looking at
             tmp_ot = ot_lag[:,bb-1][tmp_ind[bb-1]]
             tmp_dt = np.abs(tmp_ot - ot_lag[:,bb][local_extrema[bb]])
+            
+            # If no waves are detected break
+            if tmp_dt.size < 1:
+                break
             
             # Find the minimum value
             tmp_min_ind = np.argmin(tmp_dt)
