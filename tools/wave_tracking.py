@@ -481,7 +481,8 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
                         if wh is not None and tmp_min_ind < wh[bb].shape[0]:
                             raw_ind = np.interp(0,[-1,cc],[tmp_ind[bb-1],
                                                    wh[bb+cc][tmp_min_ind]])
-                            tmp_wh[bb] = np.int(np.round(raw_ind))
+                            if np.isfinite(raw_ind):
+                                tmp_wh[bb] = np.int(np.round(raw_ind))
 
                     # If we are able to find a point within the stencil then
                     # break the cc loop without breaking the bb loop
