@@ -506,3 +506,65 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
         return wave_tracks
 
 
+#===============================================================================
+# Function to identify bore bore capture events
+#===============================================================================
+def bore_bore_capture(wave_tracks,ot,twind):
+    '''
+    Function to flag bore-bore capture events.
+    
+    USAGE:
+    ------
+    bbc_ind,bbc_flag = wave_tracking(wave_tracks,ot,twind)
+    
+    INPUT:
+    ------
+    wave_tracks: see wave_tracks
+    ot         : Time vector [s]
+    twind      : Maximum spacing for bores to be considered intependent [s]  
+    
+    RETURNS:
+    --------
+    bbc_ind    : Matrix that contains the spatial index at which the current
+                 wave captures the subsequent one
+    bbc_flag   : True/False matrix that identifies whether the bore was captured    
+
+    '''
+
+    # Matrix will contain the spatial index at which the next wave captures
+    # the current one
+    bbc_ind  = np.ones(len(wave_tracks),).astype('int') * -999999
+    # True if the bore was captured
+    bbc_flag = np.zeros(len(wave_tracks),).astype('bool')
+
+    for aa in range(len(wave_tracks)-1):
+
+        # Find bore time tracks
+        wtind_0 = np.argmin(wave_tracks[aa]>0) - 1
+        btime_0 = ot[wave_tracks[aa][:wtind_0]]
+
+        # Find next bore time tracks
+        wtind_1 = np.argmin(wave_tracks[aa+1]>0) - 1
+        btime_1 = ot[wave_tracks[aa+1][:wtind_1]]
+
+        # If the next bore is not tracked as far as the current bore then no
+        # capture occurs
+        if btime_0.shape[0] > btime_1.shape[0]:
+            continue
+
+        # Find the time delta between both bores at the same locations
+        dbtime = btime_1[:wtind_0] - btime_0
+
+        # Find if there was bore-bore capture by comparing the time difference
+        # within a given time window.
+        dtind = dbtime < twind
+
+        # Save the index of the first location where the two bores are closer
+        # than the specfied time window
+        if np.sum(dtind) > 0:
+            tmpind        = np.argmax(dtind)
+            bbc_flag[aa]  = True
+            bbc_ind[aa+1] =  tmpind
+
+
+    return bbc_ind,bbc_flag
