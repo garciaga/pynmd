@@ -478,7 +478,7 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
                         raw_ind = np.interp(0,[-1,cc],[tmp_ind[bb-1],
                                             local_extrema[bb+cc][tmp_min_ind]])
                         tmp_ind[bb] = np.int(np.round(raw_ind))
-                        if wh is not None and tmp_min_ind < wh[bb].shape[0]:
+                        if wh is not None and tmp_min_ind < wh[bb+cc].shape[0]:
                             raw_ind = np.interp(0,[-1,cc],[tmp_ind[bb-1],
                                                    wh[bb+cc][tmp_min_ind]])
                             if np.isfinite(raw_ind):
