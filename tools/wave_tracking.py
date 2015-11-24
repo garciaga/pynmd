@@ -442,7 +442,12 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
             # Ones
             cmax = 3
             for cc in range(cmax):
-
+				
+				# If no extrema is found try next index
+                if local_extrema[bb+cc].size < 1:
+                    break_bb = True
+                    break
+                
                 tmp_dt = np.abs(tmp_ot - ot_lag[:,bb+cc][local_extrema[bb+cc]])
 
                 # If no waves are detected break
