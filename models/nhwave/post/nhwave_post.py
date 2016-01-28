@@ -843,3 +843,148 @@ def depth_average(u,eta,h):
     return ubar
     
     
+#===============================================================================
+# Crest Tracking
+#===============================================================================
+def crest_tracks(eta,ot,twind):
+    """
+    Code to track the wave crests from a water surface elevation matrix
+    
+    USAGE:
+    ------
+    timeSpaceTracks, trackIndices = crest_tracks(eta,ot,twind)
+    
+    PARAMETERS:
+    -----------
+    eta     : Matrix of water surface elevation from the model. With dimensions
+              of [time,space]
+    ot      : Time vector [s]
+    twind   : Time window used for wave tracking
+    
+    RETURNS:
+    --------
+    timeSpaceTracks : Array containing identified waves in the first dimension
+                      and their time as a functino of location.
+    trackIndices    : Indices of wave tracks.
+    
+    TODO:
+    -----
+    - Add still water level as parameter to track waves when travelling seaward
+    
+    """
+    
+    # Local extrema analysis to identify the waves -----------------------------
+    crest_ind = []
+    
+    for aa in range(eta.shape[1]):
+        
+        # Extract offshore most time series
+        z = eta[:,aa].copy()
+        
+        # Compute the first derivative of the data
+        dz           = np.zeros_like(z)
+        dz[1:]       = z[1:] - z[0:-1]
+        
+        # Take the second derivative
+        dz2          = np.zeros_like(dz) * np.NAN
+        dz2[1:-1]    = (z[2:] - 2*z[1:-1] + z[0:-2])
+        
+        # Find local extrema by finding where the derivative of the data is zero
+        # Numerically it is best to find where the derivative changes sign and
+        # record the position of where this happens.
+        dz_sign      = np.zeros_like(dz)
+        dz_sign[1:]  = dz[1:] * dz[0:-1]
+        ind_ext      = np.where(dz_sign<0)[0] - 1
+        
+        # Identify the local minima
+        ind_min_tmp  = dz2[ind_ext]>0
+        ind_min      = ind_ext[ind_min_tmp]
+        
+        # Identify the local maxima
+        ind_max_tmp  = dz2[ind_ext]<0
+        ind_max      = ind_ext[ind_max_tmp]
+        
+        # Store in array
+        crest_ind.append(ind_max)   
+    
+    
+    # Filtering ----------------------------------------------------------------    # Add small wave filter at the offshore end only
+    
+    # Find trajectories by looping in time and space
+    trackIndices = (np.ones((len(crest_ind[0]),eta.shape[1]),dtype=np.int) * 
+                    -999999)
+    trackIndices[:,0] = crest_ind[0]
+    
+    # Time space trajectories
+    timeSpaceTracks = np.zeros_like(trackIndices,dtype=np.float64) * np.NAN
+    timeSpaceTracks[:,0] = ot[trackIndices[:,0]]
+    
+    # Maximum number of across-shore positions to search ahead
+    cmax = 3
+    
+    # Loop over time (wave crests)
+    for aa in range(trackIndices.shape[0]):
+        
+        # Loop over across-shore positions
+        for bb in range(1,trackIndices.shape[1]):
+            
+            # Flag to transect loop
+            break_bb = False
+            
+            # Loop over across-shore positions (to account for numerical errors
+            # when identifying the local maxima)
+            for cc in range(cmax):
+                
+                # Find the maximum point within the input window
+                currCrestTime = ot[trackIndices[aa,bb-1]]
+                tmpDt = np.abs(currCrestTime - ot[crest_ind[bb+cc]])
+                
+                # No local maxima found then go to the next across-shore 
+                # location unless the stencil is equal to the maximum permitted
+                # (i.e. cc == cmax - 1), in that case move to the next wave
+                if tmpDt.size < 1:
+                    if cc == (cmax-1):
+                        break_bb = True
+                        break
+                    else:
+                        continue
+                
+                # Find if any maxima meets the criteria, otherwise go to the
+                # next wave
+                if np.sum(tmpDt < twind) < 1:
+                    if cc == (cmax - 1):
+                        break_bb = True
+                        break
+                    else:
+                        continue
+                
+                # Identify the closest index
+                tmpInd = crest_ind[bb+cc][np.argmin(tmpDt)]
+                
+                # Allocate the index
+                # No discontinuity found
+                if cc == 0:
+                    # Identify the closest maxima as the same wave
+                    trackIndices[aa,bb] = tmpInd         
+                
+                else:
+                    # Need to interpolate linearly
+                    intInd = np.interp(0,[-1,cc],[trackIndices[aa,bb-1],tmpInd])
+                    intInd = np.int(np.round(intInd))
+                    trackIndices[aa,bb] = intInd
+                    
+                # Store the time at a given x position
+                timeSpaceTracks[aa,bb] = ot[trackIndices[aa,bb]]
+                                                
+                # Match found within the stencil move to next across-shore
+                # location
+                break_bb = False
+                break
+                
+            # Break across-shore loop and go to the next wave
+            if break_bb:
+                break
+
+    # Exit function            
+    return timeSpaceTracks,trackIndices
+

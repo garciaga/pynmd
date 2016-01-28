@@ -531,7 +531,7 @@ def bore_bore_capture(wave_tracks,ot,twind):
     RETURNS:
     --------
     bbc_ind    : Matrix that contains the spatial index at which the current
-                 wave captures the subsequent one
+                 wave captures the previous one
     bbc_flag   : True/False matrix that identifies whether the bore was captured    
 
     '''
