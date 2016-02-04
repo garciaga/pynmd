@@ -131,3 +131,86 @@ def runup_maxima(x,ot,sten):
     return ind_max
 
 
+
+#===============================================================================
+# Compute mean setup
+#===============================================================================
+def runup_params(runup,ot):
+    """
+    
+    Parameters:
+    ----------
+    runup        : Water surface elevation time series relative to SWL [m]
+    ot           : Time stamp vector [s]
+    
+    Output:
+    -------
+    Dictionary containing    
+    setup        : Mean water surface elevation [m]
+    r2_combined  : 2% runup exceedence value [m]
+    r2_cdf       : 2% runup exceedence value computed from runup CDF [m]
+    r1_cdf       : 1% runup exceedence value computed from runup CDF [m]
+    ig           : Significant infragravity swash elevation [m]
+    in           : Significant incident swash elevation [m]
+    r_max        : Maximum runup [m]
+    r_var        : Runup variance [m2]          
+               
+    Notes:
+    ------
+    r2_combined = 1.1*(setup + 0.5*((ig**2 + in**2)**0.5))
+    
+    See also:
+    ---------
+    runup
+    
+    TODO:
+    -----
+    r2_max_cdf   : 2% runup exceedence value computed from runup maxima CDF [m]
+    r1_max_cdf   : 1% runup exceedence value computed from runup maxima CDF [m]   
+
+    """
+    
+    # Compute the setup
+    setup = np.mean(runup)
+    
+    # Compute swash time series 
+    swash = runup - setup
+    
+    # Compute spectrum
+    freq = np.fft.fftshift(np.fft.fftfreq(ot.shape[0],ot[1]-ot[0]))
+    Nt = freq.shape[0]
+    if np.mod(Nt,2) == 1:
+        zero_ind = np.int((Nt - 1.0)/2.0)
+    else:
+        zero_ind = np.int(Nt/2.0)  
+    freq_amp = freq[zero_ind:]
+    
+    # Compute spectrum
+    ff = np.fft.fftshift(np.fft.fft(swash))
+    #sf = (2.0/Nt*(ff[zero_ind:].real**2 + ff[zero_ind:].imag**2)**0.5)
+    sf = (ff[zero_ind:].real**2 + ff[zero_ind:].imag**2)/Nt*(ot[1]-ot[0])
+    
+    # Compute significant infragravity swash
+    freq_ig = freq_amp<0.05
+    freq_in = freq_amp>=0.05
+    swash_ig = 4.0*(np.trapz(sf[freq_ig],freq_amp[freq_ig])**0.5)
+    swash_in = 4.0*(np.trapz(sf[freq_in],freq_amp[freq_in])**0.5)
+
+    # Compute R2% real and from formula
+    r2_combined = (setup + 0.5*((swash_ig**2 + swash_in**2)**0.5))*1.1
+    
+    # Compute R2% from the cumulative distribution function
+    r2_ind = np.int(np.floor(0.98*runup.shape[0]))
+    r2_cdf = np.sort(runup)[r2_ind]
+    
+    # Compute R1% from the cumulative distribution function
+    r1_ind = np.int(np.floor(0.99*runup.shape[0]))
+    r1_cdf = np.sort(runup)[r1_ind]    
+    
+    # Compute the R2% from the runup maxima cumulative distribution function
+    
+    # Generate output
+    return {'setup':setup, 'ig':swash_ig,'in':swash_in,
+            'r2_combined':r2_combined,'r2_cdf':r2_cdf,
+            'r1_cdf':r1_cdf,'r_max':runup.max(),'r_var':np.var(runup)}
+

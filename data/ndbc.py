@@ -28,7 +28,7 @@ import getpass
 #===============================================================================
 # Bulk parameter code
 #===============================================================================
-def bulk2nc(buoyfld,buoyid,ncformat=4):
+def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
     '''
     Code to convert bulk parameter text files into netcdf file
     
@@ -41,6 +41,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
     buoyfld  = Folder where the bulk paramerter text files reside.
     buoyid   = Netcdf buoy identifier (to figure out the file names)
     ncformat = set as 3 for netCDF3, set as 4 for netCDF4 (default)
+    verbose  = some extra information (True is default)
     
     Notes:
     Only the bulk parameter files must be present in that directory. The code is
@@ -55,6 +56,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
     
     # Get all files in folder
     archivos = os.listdir(buoyfld)
+    archivos.sort()
     
     # Initialize variables
     wavetime = np.empty([1,])
@@ -71,12 +73,15 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
     
     
     # Loop over files
-    for file in archivos:
+    for tmpFile in archivos:
         
-        if file.endswith('.txt'):
+        if tmpFile.endswith('.txt'):
             
+            if verbose:
+                print(tmpFile)
+
             # Read header lines to determine the location of variables
-            with open(buoyfld + '/' + file,'r') as f:
+            with open(buoyfld + '/' + tmpFile,'r') as f:
                 header1 = f.readline()
                 header2 = f.readline()
                 
@@ -92,7 +97,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
             header4 = header3.split()
             
             # Load buoy data
-            tmpdata = pl.loadtxt(buoyfld + '/' + file,skiprows=headcnt)
+            tmpdata = pl.loadtxt(buoyfld + '/' + tmpFile,skiprows=headcnt)
             
             
             # ======================  Allocate variables  ==================== #

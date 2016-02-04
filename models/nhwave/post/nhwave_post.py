@@ -21,6 +21,7 @@ External dependencies:
 
 Internal dependencies:
     waves
+    gtrack
 """
 
 from __future__ import division,print_function
@@ -41,6 +42,7 @@ from collections import defaultdict
 
 # Internal modules
 import pynmd.physics.waves as gwaves
+import pynmd.tools.wave_tracking as gtrack
 
 #===============================================================================
 # Pyroms subroutine to write NetCDF fields
@@ -846,13 +848,13 @@ def depth_average(u,eta,h):
 #===============================================================================
 # Crest Tracking
 #===============================================================================
-def crest_tracks(eta,ot,twind):
+def crest_tracks(eta,ot,twind,filter=True):
     """
     Code to track the wave crests from a water surface elevation matrix
     
     USAGE:
     ------
-    timeSpaceTracks, trackIndices = crest_tracks(eta,ot,twind)
+    timeSpaceTracks, trackIndices = crest_tracks(eta,ot,twind,filter)
     
     PARAMETERS:
     -----------
@@ -860,6 +862,8 @@ def crest_tracks(eta,ot,twind):
               of [time,space]
     ot      : Time vector [s]
     twind   : Time window used for wave tracking
+    filter  : (Optional) Used to filter small waves. Uses 
+              pynmd.tools.wave_tracking.local_extrema
     
     RETURNS:
     --------
@@ -872,11 +876,26 @@ def crest_tracks(eta,ot,twind):
     - Add still water level as parameter to track waves when travelling seaward
     
     """
-    
+
+        
     # Local extrema analysis to identify the waves -----------------------------
     crest_ind = []
     
     for aa in range(eta.shape[1]):
+        
+        if filter:
+            try:
+                [ind_min,ind_max] = gtrack.local_extrema(eta[:,aa].copy(),
+                                                         ot,twind,False)
+            except IndexError:
+                ind_max = np.array([])
+            except ValueError:
+                ind_max = np.array([])
+            except TypeError:
+                ind_max = np.array([])
+                
+            crest_ind.append(ind_max)
+            continue
         
         # Extract offshore most time series
         z = eta[:,aa].copy()
@@ -934,6 +953,13 @@ def crest_tracks(eta,ot,twind):
             # Loop over across-shore positions (to account for numerical errors
             # when identifying the local maxima)
             for cc in range(cmax):
+                
+                if crest_ind[bb+cc].size < 1:
+                    if cc == (cmax - 1):
+                        break_bb = True
+                        break
+                    else:
+                        continue                    
                 
                 # Find the maximum point within the input window
                 currCrestTime = ot[trackIndices[aa,bb-1]]
