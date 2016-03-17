@@ -387,8 +387,8 @@ def spec2nc(buoyfld,dtheta=5):
     '''
     
     # For testing only ---------------------------------------------------------
-    buoyfld = '/home/shusin2/users/ggarcia/data/wave/b46029/spec/'
-    dtheta = 20
+    #buoyfld = '/home/shusin2/users/ggarcia/data/wave/b46029/spec/'
+    #dtheta = 20
     # --------------------------------------------------------------------------
     
     # Construct directional angle
@@ -434,7 +434,7 @@ def spec2nc(buoyfld,dtheta=5):
     nc.Created = time.ctime()
     nc.Software = 'Created with Python ' + sys.version
     nc.NetCDF_Lib = str(netCDF4.getlibversion())
-    #nc.Script = os.path.realpath(__file__)
+    nc.Script = os.path.realpath(__file__)
     nc.Notes = 'Nautical convention used for directions'    
     
     # Reconstruct the spectrum -------------------------------------------------        
@@ -539,6 +539,10 @@ def spec2nc(buoyfld,dtheta=5):
 
         freq_spec = freq_spec[:,freqInd0:]
         
+        # No Data Filter (NDBC uses 999.00 when there is no data)
+        goodDataInd = freq_spec[:,1] < 990.00
+        freq_time = freq_time[goodDataInd]
+        freq_spec = freq_spec[goodDataInd,:]
         
         # Create frequency spectra variables
         cnt_freq += 1
@@ -673,6 +677,16 @@ def spec2nc(buoyfld,dtheta=5):
             alpha_2 = alpha_2[:,freqInd0:]
             r_1 = r_1[:,freqInd0:]
             r_2 = r_2[:,freqInd0:]
+            
+            # No Data Filter (NDBC uses 999.00 when there is no data)
+            goodDataInd = np.logical_and(alpha_1[:,1] != 999.00,
+                                         alpha_1[:,2] != 999.00)
+            alpha_1  = alpha_1[goodDataInd,:]
+            alpha_2  = alpha_2[goodDataInd,:]
+            r_1      = r_1[goodDataInd,:]
+            r_2      = r_2[goodDataInd,:]
+            dir_time = dir_time[goodDataInd]
+            
             
             # Find where dir_time and freq_time match and compute those values
             # only
