@@ -8,6 +8,8 @@ v0.1 Gabriel Garcia Medina (ggarcia@coas.oregonstate.edu) July 2014
 v0.2 Gabriel Garcia Medina (ggarcia@coas.oregonstate.edu) November 2014
 v0.3 Gabriel Garcia Medina (ggarcia@coas.oregonstate.edu) February 2015
      Added spec2nc
+v0.4 Gabriel Garcia Medina (ggarcia@coas.oregonstate.edu) March 2016
+     Fixes to spec2nc 
 """
 
 __author__ = "Gabriel Garcia Medina"
@@ -24,6 +26,21 @@ import datetime
 import os
 import getpass
 import glob
+
+
+#===============================================================================
+# pyroms subroutine to write NetCDF fields
+#===============================================================================
+# def write_nc_var(var, name, dimensions, units=None, longname=None):
+#     '''
+#     Pyroms subroutine to write NetCDF fields
+#     '''
+#     nc.createVariable(name, 'f8', dimensions)
+#     if units is not None:
+#       nc.variables[name].units = units  
+#     if longname is not None:
+#       nc.variables[name].long_name = longname  
+#     nc.variables[name][:] = var
 
 
 #===============================================================================
@@ -315,12 +332,12 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
     
     # pyroms subroutine to write NetCDF fields
     def write_nc_var(var, name, dimensions, units=None, longname=None):
-      nc.createVariable(name, 'f8', dimensions)
-      if units is not None:
-        nc.variables[name].units = units  
-      if longname is not None:
-        nc.variables[name].long_name = longname  
-      nc.variables[name][:] = var
+        nc.createVariable(name, 'f8', dimensions)
+        if units is not None:
+            nc.variables[name].units = units  
+        if longname is not None:
+            nc.variables[name].long_name = longname  
+        nc.variables[name][:] = var
           
     
     # Write Variables To NetCDF file
@@ -349,7 +366,6 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
     # Close NetCDF File 
     nc.close()
     
-
 
 
 #===============================================================================
@@ -751,3 +767,5 @@ def spec2nc(buoyfld,dtheta=5):
     # Close NetCDF File     
     nc.close()
         
+
+    
