@@ -848,3 +848,36 @@ def basic_stats(x,y):
             'bias':bias,'si':si,'r2':r2}    
 
 
+
+#===============================================================================
+# zero crossing
+#===============================================================================
+
+def zero_crossing(x,d='up'):
+    '''
+    Find zero crossings in a signal
+    
+    PARAMETERS:
+    -----------
+    x  : Time series
+    d  : (Optional) Upcrossing or downcrossing flag. Accepts 'up' (default)
+         and 'down'.
+         
+    RETURNS:
+    --------
+    z  : Indices where upcrossing or downcrossings happen.
+     
+    '''
+    
+    # Upcrossing and downcrossing
+    if d == 'down':
+        y = np.logical_and(x[:-1]>0,x[1:]<=0)
+    else:
+        y = np.logical_and(x[:-1]<=0,x[1:]>0)        
+        if d != 'up':
+            print('Could not understand input, upcrossing used')
+
+    # Find indices where the time series changes sign
+    z = np.where(y == True)[0]
+                
+    return z
