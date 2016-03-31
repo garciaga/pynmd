@@ -881,3 +881,49 @@ def zero_crossing(x,d='up'):
     z = np.where(y == True)[0]
                 
     return z
+
+
+#===============================================================================
+# Empirical cumulative distribution function
+#===============================================================================
+def ecdf(x):
+    '''
+    Empirical cumulative distribution function
+    
+    USAGE:
+    ------
+    [xS,p] = ecdf(x)
+    
+    PARAMETERS:
+    -----------
+    x  : Time series of independent values
+    
+    RETURNS:
+    --------
+    xS : Sorted x values
+    p  : Probability
+    
+    NOTES:
+    ------
+    - Adapted from code by Katy Serafin (OSU)
+    
+    '''
+    
+    # Force the array to be a numpy array
+    x = np.array(x)
+    
+    # Remove nans in the data
+    x = x[np.isfinite(x)]
+    
+    # Length of the finite runup values
+    xLen = np.double(x.shape[0])
+    
+    # Compute probability
+    p = np.arange(1.0,xLen+1.0,1.0)/xLen
+    
+    # Sort time series
+    xS = np.sort(x)
+    
+    # End of Function
+    return xS,p
+
