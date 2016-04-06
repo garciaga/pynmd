@@ -353,7 +353,87 @@ def shallow_water_depth(period):
     
     return h
 
+#===============================================================================
+# Wave length
+#===============================================================================
+def wave_length(period,h):
+    '''
+    Compute wave length using linear wave theory
+    
+    Parameters
+    ----------
+    period   : wave period [s]
+    h        : water depth [m]
+    
+    Results
+    -------
+    wl_int   : real wave length [m]
+    
+    Screen output
+    -------------
+    wl_deep  : deep water wave length [m]
+    wl_sha   : shallow water wave length [m]
+    
+    '''
+    
+    wl_deep = 9.81 * period**2 / 2.0 / np.pi
+    wl_sha = period * np.sqrt(9.81 * h)
+    k = dispersion(period,h)
+    wl_int = 9.81 / 2.0 / np.pi * period**2 * np.tanh(k*h)
+    
+    print(' ')
+    print('---------------------------------------------------------')
+    print('Wave Length deep water approx      = ' + np.str(wl_deep) + ' m')
+    print('Wave Length shallow water approx   = ' + np.str(wl_sha) + ' m')
+    print('Wave Length linear wave theory     = ' + np.str(wl_int) + ' m')
+    print('---------------------------------------------------------')
+    print(' ')
+    
+    return wl_int
 
+#===============================================================================
+# Compute wave number using the Kirby and Dalrymple (1986) composite equation
+#===============================================================================
+def celerity(period,h,u=None):
+    '''
+    
+    Find celerity and group velocity from linear wave theory
+    
+    USAGE:
+    ------
+    c,n,cg = celerity(period,h,u)
+    
+    Input:
+    ------
+    period   : Wave period [s]
+    h        : Water depth [m]
+    u        : (Optional) Ambient current velocity [m/s]
+    
+    RETURNS:
+    --------
+    c        : celerity [m/s]
+    n        : cg = c*n
+    cg       : group velocity [m/s]
+    
+    '''
+    
+    # Radian frequency
+    sigma = 2.0 * np.pi / period
+    
+    # Find wave number
+    k = dispersion(period,h,u)
+    
+    # Celerity
+    c = sigma/k
+    
+    # Group velocity
+    n = 0.5 + k * h / np.sinh(2*k*h)
+    cg = c * n
+
+    return c,n,cg    
+    
+    
+ 
 #===============================================================================
 # Compute stokes velocities from linear wave theory
 #===============================================================================
@@ -472,46 +552,6 @@ def tma(freq_peak,gamma,h,Hmo,freq_min=0.01,freq_max=1.0,freq_int=0.001):
     
     # End of function
     return s_tma
-
-
-
-#===============================================================================
-# Wave length
-#===============================================================================
-def wave_length(period,h):
-    '''
-    Compute wave length using linear wave theory
-    
-    Parameters
-    ----------
-    period   : wave period [s]
-    h        : water depth [m]
-    
-    Results
-    -------
-    wl_int   : real wave length [m]
-    
-    Screen output
-    -------------
-    wl_deep  : deep water wave length [m]
-    wl_sha   : shallow water wave length [m]
-    
-    '''
-    
-    wl_deep = 9.81 * period**2 / 2.0 / np.pi
-    wl_sha = period * np.sqrt(9.81 * h)
-    k = dispersion(period,h)
-    wl_int = 9.81 / 2.0 / np.pi * period**2 * np.tanh(k*h)
-    
-    print(' ')
-    print('---------------------------------------------------------')
-    print('Wave Length deep water approx      = ' + np.str(wl_deep) + ' m')
-    print('Wave Length shallow water approx   = ' + np.str(wl_sha) + ' m')
-    print('Wave Length linear wave theory     = ' + np.str(wl_int) + ' m')
-    print('---------------------------------------------------------')
-    print(' ')
-    
-    return wl_int
 
     
 #===============================================================================
