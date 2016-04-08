@@ -42,6 +42,11 @@ def long_wave_separate_guza84(eta,u,h):
     --------
     etaInc : Incident wave component [m]
     etaRef : Reflected (seaward propagating) wave component [m]
+
+    FORMULAE:
+    ---------
+    etaInc = 0.5 * (eta + u * (h/g)**0.5)
+    etaRef = 0.5 * (eta - u * (h/g)**0.5)
     
     NOTES:
     ------
@@ -50,10 +55,6 @@ def long_wave_separate_guza84(eta,u,h):
     - Has been tested for one dimensional wave propagation
     - Will operate on the last dimension of eta and u
     
-    FORMULAE:
-    ---------
-    etaInc = 0.5 * (eta + u * (h/g)**0.5)
-    etaRef = 0.5 * (eta - u * (h/g)**0.5)
     
     REFERENCES:
     -----------
