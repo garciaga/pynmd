@@ -826,23 +826,32 @@ def depth_average(u,eta,h):
         
     """
     
-    # Preallocate variables
-    ubar = np.zeros_like(eta) * np.NAN
-       
-    # Compute vertical coordinate system
-    ds    = 1.0/u.shape[0]
-    #sigma = np.arange(ds/2.0,1-ds/2.0,ds)
+#     Old CODE
+#     # Preallocate variables
+#     ubar = np.zeros_like(eta) * np.NAN
+#        
+#     # Compute vertical coordinate system
+#     ds    = 1.0/u.shape[0]
+#     #sigma = np.arange(ds/2.0,1-ds/2.0,ds)
+#     
+#     # Loop over the array
+#     for aa in range(ubar.shape[0]):
+#         
+#         # Total water depth
+#         D = eta[aa] + h[aa]
+#         
+#         # Depth average
+#         ubar[aa] =  np.sum(ds*D*u[:,aa])/D
+#     
+#     return ubar
+
+    # Compute the vertical coordinates
+    ds = 1.0/u.shape[0]
     
-    # Loop over the array
-    for aa in range(ubar.shape[0]):
-        
-        # Total water depth
-        D = eta[aa] + h[aa]
-        
-        # Depth average
-        ubar[aa] =  np.sum(ds*D*u[:,aa])/D
+    # Compute total water depth
+    D = eta + h
     
-    return ubar
+    return np.sum(ds*D*u,axis=0)/D
     
     
 #===============================================================================
