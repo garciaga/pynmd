@@ -838,22 +838,24 @@ def depth_average(u,eta,h):
 #===============================================================================
 # Crest Tracking
 #===============================================================================
-def crest_tracks(eta,ot,twind,filter=True):
+def crest_tracks(eta,ot,twind,fonly=True,swfilter=False):
     """
     Code to track the wave crests from a water surface elevation matrix
     
     USAGE:
     ------
-    timeSpaceTracks, trackIndices = crest_tracks(eta,ot,twind,filter)
+    timeSpaceTracks, trackIndices = crest_tracks(eta,ot,twind,fonly,swfilter)
     
     PARAMETERS:
     -----------
-    eta     : Matrix of water surface elevation from the model. With dimensions
-              of [time,space]
-    ot      : Time vector [s]
-    twind   : Time window used for wave tracking
-    filter  : (Optional) Used to filter small waves. Uses 
-              pynmd.tools.wave_tracking.local_extrema
+    eta      : Matrix of water surface elevation from the model. With dimensions
+               of [time,space]
+    ot       : Time vector [s]
+    twind    : Time window used for wave tracking
+    fonly    : (Optional) Only allow for forward in time wave propagation. 
+               Defaults to True
+    swfilter : (Optional) Used to filter small waves. Uses 
+               pynmd.tools.wave_tracking.local_extrema
     
     RETURNS:
     --------
@@ -873,7 +875,7 @@ def crest_tracks(eta,ot,twind,filter=True):
     
     for aa in range(eta.shape[1]):
         
-        if filter:
+        if swfilter:
             try:
                 [ind_min,ind_max] = gtrack.local_extrema(eta[:,aa].copy(),
                                                          ot,twind,False)
@@ -954,6 +956,11 @@ def crest_tracks(eta,ot,twind,filter=True):
                 # Find the maximum point within the input window
                 currCrestTime = ot[trackIndices[aa,bb-1]]
                 tmpDt = np.abs(currCrestTime - ot[crest_ind[bb+cc]])
+                
+                if fonly:
+                    ee = (currCrestTime - ot[crest_ind[bb+cc]])> 0.0
+                    tmpDt[ee] = twind + 999999.0
+                    
                 
                 # No local maxima found then go to the next across-shore 
                 # location unless the stencil is equal to the maximum permitted
