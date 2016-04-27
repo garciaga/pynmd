@@ -8,6 +8,8 @@ v0.1 Gabriel Garcia Medina (ggarcia@coas.oregonstate.edu) July 2014
 v0.2 Gabriel Garcia Medina (ggarcia@coas.oregonstate.edu) November 2014
 v0.3 Gabriel Garcia Medina (ggarcia@coas.oregonstate.edu) February 2015
      Added spec2nc
+v0.4 Gabriel Garcia Medina (ggarcia@coas.oregonstate.edu) March 2016
+     Fixes to spec2nc 
 """
 
 __author__ = "Gabriel Garcia Medina"
@@ -23,12 +25,28 @@ import sys
 import datetime
 import os
 import getpass
+import glob
+
+
+#===============================================================================
+# pyroms subroutine to write NetCDF fields
+#===============================================================================
+# def write_nc_var(var, name, dimensions, units=None, longname=None):
+#     '''
+#     Pyroms subroutine to write NetCDF fields
+#     '''
+#     nc.createVariable(name, 'f8', dimensions)
+#     if units is not None:
+#       nc.variables[name].units = units  
+#     if longname is not None:
+#       nc.variables[name].long_name = longname  
+#     nc.variables[name][:] = var
 
 
 #===============================================================================
 # Bulk parameter code
 #===============================================================================
-def bulk2nc(buoyfld,buoyid,ncformat=4):
+def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
     '''
     Code to convert bulk parameter text files into netcdf file
     
@@ -41,6 +59,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
     buoyfld  = Folder where the bulk paramerter text files reside.
     buoyid   = Netcdf buoy identifier (to figure out the file names)
     ncformat = set as 3 for netCDF3, set as 4 for netCDF4 (default)
+    verbose  = some extra information (True is default)
     
     Notes:
     Only the bulk parameter files must be present in that directory. The code is
@@ -55,6 +74,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
     
     # Get all files in folder
     archivos = os.listdir(buoyfld)
+    archivos.sort()
     
     # Initialize variables
     wavetime = np.empty([1,])
@@ -71,12 +91,15 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
     
     
     # Loop over files
-    for file in archivos:
+    for tmpFile in archivos:
         
-        if file.endswith('.txt'):
+        if tmpFile.endswith('.txt'):
             
+            if verbose:
+                print(tmpFile)
+
             # Read header lines to determine the location of variables
-            with open(buoyfld + '/' + file,'r') as f:
+            with open(buoyfld + '/' + tmpFile,'r') as f:
                 header1 = f.readline()
                 header2 = f.readline()
                 
@@ -92,7 +115,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
             header4 = header3.split()
             
             # Load buoy data
-            tmpdata = pl.loadtxt(buoyfld + '/' + file,skiprows=headcnt)
+            tmpdata = pl.loadtxt(buoyfld + '/' + tmpFile,skiprows=headcnt)
             
             
             # ======================  Allocate variables  ==================== #
@@ -105,7 +128,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 WDIR = np.concatenate((WDIR,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 WDIR = np.concatenate((WDIR,tmparray))
                 del tmparray 
             
@@ -115,7 +138,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 WSPD = np.concatenate((WSPD,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 WSPD = np.concatenate((WSPD,tmparray))
                 del tmparray 
                 
@@ -125,7 +148,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 GST = np.concatenate((GST,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 GST = np.concatenate((GST,tmparray))
                 del tmparray 
             
@@ -135,7 +158,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 WVHT = np.concatenate((WVHT,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 WVHT = np.concatenate((WVHT,tmparray))
                 del tmparray 
                 
@@ -145,7 +168,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 DPD = np.concatenate((DPD,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 DPD = np.concatenate((DPD,tmparray))
                 del tmparray
                 
@@ -155,7 +178,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 APD = np.concatenate((APD,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 APD = np.concatenate((APD,tmparray))
                 del tmparray 
                             
@@ -165,7 +188,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 MWD = np.concatenate((MWD,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 MWD = np.concatenate((MWD,tmparray))
                 del tmparray 
     
@@ -178,7 +201,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 PRES = np.concatenate((PRES,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 PRES = np.concatenate((PRES,tmparray))
                 del tmparray 
     
@@ -188,7 +211,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 ATMP = np.concatenate((ATMP,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 ATMP = np.concatenate((ATMP,tmparray))
                 del tmparray  
     
@@ -198,7 +221,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
                 WTMP = np.concatenate((WTMP,tmpdata[:,tind]))
             else:
                 tmparray = np.ones([tmpdata.shape[0],1])
-                tmparray[:] = NaN
+                tmparray[:] = np.NaN
                 WTMP = np.concatenate((WTMP,tmparray))
                 del tmparray                   
       
@@ -309,12 +332,12 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
     
     # pyroms subroutine to write NetCDF fields
     def write_nc_var(var, name, dimensions, units=None, longname=None):
-      nc.createVariable(name, 'f8', dimensions)
-      if units is not None:
-        nc.variables[name].units = units  
-      if longname is not None:
-        nc.variables[name].long_name = longname  
-      nc.variables[name][:] = var
+        nc.createVariable(name, 'f8', dimensions)
+        if units is not None:
+            nc.variables[name].units = units  
+        if longname is not None:
+            nc.variables[name].long_name = longname  
+        nc.variables[name][:] = var
           
     
     # Write Variables To NetCDF file
@@ -343,7 +366,6 @@ def bulk2nc(buoyfld,buoyid,ncformat=4):
     # Close NetCDF File 
     nc.close()
     
-
 
 
 #===============================================================================
@@ -381,8 +403,8 @@ def spec2nc(buoyfld,dtheta=5):
     '''
     
     # For testing only ---------------------------------------------------------
-    # buoyfld = '/home/shusin2/users/ggarcia/data/wave/b46029/spec/'
-    # dtheta = 5
+    #buoyfld = '/home/shusin2/users/ggarcia/data/wave/b46029/spec/'
+    #dtheta = 20
     # --------------------------------------------------------------------------
     
     # Construct directional angle
@@ -396,7 +418,8 @@ def spec2nc(buoyfld,dtheta=5):
     #===========================================================================
     
     # Get all files in folder
-    archivos = os.listdir(buoyfld)
+    archivos = glob.glob(buoyfld + '/*.txt')
+    archivos = [x.split('/')[-1] for x in archivos]
     
     # Year information
     years = [x.split('.')[0][-4:] for x in archivos]    # Get all year stamps
@@ -413,6 +436,9 @@ def spec2nc(buoyfld,dtheta=5):
     else:
         buoyid = buoyid[0]
         
+    # Info
+    print('Found ' + np.str(len(years)) + ' files')
+    print(buoyfld)    
     
     # Create output netcdf file ------------------------------------------------
     # Global attributes  
@@ -425,30 +451,30 @@ def spec2nc(buoyfld,dtheta=5):
     nc.Software = 'Created with Python ' + sys.version
     nc.NetCDF_Lib = str(netCDF4.getlibversion())
     nc.Script = os.path.realpath(__file__)
-    nc.Notes = 'Nautical convention used for directions'
-    
-    # Create dimensions  (NetCDF4 supports multiple unlimited dimensions)
-    nc.createDimension('wave_time',None)
-    nc.createDimension('dir_time',None)
-    
-    # Create bulk parameter variables
-    nc.createVariable('Hsig','f8','wave_time')
-    nc.variables['Hsig'].units = 'meter'
-    nc.variables['Hsig'].long_name = 'Significant wave height'
-        
-    
+    nc.Notes = 'Nautical convention used for directions'    
     
     # Reconstruct the spectrum -------------------------------------------------        
 
     # counter variable to create variables in the netcdf file
+    masterCnt = 0
     cnt_freq = 0 
     cnt_dir = 0
     tstep_freq = 0
     tstep_dir = 0
     
+    # This variable will change if the format changes
+    formIdCnt = 0
+    formId = '0'
+            
+    # Frequency array to find if the reported frequencies changed
+    freqArray = []
+    
     # Loop over years
     for aa in years:
-                
+        
+        # Info
+        print('  Working on year ' + aa)
+        
         # Load spectral density files
         # Check if file exists
         tmpfile = buoyfld + buoyid + 'w' + aa + '.txt'
@@ -456,12 +482,53 @@ def spec2nc(buoyfld,dtheta=5):
             # No spectral density found for the given year, go to next one
             continue
         
-        # Read spectral density data (frequency spectra)
+        # Info
+        print('    Spectral density data')
+        
+        # Increase master counter variable
+        masterCnt += 1
+        
+        # Read spectral density data (frequency spectra) and identify the time
+        # information given
         f_w = open(tmpfile,'r')
         freq = f_w.readline().split()
                
+        # Allocate the frequency array and determine if the format changed ----
+        freqArray.append(freq)
+        if masterCnt > 1:
+            if freq != freqArray[masterCnt-2]:
+                
+                # Reset counter variables                
+                cnt_freq = 0 
+                cnt_dir = 0
+                tstep_freq = 0
+                tstep_dir = 0
+                
+                # Update form Id counter
+                formIdCnt += 1
+                
+                if formIdCnt > 9:
+                    print('\n10 Different Formats Found')
+                    print('Check your data, quitting ...')
+                    nc.close()
+                    sys.exit()
+                    
+                # Update form Id text
+                formId = '%01.0f' % formIdCnt
+                
+                # Message to user
+                print('    Different format found')
+                print('      New variables introduced')
+                
+               
+        # Find if minutes are given
+        if freq[4] == 'mm':
+            freqInd0 = 5
+        else:
+            freqInd0 = 4
+               
         # Read frequencies
-        freq = np.array(freq[5:],dtype=float)
+        freq = np.array(freq[freqInd0:],dtype=float)
         f_w.close()
         
         # Load spectral density
@@ -470,34 +537,79 @@ def spec2nc(buoyfld,dtheta=5):
         # Allocate time and spectral density data    
         freq_time = np.zeros((freq_spec.shape[0]))  
         for bb in range(freq_time.shape[0]):
-            freq_time[bb] = (datetime.datetime(np.int(freq_spec[bb,0]),
-                                               np.int(freq_spec[bb,1]),
-                                               np.int(freq_spec[bb,2]),
-                                               np.int(freq_spec[bb,3]),
-                                               np.int(freq_spec[bb,4])) - 
+            tmpYear  = np.int(freq_spec[bb,0])
+            tmpMonth = np.int(freq_spec[bb,1])
+            tmpDay   = np.int(freq_spec[bb,2])
+            tmpHour  = np.int(freq_spec[bb,3])
+            if freqInd0 == 4:
+                tmpMin = np.int(0)
+            else:
+                tmpMin = np.int(freq_spec[bb,4])
+            
+            if tmpYear < 100:
+                tmpYear = tmpYear + 1900
+            
+            freq_time[bb] = (datetime.datetime(tmpYear,tmpMonth,tmpDay,
+                                               tmpHour,tmpMin) -
                              basetime).total_seconds()
-        freq_spec = freq_spec[:,5:]
+
+        freq_spec = freq_spec[:,freqInd0:]
+        
+        # No Data Filter (NDBC uses 999.00 when there is no data)
+        goodDataInd = freq_spec[:,1] < 990.00
+        freq_time = freq_time[goodDataInd]
+        freq_spec = freq_spec[goodDataInd,:]
         
         # Create frequency spectra variables
         cnt_freq += 1
         if cnt_freq == 1:
-            nc.createDimension('freq',freq.shape[0])
             
-            nc.createVariable('wave_time','f8','wave_time')
-            nc.variables['wave_time'].units = \
-            "seconds since 1900-01-01 00:00:00"
-            nc.variables['wave_time'].calendar = "julian"
-            
-            nc.createVariable('freq_spec','f8',('wave_time','freq'))
-            nc.variables['freq_spec'].units = 'meter2 second'
-            nc.variables['freq_spec'].long_name = 'Frequency variance spectrum'            
-            
-            nc.createVariable('frequency','f8',('freq'))
-            nc.variables['frequency'].units = 'Hz'
-            nc.variables['frequency'].long_name = 'Spectral frequency'
-            nc.variables['frequency'][:] = freq
+            # Create dimensions  (NetCDF4 supports multiple unlimited dimensions)
+            nc.createDimension('wave_time'+formId,None)
         
-        # Check if directional data exists
+            # Create bulk parameter variables
+            nc.createVariable('Hsig'+formId,'f8','wave_time'+formId)
+            nc.variables['Hsig'+formId].units = 'meter'
+            nc.variables['Hsig'+formId].long_name = 'Significant wave height'
+            
+            # Create frequency dimension
+            nc.createDimension('freq'+formId,freq.shape[0])
+            
+            nc.createVariable('wave_time'+formId,'f8','wave_time'+formId)
+            nc.variables['wave_time'+formId].units = \
+            "seconds since 1900-01-01 00:00:00"
+            nc.variables['wave_time'+formId].calendar = "julian"
+            
+            nc.createVariable('freq_spec'+formId,'f8',
+                              ('wave_time'+formId,'freq'+formId))
+            nc.variables['freq_spec'+formId].units = 'meter2 second'
+            nc.variables['freq_spec'+formId].long_name = 'Frequency variance spectrum'            
+            
+            nc.createVariable('frequency'+formId,'f8',('freq'+formId))
+            nc.variables['frequency'+formId].units = 'Hz'
+            nc.variables['frequency'+formId].long_name = 'Spectral frequency'
+            nc.variables['frequency'+formId][:] = freq
+        
+    
+        # Information
+        print('    Computing Bulk Parameters')
+        
+        # Compute bulk parameters
+        moment0 = np.trapz(freq_spec.T,freq,axis=0)
+        Hsig = 4.004*(moment0)**0.5
+        
+        # Write to NetCDF file
+        if cnt_freq == 1:
+            nc.variables['Hsig'+formId][:] = Hsig
+            nc.variables['freq_spec'+formId][:] = freq_spec
+            nc.variables['wave_time'+formId][:] = freq_time
+        else:
+            nc.variables['Hsig'+formId][tstep_freq:] = Hsig
+            nc.variables['freq_spec'+formId][tstep_freq:,:] = freq_spec
+            nc.variables['wave_time'+formId][tstep_freq:] = freq_time
+
+                
+        # Check if directional data exists -------------------------------------
         tmp_alpha_1 = buoyfld  + buoyid + 'd' + aa + '.txt'
         tmp_alpha_2 = buoyfld  + buoyid + 'i' + aa + '.txt'
         tmp_r_1 = buoyfld  + buoyid + 'j' + aa + '.txt'
@@ -507,26 +619,47 @@ def spec2nc(buoyfld,dtheta=5):
         if (os.path.isfile(tmp_alpha_1) and os.path.isfile(tmp_alpha_2) and
             os.path.isfile(tmp_r_1) and os.path.isfile(tmp_r_2)):
             
+            # Information
+            print('    Directional Data')
+            
+            # Read frequency of the directional spectra (not always agree with
+            # the spectral densities)
+            f_w2 = open(tmp_alpha_1,'r')
+            freqDirSpec = f_w2.readline().split()
+            freqDirSpec = np.array(freqDirSpec[freqInd0:],dtype=float)
+            f_w2.close()  
+            
             # Create directional spectra variables
             cnt_dir += 1
             if cnt_dir == 1:
-                nc.createDimension('dir',angles.shape[0])
+                nc.createDimension('dir_time'+formId,None)
+                nc.createDimension('dir'+formId,angles.shape[0])
+                
+                # Create frequency dimension
+                nc.createDimension('freqDir'+formId,freqDirSpec.shape[0])
             
-                nc.createVariable('dir_time','f8','dir_time')
-                nc.variables['dir_time'].units = \
+                nc.createVariable('dir_time'+formId,'f8','dir_time'+formId)
+                nc.variables['dir_time'+formId].units = \
                 "seconds since 1900-01-01 00:00:00"
-                nc.variables['dir_time'].calendar = "julian"
+                nc.variables['dir_time'+formId].calendar = "julian"
             
-                nc.createVariable('dir_spec','f8',('dir_time','freq','dir'))
-                nc.variables['dir_spec'].units = 'meter2 second degree-1'
-                nc.variables['dir_spec'].long_name = \
+                nc.createVariable('dir_spec'+formId,'f8',
+                                  ('dir_time'+formId,'freqDir'+formId,
+                                   'dir'+formId))
+                nc.variables['dir_spec'+formId].units = 'meter2 second degree-1'
+                nc.variables['dir_spec'+formId].long_name = \
                     'Frequency-Direction variance spectrum'  
                     
-                nc.createVariable('direction','f8',('dir'))
-                nc.variables['direction'].units = 'degree'
-                nc.variables['direction'].long_name = \
+                nc.createVariable('direction'+formId,'f8',('dir'+formId))
+                nc.variables['direction'+formId].units = 'degree'
+                nc.variables['direction'+formId].long_name = \
                     'Degrees from true north in oceanographic convention'
-                nc.variables['direction'][:] = angles
+                nc.variables['direction'+formId][:] = angles
+                
+                nc.createVariable('frequencyDir'+formId,'f8',('freqDir'+formId))
+                nc.variables['frequencyDir'+formId].units = 'Hz'
+                nc.variables['frequencyDir'+formId].long_name = 'Spectral frequency for dir_spec'
+                nc.variables['frequencyDir'+formId][:] = freqDirSpec
             
             
             # Read spectral data
@@ -535,29 +668,67 @@ def spec2nc(buoyfld,dtheta=5):
             r_1 = np.loadtxt(tmp_alpha_1,skiprows=1) * 0.01
             r_2 = np.loadtxt(tmp_alpha_1,skiprows=1) * 0.01
     
-            # Allocate data
+            # Allocate date
             dir_time = np.zeros((alpha_1.shape[0]))              
             for bb in range(dir_time.shape[0]):
-                dir_time[bb] = (datetime.datetime(np.int(alpha_1[bb,0]),
-                                                  np.int(alpha_1[bb,1]),
-                                                  np.int(alpha_1[bb,2]),
-                                                  np.int(alpha_1[bb,3]),
-                                                  np.int(alpha_1[bb,4])) - 
+                tmpYear  = np.int(alpha_1[bb,0])
+                tmpMonth = np.int(alpha_1[bb,1])
+                tmpDay   = np.int(alpha_1[bb,2])
+                tmpHour  = np.int(alpha_1[bb,3])
+                if freqInd0 == 4:
+                    tmpMin = np.int(0)
+                else:
+                    tmpMin = np.int(alpha_1[bb,4])
+                                
+                if tmpYear < 100:
+                    tmpYear = tmpYear + 1900                                
+                
+                dir_time[bb] = (datetime.datetime(tmpYear,tmpMonth,tmpDay,
+                                                  tmpHour,tmpMin) - 
                                 basetime).total_seconds()
+
                              
-                                         
-            alpha_1 = alpha_1[:,5:]
-            alpha_2 = alpha_2[:,5:]
-            r_1 = r_1[:,5:]
-            r_2 = r_2[:,5:]
+            # Read data
+            alpha_1 = alpha_1[:,freqInd0:]
+            alpha_2 = alpha_2[:,freqInd0:]
+            r_1 = r_1[:,freqInd0:]
+            r_2 = r_2[:,freqInd0:]
             
+            # No Data Filter (NDBC uses 999.00 when there is no data)
+            goodDataInd = np.logical_and(alpha_1[:,1] != 999.00,
+                                         alpha_1[:,2] != 999.00)
+            alpha_1  = alpha_1[goodDataInd,:]
+            alpha_2  = alpha_2[goodDataInd,:]
+            r_1      = r_1[goodDataInd,:]
+            r_2      = r_2[goodDataInd,:]
+            dir_time = dir_time[goodDataInd]
+            
+            
+            # Find where dir_time and freq_time match and compute those values
+            # only
+            repInd    = np.in1d(dir_time,freq_time)
+            alpha_1   = alpha_1[repInd]
+            alpha_2   = alpha_2[repInd]
+            r_1       = r_1[repInd]
+            r_2       = r_2[repInd]
+            dir_time  = dir_time[repInd]
+            
+            repInd    = np.in1d(freq_time,dir_time)
+            freq_spec = freq_spec[repInd] 
+
+            # Interpolate density spectrum into directional bins            
+            if not np.array_equal(freq,freqDirSpec):
+                freqSpecAll = np.copy(freq_spec)
+                freq_spec   = np.zeros_like((r_1)) * np.NAN
+                for bb in range(freq_spec.shape[0]):
+                    freq_spec[bb,:] = np.interp(freqDirSpec,freq,
+                                                freqSpecAll[bb,:])
             
             # Construct 2D spectra
             # See http://www.ndbc.noaa.gov/measdes.shtml
             wspec = np.NaN * np.zeros((alpha_1.shape[0],
-                                       freq.shape[0],angles.shape[0]))
-            
-            
+                                       alpha_1.shape[1],angles.shape[0]))
+                        
             # Time loop
             for bb in range(wspec.shape[0]):
                 # Frequency loop  
@@ -576,34 +747,25 @@ def spec2nc(buoyfld,dtheta=5):
             
             # Write to file
             if cnt_dir == 1:
-                nc.variables['dir_spec'][:] = wspec
-                nc.variables['dir_time'][:] = dir_time
+                nc.variables['dir_spec'+formId][:] = wspec
+                nc.variables['dir_time'+formId][:] = dir_time
             else:
-                nc.variables['dir_spec'][tstep_dir:,:,:] = wspec
-                nc.variables['dir_time'][tstep_dir:] = dir_time
+                nc.variables['dir_spec'+formId][tstep_dir:,:,:] = wspec
+                nc.variables['dir_time'+formId][tstep_dir:] = dir_time
             
             tstep_dir += dir_time.shape[0]
-            
-        
-        # Compute bulk parameters
-        moment0 = np.trapz(freq_spec.T,freq,axis=0)
-        Hsig = 4.004*(moment0)**0.5
-        
-        # Write to NetCDF file
-        if cnt_freq == 1:
-            nc.variables['Hsig'][:] = Hsig
-            nc.variables['freq_spec'][:] = freq_spec
-            nc.variables['wave_time'][:] = freq_time
-        else:
-            nc.variables['Hsig'][tstep_freq:] = Hsig
-            nc.variables['freq_spec'][tstep_freq:,:] = freq_spec
-            nc.variables['wave_time'][tstep_freq:] = freq_time
-        
+                    
+        # Update frequency time step and go to next year        
         tstep_freq += freq_time.shape[0]
-        
         
        
     # Wrap up ------------------------------------------------------------------
-    # Close NetCDF File 
+    # Information
+    print('Data stored as:')
+    print('  ' + buoyfld + '/' + buoyid + '.nc')
+    
+    # Close NetCDF File     
     nc.close()
         
+
+    
