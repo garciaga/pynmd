@@ -747,7 +747,7 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
         etaw *= tmpwindow
     
     # Compute variance spectrum
-    freq,spec = gsignal.psdraw(etaw,ot[2]-ot[1])
+    freq,spec = gsignal.psdraw(etaw,np.mean(ot[1:] - ot[:-1]))
     
     # If data has been windowed we must boost the variance of the spectrum
     # to match the original time series
