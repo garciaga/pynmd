@@ -889,19 +889,20 @@ def whwpts(t,x,d='up'):
     
     USAGE:
     ------
-    [wh,wp] = whwpts(t,x,d)
+    [wh,wp,zcind] = whwpts(t,x,d)
     
     PARAMETERS:
     -----------
-    t  : Time vector
-    x  : Water surface elevation time series
-    d  : Accepts 'up' or 'down' for zero upcrossing or downcrossing,
-         respectively.
+    t     : Time vector
+    x     : Water surface elevation time series
+    d     : Accepts 'up' or 'down' for zero upcrossing or downcrossing,
+            respectively.
     
     RETURNS:
     --------
-    wh : Wave height time series
-    wp : Wave period time series
+    wh    : Wave height time series
+    wp    : Wave period time series
+    zcind : zero-crossing index
     
     METHODS:
     --------
@@ -928,4 +929,4 @@ def whwpts(t,x,d='up'):
         wh[aa] = (np.max(x[zcross[aa]:zcross[aa+1]]) -
                   np.min(x[zcross[aa]:zcross[aa+1]]))
         
-    return wh,wp 
+    return wh,wp,zcross

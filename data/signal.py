@@ -967,6 +967,7 @@ def synthetic_ts(freq,spec):
     1. Length of time series is determined by the frequency resolution
     2. Time resolution of the synthetic time series is determined by the
        maximum frequency. 
+    3. frequency spacing must be constant from 0 to maximum frequency.
 
     '''
 
