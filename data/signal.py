@@ -933,7 +933,8 @@ def ecdf(x):
 #==============================================================================
 def synthetic_ts(freq,spec):
     '''
-    Generate a synthetic time series from an input spectrum
+    Generate a synthetic time series from an input spectrum using Fourier 
+    techniques.
 
     USAGE:
     ------
@@ -949,8 +950,17 @@ def synthetic_ts(freq,spec):
     t      : Time vector which is a function of df and freq_max
     syntTs : Synthetic time series derived from the spectrum
 
-    NOTES:
+    Method:
     ------
+    1. Frequency axis is assumed to go from 0 to the Nyquist frequency
+    2. Amplitude of the discrete Fourier transform (DFT)
+       D = (df * S)**0.5 for freq[0] and freq[-1]
+       D = (0.5 * df * S)**0.5 for freq[1:-1]
+    3. Equally distributed random phases are generated from 0 and 2pi 
+    4. Specify the real and imaginary parts of the spectrum
+       Y = S e**(i*phases)
+    5. Construct the two sided DFT (even number of entries will result)
+    6. Perform an inverse DFT and generate the time series. 
 
     TODO:
     -----
@@ -963,8 +973,8 @@ def synthetic_ts(freq,spec):
 
     # Find length of the time series.
     dt = 1.0/(2.0 * np.max(freq))
-    N = 1.0/(df*dt)
-
+    N = 2 * (freq.shape[0] - 1)
+    
     # Compute the amplitudes of the Discrete Fourier Transform
     ampDFT = np.zeros_like(spec)
     ampDFT[1:-1] = (0.5*df*spec[1:-1])**0.5
@@ -984,7 +994,7 @@ def synthetic_ts(freq,spec):
     finalDFT = np.r_[ampDFTPhase,np.flipud(conjAmpDFTPhase)]
 
     # Compute the inverse Fourier Transform
-    syntTs = np.abs(np.fft.ifft(finalDFT*N))
+    syntTs = np.fft.ifft(finalDFT*N).real
     t = np.arange(0,N*dt,dt)
 
     return t,syntTs

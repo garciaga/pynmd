@@ -478,7 +478,8 @@ def uvstokes(Hwave,Dwave,Lwave,WDepth,VertDisc):
 #===============================================================================
 # TMA Spectrum
 #===============================================================================
-def tma(freq_peak,gamma,h,Hmo,freq_min=0.01,freq_max=1.0,freq_int=0.001):
+def tma(freq_peak,gamma,h,Hmo,freq_min=0.01,freq_max=1.0,freq_int=0.001,
+        zeroth=True):
     '''
     Function to generate TMA spectrum
 
@@ -494,6 +495,7 @@ def tma(freq_peak,gamma,h,Hmo,freq_min=0.01,freq_max=1.0,freq_int=0.001):
     freq_min     : Minimum frequency to compute the spectrum [Hz]
     freq_max     : Maximum frequency to compute the spectrum [Hz]
     freq_int     : Frequency inteval [Hz]
+    zeroth       : Prepend zeroth frequency (Default = True)
 
     Default values are 0.01, 1.0, and 0.001 Hz, respectively.
 
@@ -512,8 +514,9 @@ def tma(freq_peak,gamma,h,Hmo,freq_min=0.01,freq_max=1.0,freq_int=0.001):
 
     Notes
     -----
-    The units of the spectrum still do not make sense to me, must be verified.
-    No scaling applied, alpha = 1
+    - The units of the spectrum still do not make sense to me, must be verified.
+    - No scaling applied, alpha = 1
+    - Zeroth frequency is added to the spectrum
 
     '''
 
@@ -550,6 +553,10 @@ def tma(freq_peak,gamma,h,Hmo,freq_min=0.01,freq_max=1.0,freq_int=0.001):
              gamma ** np.exp(-1.0*((freq - freq_peak)**2)
                              /(2.0*(delta**2)*freq_peak**2)))
 
+    # Add zeroth frequency
+    if zeroth:
+        s_tma = np.r_[np.array([0.0]),spec_tma]
+        freq = np.r_[np.array([0.0]),freq]
 
     # End of function
     return s_tma,freq
@@ -559,9 +566,9 @@ def tma(freq_peak,gamma,h,Hmo,freq_min=0.01,freq_max=1.0,freq_int=0.001):
 # JONSWAP Spectrum
 #===============================================================================
 def jonswap(freq_peak,Hmo,gamma=3.3,freq_min=0.01,freq_max=1.0,
-            freq_int=0.001,goda=False):
+            freq_int=0.001,goda=False,zeroth=True):
     '''
-    Function to generate TMA spectrum
+    Function to generate JONSWAP spectrum
 
     Parameters
     ----------
@@ -577,8 +584,7 @@ def jonswap(freq_peak,Hmo,gamma=3.3,freq_min=0.01,freq_max=1.0,
     goda         : Use Y. Goda's approximation to the Jonswap spectrum.
                    If false we force the scaling of the spectrum to give the
                    same wave height passed as argument.
-
-    Default frequency values are 0.01, 1.0, and 0.001 Hz, respectively.
+    zeroth       : Prepend zeroth frequency (Default = True)
 
     Returns
     -------
@@ -592,7 +598,7 @@ def jonswap(freq_peak,Hmo,gamma=3.3,freq_min=0.01,freq_max=1.0,
 
     Notes
     -----
-    Need to add directional dispersion of the spectrum
+    - Default frequency values are 0.01, 1.0, and 0.001 Hz.
 
     '''
 
@@ -637,6 +643,14 @@ def jonswap(freq_peak,Hmo,gamma=3.3,freq_min=0.01,freq_max=1.0,
         alpha = 1.0/16.0 * Hmo**2 / np.trapz(spec_jonswap,freq)
         spec_jonswap = spec_jonswap * alpha
 
+    
+    # Add zeroth frequency and expand the spectrum
+    if zeroth:        
+        spec_jonswap_old = np.r_[np.array([0.0]),spec_jonswap]
+        freq_old = np.r_[np.array([0.0]),freq]
+        
+        freq = np.arange(0.0,freq_max+freq_int,freq_int)
+        spec_jonswap = np.interp(freq,freq_old,spec_jonswap_old)
 
     # End of function
     return spec_jonswap,freq
