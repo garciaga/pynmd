@@ -6,11 +6,12 @@ processing oceanographic data.
 
 Dependencies:
 -------------
-scipy, numpy, netCDF4, matplotlib, pandas
+scipy, numpy, netCDF4, matplotlib, pandas, okean
 
 
 Python:
 -------
+Developed for python 2.x
 
 Functions:
 ----------
