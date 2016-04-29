@@ -877,3 +877,55 @@ def fspec_bulk_params(freq,spec):
     # Exit function
     return {'Hs':Hs,'H1':H1,'Tp':Tp,'Tp_fit':Tp_fit,'Tm01':Tm01,'Tm02':Tm02,
             'Te':Te,'Sw':Sw}
+
+
+#===============================================================================
+# Wave Height and Period From time series
+#===============================================================================
+def whwpts(t,x,d='up'):
+    '''
+    Function to compute the wave height and wave period from a given time
+    series.
+    
+    USAGE:
+    ------
+    [wh,wp] = whwpts(t,x,d)
+    
+    PARAMETERS:
+    -----------
+    t  : Time vector
+    x  : Water surface elevation time series
+    d  : Accepts 'up' or 'down' for zero upcrossing or downcrossing,
+         respectively.
+    
+    RETURNS:
+    --------
+    wh : Wave height time series
+    wp : Wave period time series
+    
+    METHODS:
+    --------
+    1. Find zero crossings
+    2. Find time difference between zero crossing to get wp
+    3. Find the amplitude of the time series between each zero crossing to find
+       wh.
+    
+    NOTES:
+    ------
+    - x and t must have the same length
+    
+    '''
+    
+    # Find the zero crossings
+    zcross = gsignal.zero_crossing(x,d='up')
+    
+    # Find the wave period
+    wp = t[zcross[1:]] - t[zcross[:-1]]
+    
+    # Find wave height
+    wh = np.zeros_like(wp)
+    for aa in range(wh.shape[0]):
+        wh[aa] = (np.max(x[zcross[aa]:zcross[aa+1]]) -
+                  np.min(x[zcross[aa]:zcross[aa+1]]))
+        
+    return wh,wp 

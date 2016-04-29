@@ -950,7 +950,7 @@ def synthetic_ts(freq,spec):
     t      : Time vector which is a function of df and freq_max
     syntTs : Synthetic time series derived from the spectrum
 
-    Method:
+    METHOD:
     ------
     1. Frequency axis is assumed to go from 0 to the Nyquist frequency
     2. Amplitude of the discrete Fourier transform (DFT)
@@ -962,9 +962,11 @@ def synthetic_ts(freq,spec):
     5. Construct the two sided DFT (even number of entries will result)
     6. Perform an inverse DFT and generate the time series. 
 
-    TODO:
+    NOTES:
     -----
-    1. Deal with odd number of time steps in the function
+    1. Length of time series is determined by the frequency resolution
+    2. Time resolution of the synthetic time series is determined by the
+       maximum frequency. 
 
     '''
 
