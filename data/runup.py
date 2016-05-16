@@ -170,6 +170,9 @@ def runup_params(runup,ot):
 
     """
     
+    # Sampling time rate
+    dt = np.mean(ot[1:] - ot[:-1])
+    
     # Compute the setup
     setup = np.mean(runup)
     
@@ -177,7 +180,7 @@ def runup_params(runup,ot):
     swash = runup - setup
     
     # Compute spectrum
-    freq = np.fft.fftshift(np.fft.fftfreq(ot.shape[0],ot[1]-ot[0]))
+    freq = np.fft.fftshift(np.fft.fftfreq(ot.shape[0],dt))
     Nt = freq.shape[0]
     if np.mod(Nt,2) == 1:
         zero_ind = np.int((Nt - 1.0)/2.0)
@@ -188,7 +191,7 @@ def runup_params(runup,ot):
     # Compute spectrum
     ff = np.fft.fftshift(np.fft.fft(swash))
     #sf = (2.0/Nt*(ff[zero_ind:].real**2 + ff[zero_ind:].imag**2)**0.5)
-    sf = (ff[zero_ind:].real**2 + ff[zero_ind:].imag**2)/Nt*(ot[1]-ot[0])
+    sf = (ff[zero_ind:].real**2 + ff[zero_ind:].imag**2)/Nt*dt
     
     # Compute significant infragravity swash
     freq_ig = freq_amp<0.05

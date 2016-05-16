@@ -105,11 +105,11 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
     '''
     
     # For testing only
-    #workfld = '/scratch/temp/ggarcia/agate/out/'
-    #outfile = '/scratch/temp/ggarcia/agate/tmpout.nc'
-    #time_int = 0.5
-    #bathyfile = '/scratch/temp/ggarcia/agate/depth.nc'
-    #inpfile = '/scratch/temp/ggarcia/agate/input.txt'
+    #workfld = '/scratch/temp/ggarcia/spectralWidthFunwave/02-runs/results/'
+    #outfile = '/scratch/temp/ggarcia/spectralWidthFunwave/02-runs/test.nc'
+    #time_int = 0.1
+    #bathyfile = '/scratch/temp/ggarcia/spectralWidthFunwave/02-runs/depth.nc'
+    #inpfile = '/scratch/temp/ggarcia/spectralWidthFunwave/02-runs/input.txt'
 
     # Get variable information ------------------------------------------------
     archivos = os.listdir(workfld)                      # Get all files
@@ -346,6 +346,9 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
     
     twave = np.arange(time_min-1,time_int*(time_max-time_min+1)+time_min-1,
                       time_int)
+    if twave.shape[0] > len(tmpruns):
+        twave = twave[:-1]
+        
     nc.createVariable('ocean_time','f8','ocean_time')
     nc.variables['ocean_time'].units = 'seconds since 2000-01-01 00:00:00'
     nc.variables['ocean_time'].calendar = 'julian'
@@ -691,4 +694,25 @@ def freq_spec_1d(eta,dt=1,verbose=True):
     # End of function
     return freq_amp,sf
 
+
+
+#===============================================================================
+# Pyroms subroutine to write NetCDF fields
+#===============================================================================
+def create_nc_var(nc, name, dimensions, units=None, longname=None):
+    '''
+    Not for standalone use
+    '''
+    nc.createVariable(name, 'f8', dimensions)
+    if units is not None:
+        nc.variables[name].units = units
+    if longname is not None:
+        nc.variables[name].long_name = longname    
+
+# Append NetCDF variable        
+def append_nc_var(nc,var,name,tstep):
+    '''
+    Not for standalone use
+    '''
+    nc.variables[name][tstep,...] = var
 

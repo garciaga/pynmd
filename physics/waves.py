@@ -930,3 +930,54 @@ def whwpts(t,x,d='up'):
                   np.min(x[zcross[aa]:zcross[aa+1]]))
         
     return wh,wp,zcross
+
+
+
+#===============================================================================
+# Iribarrren number
+#===============================================================================
+def iribarren(m,H,wl,verbose=False):
+    '''
+    Function to compute surf similarity parameter (aka Iribarren number) for 
+    deep water conditions
+    
+    USAGE:
+    ------
+    ssp = iribarren(m,H,wl,verbose)
+    
+    PARAMETERS:
+    -----------
+    m       : Beach slope
+    H       : Wave height [m]
+    wl      : Wave length [m]
+    verbose : Display result in the terminal (Optional defaults to False)
+    
+    RETURNS:
+    --------
+    ssp     : surf similarity parameter
+    
+    FORMULA:
+    --------
+    ssp = tan(m)/(H/wl)**0.5
+       
+    NOTES:
+    ------
+    - ssp > 3.3: Reflective beach (surging or collapsing breakers)
+    - 0.5 < ssp < 3.3 : Intermediate beach (plunging breaker)
+    - ssp < 0.5 : Dissipative beach (spilling breaker)
+    
+    '''
+    
+    # Compute iribarren number
+    ssp = np.tan(m) / (H/wl)**0.5
+    
+    # Display message
+    if verbose:
+        if ssp >= 3.3:
+            print('ssp = ' + np.str(ssp) + ': Reflective conditions')
+        elif ssp < 0.5:
+            print('ssp = ' + np.str(ssp) + ': Dissipative conditions')
+        else:
+            print('ssp = ' + np.str(ssp) + ': Intermediate conditions')
+    
+    return ssp
