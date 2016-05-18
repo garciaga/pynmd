@@ -981,3 +981,108 @@ def iribarren(m,H,wl,verbose=False):
             print('ssp = ' + np.str(ssp) + ': Intermediate conditions')
     
     return ssp
+
+
+#===============================================================================
+# Battjes Parameter
+#===============================================================================
+def battjes04(m,h,igFreq,verbose=False):
+    '''
+    Function to compute the normalized bed slope proposed by Battjes et al 2004
+    
+    USAGE:
+    ------
+    nbd = battjes04(m,h,igFreq,verbose)
+    
+    PARAMETERS:
+    -----------
+    m       : Beach slope
+    h       : Characteristic water depth in shoaling region [m]
+    igFreq  : infragravity wave frequency [1/s]
+    verbose : Display result in the terminal (Optional defaults to False)
+    
+    RETURNS:
+    --------
+    nbd     : Normalized bed slope
+    
+    FORMULA:
+    --------
+    nbd = m/(2 * pi * igFreq) * (g/h)**0.5
+       
+    NOTES:
+    ------
+    The next values are given if the breaking depth is substituted for h
+    - nbd < 0.3: Mild slope regime, were breaking generation is not as important
+    - nbd > 0.3: Steep slope regime
+    
+    References:
+    -----------
+    Battjes , J. A., H. J. Bakkenes, T. T. Janssen, and A. R. van Dongeren,
+      2004: Shoaling of subharmonic gravity waves. Journal of Geophysical
+      Research, 109, C02009, doi:10.1029/2003JC001863.
+    
+    '''
+    
+    # Compute iribarren number
+    nbd = m / (2 * np.pi * igFreq) * (9.81/h)**0.5
+    
+    # Display message
+    if verbose:
+        if nbd < 0.3:
+            print('nbd = ' + np.str(nbd) + ': Mild slope')
+        else:
+            print('nbd = ' + np.str(nbd) + ': Steep slope')
+    
+    return nbd
+
+
+#===============================================================================
+# Baldock Parameter
+#===============================================================================
+def baldock12(m,h,igFreq,H,wl,verbose=False):
+    '''
+    Function to compute the surfbeat similarity parameter by Baldock 2012
+    
+    USAGE:
+    ------
+    sbs = battjes04(m,h,igFreq,verbose)
+    
+    PARAMETERS:
+    -----------
+    m       : Beach slope
+    h       : Characteristic water depth in shoaling region [m]
+    igFreq  : infragravity wave frequency [1/s]
+    H       : Shortwave offshore wave height [m]
+    wl      : Offshore wave length [m]
+    verbose : Display result in the terminal (Optional defaults to False)
+    
+    RETURNS:
+    --------
+    sbs     : Surfbeat similarity parameter
+    
+    FORMULA:
+    --------
+    sbs = m/(2 * pi * igFreq) * (g/h)**0.5 * (H/wl)**0.5
+       
+    NOTES:
+    ------
+    Really no clear guidance is given, however the smallest the number the least
+    effective breakpoint generation is.
+    
+    References:
+    -----------
+    Baldock, T. E., 2012: Dissipation of incident forced long waves in the 
+      surf zone - Implications for the concept of "bound" wave realease at
+      short wave breaking. Coastal Engineering, 276-285.
+
+    
+    '''
+    
+    # Compute iribarren number
+    sbs = m / (2 * np.pi * igFreq) * (9.81/h)**0.5 * (H/wl) ** 0.5
+    
+    # Display message
+    if verbose:
+            print('sbs = ' + np.str(sbs))
+    
+    return sbs
