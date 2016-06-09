@@ -356,7 +356,7 @@ def shallow_water_depth(period):
 #===============================================================================
 # Wave length
 #===============================================================================
-def wave_length(period,h):
+def wave_length(period,h,verbose=True):
     '''
     Compute wave length using linear wave theory
 
@@ -381,13 +381,14 @@ def wave_length(period,h):
     k = dispersion(period,h)
     wl_int = 9.81 / 2.0 / np.pi * period**2 * np.tanh(k*h)
 
-    print(' ')
-    print('---------------------------------------------------------')
-    print('Wave Length deep water approx      = ' + np.str(wl_deep) + ' m')
-    print('Wave Length shallow water approx   = ' + np.str(wl_sha) + ' m')
-    print('Wave Length linear wave theory     = ' + np.str(wl_int) + ' m')
-    print('---------------------------------------------------------')
-    print(' ')
+    if verbose:
+        print(' ')
+        print('---------------------------------------------------------')
+        print('Wave Length deep water approx      = ' + np.str(wl_deep) + ' m')
+        print('Wave Length shallow water approx   = ' + np.str(wl_sha) + ' m')
+        print('Wave Length linear wave theory     = ' + np.str(wl_int) + ' m')
+        print('---------------------------------------------------------')
+        print(' ')
 
     return wl_int
 
