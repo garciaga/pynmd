@@ -838,7 +838,7 @@ def depth_average(u,eta,h):
 #===============================================================================
 # Crest Tracking
 #===============================================================================
-def crest_tracks(eta,ot,twind,fonly=True,swfilter=False):
+def crest_tracks(eta,ot,twind,fonly=True,swfilter=False,upcross=False):
     """
     Code to track the wave crests from a water surface elevation matrix
     
@@ -856,6 +856,8 @@ def crest_tracks(eta,ot,twind,fonly=True,swfilter=False):
                Defaults to True
     swfilter : (Optional) Used to filter small waves. Uses 
                pynmd.tools.wave_tracking.local_extrema
+    upcross  : (Optional) Include wave crests based on zero-upcrossing in the 
+               seawardmost location.
     
     RETURNS:
     --------
@@ -868,12 +870,33 @@ def crest_tracks(eta,ot,twind,fonly=True,swfilter=False):
     - Add still water level as parameter to track waves when travelling seaward
     
     """
-
         
     # Local extrema analysis to identify the waves -----------------------------
     crest_ind = []
     
-    for aa in range(eta.shape[1]):
+    # Zero upcrossing for the offshore wave tracking
+    if upcross:
+        
+        # Find the zerocrossing indices
+        _,_,zcind = gwaves.whwpts(ot,eta[:,0])
+        
+        # Find the maxima based on the the location of the zero crossings
+        tmpInd = np.zeros_like(zcind,dtype=np.int64)
+        
+        for aa in range(zcind.shape[0]-1):
+            tmpInd[aa] = zcind[aa] + np.argmax(eta[zcind[aa]:zcind[aa+1],0])
+            
+        # Store in array            
+        crest_ind.append(tmpInd[:-1])
+        
+        # Looping variable
+        aaMin = 1
+    else:
+        # Looping variable
+        aaMin = 0
+    
+    # Use numerical derivatives to find extrema points
+    for aa in range(aaMin,eta.shape[1]):
         
         if swfilter:
             try:
@@ -889,7 +912,7 @@ def crest_tracks(eta,ot,twind,fonly=True,swfilter=False):
             crest_ind.append(ind_max)
             continue
         
-        # Extract offshore most time series
+        # Copy the time series
         z = eta[:,aa].copy()
         
         # Compute the first derivative of the data
@@ -919,7 +942,8 @@ def crest_tracks(eta,ot,twind,fonly=True,swfilter=False):
         crest_ind.append(ind_max)   
     
     
-    # Filtering ----------------------------------------------------------------    # Add small wave filter at the offshore end only
+    # Filtering ----------------------------------------------------------------
+    # Add small wave filter at the offshore end only
     
     # Find trajectories by looping in time and space
     trackIndices = (np.ones((len(crest_ind[0]),eta.shape[1]),dtype=np.int) * 

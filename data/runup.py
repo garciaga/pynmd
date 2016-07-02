@@ -45,6 +45,11 @@ def runup_maxima(x,ot,sten):
     ------
     All inputs should be numpy arrays
     
+    TODO:
+    -----
+    Add a function to get runup extrema with a filter for consecutive minima,
+      maxima. 
+    
     """
 
     # Local minima analysis to identify the waves -----------------------------

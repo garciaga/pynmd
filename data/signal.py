@@ -931,7 +931,7 @@ def ecdf(x):
 #==============================================================================
 # Synthetic Time Series
 #==============================================================================
-def synthetic_ts(freq,spec):
+def synthetic_ts(freq,spec,rseed=None):
     '''
     Generate a synthetic time series from an input spectrum using Fourier 
     techniques.
@@ -944,6 +944,7 @@ def synthetic_ts(freq,spec):
     -----------
     freq   : Frequency matrix
     spec   : One-sided power spectral density function
+    rseed  : (Optional) Seed for numpy's random number generator
 
     RETURNS:
     --------
@@ -985,6 +986,10 @@ def synthetic_ts(freq,spec):
     ampDFT[-1] = (df*spec[-1])**0.5
 
     # Obtain phases from a random number generator
+    if rseed:
+        print('Seeding with ' + np.str(rseed))
+        np.random.seed(rseed)
+        
     phases = np.random.rand(ampDFT.shape[0]) * 2.0 * np.pi
 
     # Incorporate the phases to the time Fourier transform

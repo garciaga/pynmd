@@ -88,7 +88,7 @@ def dispersion(period,h,u=None):
     '''
 
     if u is None:
-        u = 0
+        u = 0.0
 
     # Initialize wave number
 #     k = np.zeros(len(period))
