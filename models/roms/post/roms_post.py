@@ -145,6 +145,17 @@ def curlxy(x,y,z,u,v,w):
     return qx,qy
         
         
+def u_to_irho(uvar):
+    """
+    Convert a variable from u grid to interior rho grid
+    """
+    return (uvar[...,1:-1,:-1] + uvar[...,1:-1,1:]) / 2.0
+
+def v_to_irho(vvar):
+    """
+    Convert a variable from v grid to interior rho grid
+    """
+    return (vvar[...,:-1,1:-1] + vvar[...,1:,1:-1]) / 2.0    
 
 #===============================================================================
 # Write SWAN bathymetry file from either ROMS history file or bathymetry input 

@@ -7,6 +7,13 @@ from . import nhwave
 from . import roms
 from . import swan
 from . import ww3
-from . import delft3d
 from . import parametric
+from . import xbeach
 
+try:
+    from . import delft3d
+except:
+    print("Could not import Delft3D module")
+    print("  check your okean installation and try again")
+    print("  https://github.com/martalmeida/okean")
+    

@@ -970,13 +970,17 @@ def crest_tracks(eta,ot,twind,fonly=True,swfilter=False,upcross=False):
             # when identifying the local maxima)
             for cc in range(cmax):
                 
-                if crest_ind[bb+cc].size < 1:
-                    if cc == (cmax - 1):
-                        break_bb = True
-                        break
-                    else:
-                        continue                    
-                
+                try:
+                    if crest_ind[bb+cc].size < 1:
+                        if cc == (cmax - 1):
+                            break_bb = True
+                            break
+                        else:
+                            continue                    
+                except IndexError:
+                    break_bb = True
+                    break
+                    
                 # Find the maximum point within the input window
                 currCrestTime = ot[trackIndices[aa,bb-1]]
                 tmpDt = np.abs(currCrestTime - ot[crest_ind[bb+cc]])
