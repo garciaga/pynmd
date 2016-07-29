@@ -6,10 +6,11 @@ External dependencies:
   netCDF4, getpass, time, os, sys, numpy
 
 Internal dependencies:
+  swan.pre
 
 """
 
-from __future__ import division,print_function,absolute_import
+from __future__ import division,print_function
 __author__ = "Gabriel Garcia Medina"
 
 # Import modules
@@ -19,6 +20,9 @@ import time
 import os
 import sys
 import numpy as np
+
+# Internal dependencies
+from pynmd.models.swan import pre as gswan
 
 #===============================================================================
 # Write Grid
@@ -148,4 +152,16 @@ def write_bathy(x,z,outfld,y=None,ncsave=True):
     
     # End of function ----------------------------------------------------------
     
+
+#===============================================================================
+# Write boundary spectrum
+#===============================================================================
+def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
+                        sdir=None):
+    """
+    Calls pynmd.models.swan.pre.write_boundary_spec
+    """
+    
+    gswan.write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
+                              sdir=None)
     

@@ -9,7 +9,7 @@ Internal dependencies:
 
 """
 
-from __future__ import division,print_function,absolute_import
+from __future__ import division,print_function
 
 import numpy as np
 
