@@ -159,9 +159,9 @@ def write_bathy(x,z,outfld,y=None,ncsave=True):
 def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
                         sdir=None):
     """
-    Calls pynmd.models.swan.pre.write_boundary_spec
+    Calls pynmd.models.swan.pre.write_boundary_spec. Remember xbeach wants a 2D
+    file. 
     """
     
-    gswan.write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
-                              sdir=None)
+    gswan.write_boundary_spec(freq,spec,locations,outfile,waveTime,sdir)
     
