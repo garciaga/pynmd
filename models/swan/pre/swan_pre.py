@@ -77,7 +77,7 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
         fid.write('%12.8f' % freq[aa] + '\n')
     
     # Directions
-    if sdir:
+    if sdir is not None:
         fid.write('NDIR\n')
         fid.write('%12.0f' % sdir.shape[0] + '\n')
         for aa in range(sdir.shape[0]):
@@ -103,7 +103,7 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
     for aa in range(spec.shape[-2]):
         # Direction loop
         for bb in range(spec.shape[-1]):
-            fid.write('%16.8f' % spec[aa,bb])
+            fid.write('%16.10f' % spec[aa,bb])
         # One row per frequency with all directions
         fid.write('\n')
 

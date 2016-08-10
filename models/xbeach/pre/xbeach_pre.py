@@ -157,11 +157,62 @@ def write_bathy(x,z,outfld,y=None,ncsave=True):
 # Write boundary spectrum
 #===============================================================================
 def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
-                        sdir=None):
+                        sdir=None,swan=True):
     """
-    Calls pynmd.models.swan.pre.write_boundary_spec. Remember xbeach wants a 2D
-    file. 
+    Writes boundary spectra file for xbeach
+    
+    PARAMETERS:
+    -----------
+    freq       :       Frequency [Hz]
+    spec :       Spectrum [m2/Hz/Deg]
+    locations  : Vector of location of points
+    waveTime   : (Optional) Time vector [s]
+    sdir       : (Optional) Direction vector
+    swan       : Write in swan format (Default = True). If False then 
+    
+    NOTES:
+    ------
+    - If SWAN spectrum is true then this function serves as a wrapper for
+      pynmd.models.swan.pre.write_boundary_spec. 
+    - Remember xbeach wants a 2D file.
+    - The angles in the input file are direction waves go to. So an angle of 0
+      means waves travel in the x axis direction.
+    
     """
     
-    gswan.write_boundary_spec(freq,spec,locations,outfile,waveTime,sdir)
+    if swan:
+        print('Writting swan formatted input, Instat = 5')
+        gswan.write_boundary_spec(freq,spec,locations,outfile,waveTime,sdir)
+        return
+    
+    # Generic xbeach spectrum --------------------------------------------------
+    print('Writing 2D spectrum for Instat = 6')
+       
+    # Open the output file
+    fid = open(outfile,'w')
+       
+    # Frequencies
+    fid.write('%12.0f' % freq.shape[0] + '\n')
+    for aa in range(freq.shape[0]):
+        fid.write('%12.8f' % freq[aa] + '\n')
+    
+    # Directions
+    if sdir is not None:
+        fid.write('%12.0f' % sdir.shape[0] + '\n')
+        for aa in range(sdir.shape[0]):
+            fid.write('%16.4f' % sdir[aa] + '\n')
+    
+    # Frequency loop
+    for aa in range(spec.shape[-2]):
+        # Direction loop
+        for bb in range(spec.shape[-1]):
+            fid.write('%16.10f' % spec[aa,bb])
+        # One row per frequency with all directions
+        fid.write('\n')
+
+    # Close the file
+    fid.close()
+        
+    return
+        
     
