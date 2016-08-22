@@ -292,6 +292,8 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
             
     else:
         
+        inpinfo = None
+        
         if verbose:
             print("Input file not provided")
     

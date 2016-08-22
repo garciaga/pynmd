@@ -229,3 +229,97 @@ def write_bathy_1d(x,h,path,ncsave=True):
     
     # End of function
     
+
+#===============================================================================
+# Write 2d spectrum
+#===============================================================================
+def writeSpec2d(freq,dirs,spec,outFld):
+    """
+    Code to write a 2D spectra file to be read from NHWAVE if INT_SPC or
+    LEF_SPC options are used.
+    
+    PARAMETERS:
+    -----------
+    freq   : Numpy array of frequencies
+    dirs   : Numpy array of directions
+    spec   : Spectrum from which to derive the wave time series.
+             Size should be spec.shape = (numFreq,numDir)
+    outFld : Folder to write the output file. The default name will be used for
+             the spectra file (i.e. outFld + spc2d.txt)
+    
+    RETURNS:
+    --------
+    spc2d.txt in outFld         
+    
+    NOTES:
+    ------
+    - Relevant NHWAVE code is around line 7787 in nhwave.F
+    - To use the spectra to force the model the user must select INT_SPC or 
+      LEF_SPC from the menu.
+    - Shorenormal direction on a west coast beach is given by an angle of 0
+        
+    """
+
+    # Compute some parameters
+    numFreq = freq.shape[0]
+    numDir  = dirs.shape[0]
+    
+    # Create output text file
+    fid = open(outFld + 'spc2d.txt','w')
+    print('File created ' + outFld + 'spc2d.txt')
+    
+    # Write the dimensions
+    fid.write('%12.0f %12.0f\n' % (numFreq,numDir))
+    for aa in range(numFreq):
+        fid.write('%16.12f\n' % freq[aa])
+    for aa in range(numDir):
+        fid.write('%16.10f\n' % dirs[aa])
+
+    # Write the spectrum
+    for aa in range(numFreq):
+        for bb in range(numDir):
+            fid.write('%16.12f\n' % spec[aa,bb])
+    fid.close()
+    
+
+
+def writeSpec1d(freq,spec,outFld):
+    """
+    Code to write a 1D spectra file to be read from NHWAVE if INT_SP1 is
+    selected.
+    
+    PARAMETERS:
+    -----------
+    freq   : Numpy array of frequencies
+    spec   : Spectrum from which to derive the wave time series.
+    outFld : Folder to write the output file. The default name will be used for
+             the spectra file (i.e. outFld + spc1d.txt)
+    
+    RETURNS:
+    --------
+    spc1d.txt in outFld         
+    
+    NOTES:
+    ------
+    - To use the spectra to force the model the user must select INT_SP1
+        
+    """
+
+    # Compute some parameters
+    numFreq = freq.shape[0]
+    
+    # Create output text file
+    fid = open(outFld + 'spc1d.txt','w')
+    print('File created ' + outFld + 'spc1d.txt')
+    
+    # Write the dimensions
+    fid.write('%12.0f\n' % numFreq)
+    for aa in range(numFreq):
+        fid.write('%16.12f\n' % freq[aa])
+
+    # Write the spectrum
+    for aa in range(numFreq):
+            fid.write('%16.12f\n' % spec[aa])
+    fid.close()
+    
+    
