@@ -187,7 +187,7 @@ def roms_to_swan_bathy_rect(hisfile,outfld,sstacks):
   
   # Extend the grid
   if sstacks % 2 == 0:
-    print "sstacks input cannot be an even number, quitting..."
+    print("sstacks input cannot be an even number, quitting...")
     return
   
   # Load variables of interest from the ocean_his.nc file

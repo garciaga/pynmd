@@ -411,7 +411,7 @@ def spec2nc(buoyfld,dtheta=5):
     angles = np.arange(0.0,360.0,dtheta)
     
     # Time reference
-    basetime = datetime.datetime(1900,01,01,0,0,0)
+    basetime = datetime.datetime(1900,1,1,0,0,0)
 
     #===========================================================================
     # Read file information
