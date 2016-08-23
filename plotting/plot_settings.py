@@ -157,7 +157,7 @@ def print_nc_dates(ref_grd,time_key):
     utim_obs=netcdftime.utime(ncv_obs[time_key].units)
     sec_obs=ncv_obs[time_key][:]
     date_obs=utim_obs.num2date(sec_obs)
-    print date_obs
+    print(date_obs)
     return date_obs
 
 ############################

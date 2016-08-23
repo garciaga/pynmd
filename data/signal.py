@@ -187,13 +187,13 @@ def psdraw(ts,dt=1,demean=False):
 
     # One sided psd from dft
     if np.mod(N,2) == 0:
-	   sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N/2],
+       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N/2],
                             np.array([psd[N/2]])))
-	   freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N/2],
+       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N/2],
                                          np.array([fj[N/2]]))))
     else:
-	   sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:(N+1)/2]))
-	   freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:(N+1)/2])))
+       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:(N+1)/2]))
+       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:(N+1)/2])))
 
 
     # End of function

@@ -1,2 +1,2 @@
 # Import physics packages
-import waves
+from . import waves

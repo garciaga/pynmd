@@ -251,20 +251,20 @@ def roms_to_swan_bathy_rect(hisfile,outfld,sstacks):
   fid.close()
   
   #---------------------------------------------------------- Output for swan.in
-  print ' '
-  print "======================================================================"
-  print "Created swan_coord.grd and swan_bathy.bot"
-  print ('CGRID REGULAR ' + np.str(x_rho.min()) + ' ' + 
-         np.str(y_rho.min()) + ' 0 ' + np.str(x_rho.max() - x_rho.min()) + ' ' +
-         np.str(y_rho.max() - y_rho.min()) + ' ' + 
-         np.str(x_rho.shape[1]-1) + ' ' + np.str(x_rho.shape[0]-1) + 
-         ' CIRCLE ...')
-  print ('INPGRID BOTTTOM REGULAR ' + np.str(x_rho.min()) + ' ' +
-           np.str(y_rho.min()) + ' 0 ' + np.str(x_rho.shape[1]-1) + ' ' +
-           np.str(x_rho.shape[0]-1) + ' ' + 
-           np.str(np.abs(x_rho[0,1] - x_rho[0,0])) + ' ' +
-           np.str(np.abs(y_rho[1,0] - y_rho[0,0])) + ' EXC ...')
-  print "======================================================================"    
+  print(' ')
+  print("=====================================================================")
+  print("Created swan_coord.grd and swan_bathy.bot")
+  print('CGRID REGULAR ' + np.str(x_rho.min()) + ' ' + 
+        np.str(y_rho.min()) + ' 0 ' + np.str(x_rho.max() - x_rho.min()) + ' ' +
+        np.str(y_rho.max() - y_rho.min()) + ' ' + 
+        np.str(x_rho.shape[1]-1) + ' ' + np.str(x_rho.shape[0]-1) + 
+        ' CIRCLE ...')
+  print('INPGRID BOTTTOM REGULAR ' + np.str(x_rho.min()) + ' ' +
+         np.str(y_rho.min()) + ' 0 ' + np.str(x_rho.shape[1]-1) + ' ' +
+         np.str(x_rho.shape[0]-1) + ' ' + 
+         np.str(np.abs(x_rho[0,1] - x_rho[0,0])) + ' ' +
+         np.str(np.abs(y_rho[1,0] - y_rho[0,0])) + ' EXC ...')
+  print("=====================================================================")    
   
   
   
@@ -324,14 +324,14 @@ def roms_to_swan_bathy_curv(hisfile,outfld):
   fid.close()  
   
   #---------------------------------------------------------- Output for swan.in
-  print ' '
-  print "========================================================"
-  print "Created swan_coord.grd and swan_bathy.bot"
-  print ('CGRID CURVILINEAR ' + np.str(h.shape[1]-1) + ' ' + 
-         np.str(h.shape[0]-1) + ' CIRCLE ...')
-  print ('INPGRID BOTTTOM CURVILINEAR 0 0 ' + np.str(h.shape[1]-1) + ' ' + 
-         np.str(h.shape[0]-1) + ' EXC ...')
-  print "========================================================"  
+  print(' ')
+  print("=====================================================================")
+  print("Created swan_coord.grd and swan_bathy.bot")
+  print('CGRID CURVILINEAR ' + np.str(h.shape[1]-1) + ' ' + 
+        np.str(h.shape[0]-1) + ' CIRCLE ...')
+  print('INPGRID BOTTTOM CURVILINEAR 0 0 ' + np.str(h.shape[1]-1) + ' ' + 
+        np.str(h.shape[0]-1) + ' EXC ...')
+  print("=====================================================================")  
 
 
                 

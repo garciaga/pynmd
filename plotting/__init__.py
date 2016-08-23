@@ -1,7 +1,7 @@
 #
-import gplot
-import points_inside
-import octant_plotting
-import plot_settings
-import colormaps
-import vars_param
+from . import gplot
+from . import points_inside
+from . import octant_plotting
+from . import plot_settings
+from . import colormaps
+from . import vars_param

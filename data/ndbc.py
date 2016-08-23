@@ -255,7 +255,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
                                             int(tmpdata[aa,3]),
                                             int(mm[aa]),
                                             0)
-                sectime = tmptime - datetime.datetime(1900,01,01,0,0,0)
+                sectime = tmptime - datetime.datetime(1900,1,1,0,0,0)
                 secsecs = sectime.total_seconds()
                 wavetime = np.concatenate([wavetime,np.array([secsecs])])            
                 del tmptime,sectime,secsecs
@@ -311,11 +311,11 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
       
     # Global attributes  
     if ncformat == 4:
-        print "Saving the buoy data with NetCDF4 format"
+        print("Saving the buoy data with NetCDF4 format")
         nc = netCDF4.Dataset(buoyfld + '/' + buoyid + '.nc', 'w',
                              format='NETCDF4')
     else:
-        print "Saving the buoy data with NetCDF3 format"
+        print("Saving the buoy data with NetCDF3 format")
         nc = netCDF4.Dataset(buoyfld + '/' + buoyid + '.nc', 'w', 
                              format='NETCDF3_CLASSIC')
     nc.Description = buoyid + ' NDBC Bulk Parameter Data'
