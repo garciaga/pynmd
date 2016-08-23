@@ -1,2 +1,2 @@
-import stretching
-import set_depth
+from . import stretching
+from . import set_depth

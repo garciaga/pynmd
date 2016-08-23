@@ -70,7 +70,7 @@ __group__ = "UCLA ROMS"
 
 import numpy as np
 import pylab as pl
-from stretching import stretching
+from . import stretching
 
 def set_depth( Vtr, Vstr, thts, thtb, hc, N, igrid, h, zeta ):
     Np      = N+1
