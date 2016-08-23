@@ -46,6 +46,39 @@ def datenum_to_datetime(ma_datenum):
     return py_datetime
     
 
+# ==============================================================================
+# Convert from datetime (python) to datenum (matlab)
+# ==============================================================================
+def datetime_to_datenum(py_datetime):
+    '''
+    Tool to convert from Matlab's datenum to python's datetime
+    
+    PARAMETERS
+    ----------
+    py_datetime   : numpy array with ma_datenum in python's datetime format
+    
+    RETURNS
+    -------
+    ma_datenum    : matlab datetime numpy array
+    
+    NOTES:
+    -------
+    Matlab datenum is a fractional number that represents dates as days from
+    0 January 0000.
+    
+    '''
+    
+    datetimeBase = datetime.datetime(1,1,1)     # Lowest possible datetime
+    matlabOffset = datetime.timedelta(days=367) # Matlab starts at year 0
+    
+    ma_datetime = np.array([(py_datetime[aa] - datetimeBase + 
+                             matlabOffset).total_seconds()/(3600.0 * 24.0)
+                           for aa in range(py_datetime.shape[0])])
+                       
+    return ma_datetime
+    
+
+
 #===============================================================================
 # Read pre-hdf5 matfiles
 #===============================================================================
