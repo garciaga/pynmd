@@ -39,7 +39,7 @@ import numpy as np
 import sys
 import scipy as spi
 import scipy.stats
-
+import scipy.signal
 
 # =============================================================================
 # Cross correlation Function
@@ -1006,3 +1006,72 @@ def synthetic_ts(freq,spec,rseed=None):
     t = np.arange(0,N*dt,dt)
 
     return t,syntTs
+
+
+#===============================================================================
+# Band pass filtering
+#===============================================================================
+def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
+    """
+    Frequency domain filtering
+    
+    PARAMETERS:
+    -----------
+    y       : Time series to filter
+    dt      : Sampling interval of the time series of interest
+    freqmin : (Optional) minimum frequency to keep
+    freqmax : (Optional) maximum frequency to keep
+    demean  : Remove mean from data
+    window  : Apply a hamming window to the data
+    
+    RETURNS:
+    --------
+    yflt    : Frequency domain filtered dataset
+    
+    NOTES:
+    ------
+    - Need to provide freqmin or freqmax at least. Provide both for band pass
+      filtering.
+    
+    """
+    
+    # Check for frequency input
+    if not freqmin and not freqmax:
+        print('Need to provide one freqmin or freqmax at least')
+        yflt = np.zeros_like(y) * np.NAN
+        return yflt
+    
+    # Get fourier frequencies
+    freq = np.fft.fftfreq(y.shape[0],dt)
+    
+    # Find frequencies to remove
+    if freqmin and freqmax:
+        # Band pass filtering
+        rmvInd = np.logical_or(freq<freqmin,freq>freqmax)
+    elif freqmin:
+        # Low pass filtering
+        rmvInd = freq < freqmin
+    else:
+        # High pass filtering
+        rmvInd = freq > freqmax
+        
+    # Remove mean if requested
+    if demean:
+        dataMean = np.mean(y)
+        y = y - dataMean
+    else:
+        dataMean = 0.0
+        
+    # Window data if requested
+    if window:
+        hamWind = spi.signal.hamming(y.shape[0])
+        y       *= hamWind
+    else:
+        hamWind = np.ones_like(y)
+        
+    # Apply frequency domain filter
+    dft = np.fft.fft(y)
+    dft[rmvInd] = 0.0j
+    yflt = (np.fft.ifft(dft).real)/hamWind + dataMean
+    
+    return yflt

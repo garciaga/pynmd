@@ -1,6 +1,6 @@
-from . import models
-from . import physics
 from . import data
+from . import physics
+from . import models
 from . import plotting
 from . import tools
 
