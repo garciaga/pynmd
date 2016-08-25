@@ -892,7 +892,7 @@ def ecdf(x):
 
     USAGE:
     ------
-    [xS,p] = ecdf(x)
+    [xS,p,sInd] = ecdf(x)
 
     PARAMETERS:
     -----------
@@ -900,8 +900,9 @@ def ecdf(x):
 
     RETURNS:
     --------
-    xS : Sorted x values
-    p  : Probability
+    xS   : Sorted x values
+    p    : Probability
+    sInd : Sorting index
 
     NOTES:
     ------
@@ -922,10 +923,12 @@ def ecdf(x):
     p = np.arange(1.0,xLen+1.0,1.0)/xLen
 
     # Sort time series
-    xS = np.sort(x)
+    sInd = np.argsort(x)
+    xS = x[sInd]
+    
 
     # End of Function
-    return xS,p
+    return xS,p,sInd
 
 
 #==============================================================================
