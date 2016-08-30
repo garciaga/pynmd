@@ -98,7 +98,7 @@ def mda_simp(x,numClust,dirvar,seed=None):
     # Loop over desired clusters
     for aa in range(1,numClust):
         
-        # Find the normalized distance between the other elements in the array -----
+        # Find the normalized distance between the other elements in the array
         dif = np.zeros_like(x) * np.NAN
         
         # Loop over characteristics
@@ -117,7 +117,7 @@ def mda_simp(x,numClust,dirvar,seed=None):
         # Square the differences and sum over them
         distance = np.min(np.c_[distance,np.sum(dif**2,axis=1)],axis=1)
         
-        # Find the farthest most point ---------------------------------------------
+        # Find the farthest most point -----------------------------------------
         clustInd = np.argmax(distance)
         
         # Allocate the new cluster

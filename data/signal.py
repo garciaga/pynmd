@@ -1045,7 +1045,7 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
         return yflt
     
     # Get fourier frequencies
-    freq = np.fft.fftfreq(y.shape[0],dt)
+    freq = np.abs(np.fft.fftfreq(y.shape[0],dt))
     
     # Find frequencies to remove
     if freqmin and freqmax:
