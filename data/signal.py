@@ -488,7 +488,7 @@ def band_averaging(psd,freq,stencil):
 #===============================================================================
 # Very simple implementation of a boxcar function for averaging purposes.
 #===============================================================================
-def boxcar(y,span):
+def boxcar(y,span,nanTreat=False):
     """
 
     Usage:
@@ -500,6 +500,8 @@ def boxcar(y,span):
        - y is the signal that will be filtered
        - span is the stencil width (should be an odd number, otherwise it will
          be forced to be so)
+       - nanTreat (default = False) if true uses nansum instead of sum. Does
+         not affect end treatment.
 
     Results
     -------
@@ -537,8 +539,13 @@ def boxcar(y,span):
     first = np.int(np.ceil(width/2.0) - 1.0)
     last = np.int(y.shape[0] - first - 1.0)
 
-    for aa in range(first,last+1):
-        ybox[aa] = np.sum(y[aa-offset:aa+offset+1],axis=0)/width
+    if nanTreat:
+        for aa in range(first,last+1):
+            tmpW = np.sum(np.isfinite(y[aa-offset:aa+offset+1]),axis=0)
+            ybox[aa] = np.nansum(y[aa-offset:aa+offset+1],axis=0)/tmpW
+    else:
+        for aa in range(first,last+1):        
+            ybox[aa] = np.sum(y[aa-offset:aa+offset+1],axis=0)/width
 
     # Provide end treatment
     for aa in range(0,first):
