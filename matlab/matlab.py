@@ -109,6 +109,6 @@ def read_mat(matfile):
     except NotImplementedError:
         print('Could not read mat file, it may be HDF5')
         print('If that is the case use h5py module to read')
-        s = []
+        s = {}
         
     return s
