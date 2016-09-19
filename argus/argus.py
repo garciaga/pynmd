@@ -20,7 +20,7 @@ def epoch_to_datetime(epoch):
     
     PARAMETERS
     ----------
-    ma_datenum    : matlab datetime numpy array
+    ma_datenum    : array with epoch times
     
     RETURNS
     -------
@@ -35,4 +35,35 @@ def epoch_to_datetime(epoch):
                             datetime.datetime(1970,1,1,0,0,0)
                             for aa in range(epoch.shape[0])])
                    
-    return py_datetime    
+    return py_datetime
+
+#==============================================================================
+# Tool to convert from datetime to epoch
+#==============================================================================
+def datetime_to_epoch(py_datetime):
+    '''
+    Tool to convert from UNIX Epoch time as used inn the Argus system into
+    python's datetime.
+    
+    PARAMETERS
+    ----------
+    py_datetime   : numpy array with ma_datenum in python's datetime format   
+    
+    RETURNS
+    -------
+    epoch         : numpy array with epoch times
+    
+    '''
+           
+    # Convert to epoch time
+    # Check if it is just one value
+    if np.size(py_datetime) == 1:
+        epoch = (py_datetime - 
+                 datetime.datetime(1970,1,1,0,0,0)).total_seconds()
+        epoch = np.array([epoch])
+                         
+    else:
+        epoch = np.array([(aa - datetime.datetime(1970,1,1,0,0,0)).total_seconds()
+                          for aa in py_datetime])
+
+    return epoch
