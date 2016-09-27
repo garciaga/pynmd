@@ -7,6 +7,8 @@ Created on Tue Dec  1 15:50:55 2015
 Tools for managing Arugs information and imagery
 """
 
+#__all__ = ["epoch_to_datetime","datetime_to_epoch"]
+
 import numpy as np
 import datetime
 
@@ -31,10 +33,14 @@ def epoch_to_datetime(epoch):
     # Convert to double
     epoch = np.double(epoch)
     
-    py_datetime = np.array([datetime.timedelta(seconds=epoch[aa]) +                             
-                            datetime.datetime(1970,1,1,0,0,0)
-                            for aa in range(epoch.shape[0])])
-                   
+    if epoch.size == 1:
+        py_datetime = (datetime.timedelta(seconds=epoch) + 
+                       datetime.datetime(1970,1,1,0,0,0))
+    else:
+        py_datetime = np.array([datetime.timedelta(seconds=epoch[aa]) +                             
+                                datetime.datetime(1970,1,1,0,0,0)
+                                for aa in range(epoch.shape[0])])
+
     return py_datetime
 
 #==============================================================================

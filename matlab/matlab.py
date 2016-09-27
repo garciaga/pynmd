@@ -36,13 +36,20 @@ def datenum_to_datetime(ma_datenum):
     py_datetime   : numpy array with ma_datenum in python's datetime format
     
     '''
-    
-   
-    py_datetime = np.array([datetime.datetime.fromordinal(int(ma_datenum[aa])) +
-                   datetime.timedelta(days=ma_datenum[aa]%1) -
-                   datetime.timedelta(days=366)
-                   for aa in range(ma_datenum.shape[0])])
-                   
+
+    # Convert to double
+    ma_datenum = np.double(ma_datenum)
+       
+    if ma_datenum.size == 1:
+        py_datetime = (datetime.datetime.fromordinal(int(ma_datenum)) + 
+                       datetime.timedelta(days=ma_datenum%1) - 
+                       datetime.timedelta(days=366))
+    else:   
+        py_datetime = np.array([datetime.datetime.fromordinal(int(ma_datenum[aa])) +
+                                datetime.timedelta(days=ma_datenum[aa]%1) -
+                                datetime.timedelta(days=366)
+                                for aa in range(ma_datenum.shape[0])])
+
     return py_datetime
     
 
@@ -67,13 +74,18 @@ def datetime_to_datenum(py_datetime):
     0 January 0000.
     
     '''
-    
+   
+    # Define constants
     datetimeBase = datetime.datetime(1,1,1)     # Lowest possible datetime
     matlabOffset = datetime.timedelta(days=367) # Matlab starts at year 0
     
-    ma_datetime = np.array([(py_datetime[aa] - datetimeBase + 
-                             matlabOffset).total_seconds()/(3600.0 * 24.0)
-                           for aa in range(py_datetime.shape[0])])
+    if np.size(py_datetime) == 1:
+        ma_datetime = (py_datetime - datetimeBase + 
+                       matlabOffset).total_seconds()/(3600.0 * 24.0)
+    else:
+        ma_datetime = np.array([(py_datetime[aa] - datetimeBase + 
+                                 matlabOffset).total_seconds()/(3600.0 * 24.0)
+                               for aa in range(py_datetime.shape[0])])
                        
     return ma_datetime
     
