@@ -17,6 +17,7 @@ Internal Dependencies:
 """
 
 from __future__ import division,print_function
+import datetime as _datetime
 
 # Import internal modules ------------------------------------------------------
 
@@ -78,3 +79,23 @@ def epoch_to_datenum(epoch):
     
     return ma_datenum
     
+# Day of year ------------------------------------------------------------------
+def dayOfYear(year,month,day):
+    """
+    Returns the day of the year
+    
+    PARAMETERS
+    ----------
+    year      : year
+    month     : month
+    day       : day
+    
+    RETURNS:
+    --------
+    dayOfYear : day of the year
+    
+    """    
+    
+    a = _datetime.datetime(year,month,day) - _datetime.datetime(year,1,1)
+    
+    return a.days + 1
