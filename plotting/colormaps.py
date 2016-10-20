@@ -12,8 +12,17 @@
 # You should have received a copy of the CC0 legalcode along with this
 # work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+from __future__ import division,print_function
+
 __all__ = ['magma', 'inferno', 'plasma', 'viridis','parula']
 
+import pylab as _pl
+import numpy as _np
+from matplotlib.colors import ListedColormap as _ListedColormap
+
+#==============================================================================
+# Define some colormaps
+#==============================================================================
 _magma_data = [[0.001462, 0.000466, 0.013866],
                [0.002258, 0.001295, 0.018331],
                [0.003279, 0.002305, 0.023708],
@@ -1299,7 +1308,6 @@ _parula_data = [[0.2081, 0.1663, 0.5292],
                 [0.9736, 0.9752, 0.0597],
                 [0.9763, 0.9831, 0.0538]]                 
 
-from matplotlib.colors import ListedColormap
 
 cmaps = {}
 for (name, data) in (('magma', _magma_data),
@@ -1308,10 +1316,91 @@ for (name, data) in (('magma', _magma_data),
                      ('viridis', _viridis_data),
                      ('parula', _parula_data)):
 
-    cmaps[name] = ListedColormap(data, name=name)
+    cmaps[name] = _ListedColormap(data, name=name)
 
 magma = cmaps['magma']
 inferno = cmaps['inferno']
 plasma = cmaps['plasma']
 viridis = cmaps['viridis']
 parula = cmaps['parula']
+
+#==============================================================================
+# Jet colorbar without green
+#==============================================================================
+def jetWoGn(reverse=False):
+    """
+    jetWoGn(reverse=False)
+       - returning a colormap similar to cm.jet, but without green.
+         if reverse=True, the map starts with red instead of blue.
+         
+    Notes 
+    -----
+    Courtesy of Dr. Saeed Moghimi
+    
+    """
+    m=18 # magic number, which works fine
+    #m0=_pl.floor(m*0.0)
+    m1=_pl.floor(m*0.2)
+    m2=_pl.floor(m*0.2)
+    m3=_pl.floor(m/2)-m2-m1
+
+    b_ = _np.hstack( (0.4*_np.arange(m1)/(m1-1.)+0.6, _np.ones((m2+m3,)) ) )
+    g_ = _np.hstack( (_np.zeros((m1,)),_np.arange(m2)/(m2-1.),_np.ones((m3,))) )
+    r_ = _np.hstack( (_np.zeros((m1,)),_np.zeros((m2,)),_np.arange(m3)/(m3-1.)))
+
+    r = _np.hstack((r_,_pl.flipud(b_)))
+    g = _np.hstack((g_,_pl.flipud(g_)))
+    b = _np.hstack((b_,_pl.flipud(r_)))
+
+    if reverse:
+        r = _pl.flipud(r)
+        g = _pl.flipud(g)
+        b = _pl.flipud(b)
+
+    ra = _pl.linspace(0.0,1.0,m)
+
+    cdict = {'red': zip(ra,r,r),
+            'green': zip(ra,g,g),
+            'blue': zip(ra,b,b)}
+
+    return _pl.matplotlib.colors.LinearSegmentedColormap('new_RdBl',cdict,256)
+
+
+#===============================================================================
+# Get colormap colors
+#===============================================================================
+def get_colormap_colors(N,cmapname='jet'):
+    """
+    
+    PARAMETERS:
+    -----------
+    N          : Number of colors to return
+    cmapname   : Name of colormap (defaults to jet)
+    
+    RETURNS:
+    --------
+    colors     : Nx4 list of colors [(R,G,B,1.0)]
+    
+    """
+    
+    # Get colormap
+    cl_map = _pl.cm.get_cmap(cmapname)
+     
+    # Extract all the colours
+    cl_col = _np.array([cl_map(ii) for ii in range(cl_map.N)])
+     
+    # Linear interpolation
+    r_N = _np.interp(_np.arange(N)/(N-1.0),
+                    _np.arange(cl_map.N)/(cl_map.N-1.0),cl_col[:,0])
+    g_N = _np.interp(_np.arange(N)/(N-1.0),
+                    _np.arange(cl_map.N)/(cl_map.N-1.0),cl_col[:,1])
+    b_N = _np.interp(_np.arange(N)/(N-1.0),
+                    _np.arange(cl_map.N)/(cl_map.N-1.0),cl_col[:,2])          
+     
+    # Allocate in array
+    colors = []
+    for aa in range(r_N.shape[0]):
+        colors.append((r_N[aa],g_N[aa],b_N[aa],1.0))
+         
+    return colors
+

@@ -1,5 +1,3 @@
-#
-from . import gplot
 from . import points_inside
 from . import octant_plotting
 from . import plot_settings
