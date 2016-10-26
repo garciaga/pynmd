@@ -31,6 +31,7 @@ __group__ = 'Nearshore Modeling Group'
 
 # Import Modules
 import numpy as np
+import datetime
 
 #===============================================================================
 # Read wave spectrum 
@@ -49,20 +50,20 @@ def read_spec(specfile):
     
     Returns
     -------
-    ww3spec: dictionary
-             Contains
+    dictionary with contents
                'coords'       : x,y coordiate of spectra points
                'dirs'         : spectral directions in radians from true north
                'freq'         : spectral frequencies in Hz
                'spec'         : 4D array of spectral density data
+                                (time,locations,frequencies,directions)
+               'ot'           : Array of time stamps
                'info'         : General information
                
     Notes:
-        Tested on SWAN 41.01A only.        
-        Only works for stationary output.
+        Tested on SWAN 41.01A only
         
     '''
- 
+
     # Find the length of the file and get dates
     fobj = open(specfile,'r')    
 
@@ -75,8 +76,15 @@ def read_spec(specfile):
     info['Project'] = tmpline[2]   
 
     
-    # Change for non stationary file
-    fobj.readline()
+    # Find if time dependent data is present
+    tmpline = fobj.readline().split(' ')[0]
+    if tmpline == 'TIME':
+        timeDep = True
+        # Do not need the extra two lines
+        fobj.readline() # Time coding option (may need later)
+        fobj.readline() # Locations header
+    else:
+        timeDep = False
 
     # Get number of locations
     tmpline = fobj.readline().split()
@@ -126,41 +134,80 @@ def read_spec(specfile):
     tmpline = fobj.readline().split()
     info['spec_units'] = tmpline[0]
     
+    # Scale the spectrum depending on the output units
+    #if info['spec_units'] == 'J/m2/Hz/degr':
+    #    facun = 1.0/1025.0/9.81;
+    #else:
+    #    # No scaling necessary if units are m2/Hz/degr
+    #    facun = 1.0;
+
+    
     # Exception value
     exception = float(fobj.readline().split()[0])
     
-
-
-    # Loop over points
-    spec = np.zeros((num_loc,num_freq,num_dir))
+    # Preallocate variables    
+    ot = []
+    allSpec = []
+    dataFlag = True
+    while dataFlag:
+        
+        # Time dependent lines
+        if timeDep:
+            
+            # Read line            
+            tmpline = fobj.readline().split(' ')[0]
+            if len(tmpline) < 1:
+                dataFlag = False
+                break
     
-    
-    for aa in range(int(num_loc)):
-        
-        # Read and allocate spectral data
-        fobj.readline()
-        tmpfactor = float(fobj.readline())        
-        tmpspec = np.zeros((num_freq,num_dir))        
-        
-        for bb in range(int(num_freq)):
-            tmpline = fobj.readline().split()
-            tmpline = [float(x) for x in tmpline]
-            tmpspec[bb,:] = np.asarray(tmpline)
+            # Get date and time information
+            ot.append(datetime.datetime.strptime(tmpline,'%Y%m%d.%H%M%S'))
 
-        # Remove missing data
-        tmpspec[tmpspec==exception] = 0.0
+        # Loop over points
+        spec = np.zeros((num_loc,num_freq,num_dir))    
         
-        # Scale and allocate the spectrum
-        spec[aa,:,:] = tmpfactor * tmpspec[:,sortind]
-                
+        for aa in range(int(num_loc)):
+            
+            # Read and allocate spectral data            
+            # Factor or NODATA
+            tmpline = fobj.readline().rstrip()
+            if tmpline == 'NODATA':
+                spec[aa,...] *= np.NAN
+                continue
+            
+            # Get the scale factor (multiplier)
+            tmpfactor = float(fobj.readline())
+            
+            # Preallocate the spectrum
+            tmpspec = np.zeros((num_freq,num_dir))        
+            
+            for bb in range(int(num_freq)):
+                tmpline = fobj.readline().split()
+                tmpline = [float(x) for x in tmpline]
+                tmpspec[bb,:] = np.asarray(tmpline)
+    
+            # Remove missing data
+            tmpspec[tmpspec==exception] = 0.0
+            
+            # Scale and allocate the spectrum
+            spec[aa,:,:] = tmpfactor * tmpspec[:,sortind] #* facun
+                 
+        # Allocate in array
+        allSpec.append(spec)
+
+        if not timeDep:
+            dataFlag = False              
     
     # Close the text file
     fobj.close() 
     
+    # Manage vectors
+    ot = np.asarray(ot)
+    allSpec = np.asarray(allSpec)
 
     # Return values
-    return {'spec':spec, 'freq':freq, 'dirs':dirs,
-            'coords':coords,'info':info}
+    return {'spec':allSpec, 'freq':freq, 'dirs':dirs,
+            'coords':coords,'info':info,'ot':ot}
     
 
 
