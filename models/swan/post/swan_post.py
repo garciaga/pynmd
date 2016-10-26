@@ -23,6 +23,8 @@ Internal dependencies:
 
 """
 
+from __future__ import division,print_function
+
 __author__ = "Gabriel Garcia Medina"
 __email__ = "ggarcia@coas.oregonstate.edu"
 __group__ = 'Nearshore Modeling Group'
@@ -30,9 +32,6 @@ __group__ = 'Nearshore Modeling Group'
 # Import Modules
 import numpy as np
 
-# For testing the functions
-#specfile = ('/home/chorizo/work/wave_group_swan/01-swan-spec/'+
-#            'specout.txt')
 #===============================================================================
 # Read wave spectrum 
 #===============================================================================
