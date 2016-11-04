@@ -429,7 +429,7 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
             tmp_wh = np.ones((ot_lag.shape[1],)) * np.NAN
             tmp_wh[0] = wh[0][aa]
 
-        # Loop over transects
+        # Loop over sensors
         for bb in range(1,ot_lag.shape[1]):
 
             # Find another index within the window we are looking at
@@ -443,6 +443,11 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
             cmax = 3
             for cc in range(cmax):
 				
+                # Last instrument reached
+                if len(local_extrema) >= (bb + cc):
+                    break_bb = True
+                    break
+                
 				# If no extrema is found try next index
                 if local_extrema[bb+cc].size < 1:
                     break_bb = True
