@@ -410,7 +410,7 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
 
     # Initialize output list
     wave_tracks = []
-    if wh is not None:
+    if wh:
         wave_heights = []
 
     # The number of waves to track depends on the smallest of the local minima
@@ -421,7 +421,7 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
     # Loop over waves in the offshore most sensor
     for aa in range(np.min(num_waves)):
 
-        # Track the waves across the other wave gages
+        # Track the waves across the other wave gauges
         tmp_ind = np.ones((ot_lag.shape[1],)).astype(int) * -999999
         tmp_ind[0] = local_extrema[0][aa]
 
@@ -443,8 +443,8 @@ def wave_tracks(local_extrema,ot_lag,twind,wh=None):
             cmax = 3
             for cc in range(cmax):
 				
-                # Last instrument reached
-                if len(local_extrema) >= (bb + cc):
+                # Last instrument reached, get out
+                if len(local_extrema) <= (bb + cc):
                     break_bb = True
                     break
                 
