@@ -626,7 +626,7 @@ def wave_tracks_predictor(local_maxima,wave_height,ot,xInst,x,h,wp=None):
     if wp:
         cel = np.zeros_like(h)
         for aa in range(cel.shape[0]):
-            tmpCel = gwaves.celerity(wp,h[aa])
+            tmpCel = _gwaves.celerity(wp,h[aa])
             cel[aa] = tmpCel[0]
             del tmpCel
         
