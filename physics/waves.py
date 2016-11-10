@@ -744,6 +744,8 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
     Tm02       : Second moment wave period [s]
     Te         : Energy period [s]
     Sw         : Spectral width (m0*m2/m1/m1 - 1)**2
+    H1_t       : Mean wave height computed in the time domain [m]
+    T1_t       : Mean wave period computed in the time domain [s]
 
     Notes:
     ------
@@ -756,6 +758,9 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
 
     # Compute variance of original time series
     var_ts = np.var(etaw)
+    
+    # Compute in time domain
+    [wh,wp,zcind] = whwpts(ot,eta)
 
     # Data windowing
     if window:
@@ -796,8 +801,10 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
     bwp['spec'] = spec
     bwp['cl'] = cl
 
+    bwp['H1_t'] = np.nanmean(wh)
+    bwp['T1_t'] = np.nanmean(wp)
+    
     return bwp
-
 
 #===============================================================================
 # Function to compute bulk wave parameters from frequency spectrum

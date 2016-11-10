@@ -3,11 +3,12 @@ Functions for wave tracking
 
 Dependencies:
 -------------
-numpy
+numpy, scipy
 
 Internal dependencies:
 ----------------------
-gsignal.cross_corr
+pynmd.data.signal
+pynmd.physics.waves
 
 """
 
@@ -15,9 +16,11 @@ from __future__ import division,print_function
 
 # Import modules
 import numpy as np
+import scipy as spi
 
 # Internal dependencies
 import pynmd.data.signal as gsignal
+import pynmd.physics.waves as _gwaves
 
 
 """
@@ -578,3 +581,161 @@ def bore_bore_capture(wave_tracks,ot,twind):
 
 
     return bbc_ind,bbc_flag
+
+
+#===============================================================================
+# Compute wave tracks
+#===============================================================================
+def wave_tracks_predictor(local_maxima,wave_height,ot,xInst,x,h,wp=None):
+    """
+    Code to track the wave crests througout a linear instrument array using
+    bathymetric data and linear wave theory as predictors
+
+    USAGE:
+    ------
+    wave_tracks = wave_tracks(local_extrema,ot_lag,twind)
+
+    PARAMETERS:
+    -----------
+    local_maxima  : Array of local maxima indices (see local_extrema)
+    wave_height   : Array of wave heights (see wave_height)
+    ot            : Time vector [s]
+    xInst         : Instrument easting
+    x             : Easting of topography/bathymetry [m]
+                    Must increase landward
+    h             : Water depth [m]
+    wp            : (optional) Representative wave period [s]
+
+    RETURNS:
+    --------
+    wave_tracks  : Best approximation of the wave position across shore.
+    wave_ind     : Incides of the wave tracks for slicing local_maxima and 
+                   wave_height
+    
+    NOTES:
+    ------
+    1. Do not include NANs in the x and h variables. 
+    2. xInst should be within the limits of x
+    3. If waves were not tracked an index of -999999 will be used.
+    4. If wp is not provided, the shallow water wave celerity will be used 
+       as predictor.
+    """
+    
+    # Compute the wave celerity based on linear wave theory if the wave period
+    # is provided, otherwise the shallow water celerity is computed
+    if wp:
+        cel = np.zeros_like(h)
+        for aa in range(cel.shape[0]):
+            tmpCel = gwaves.celerity(wp,h[aa])
+            cel[aa] = tmpCel[0]
+            del tmpCel
+        
+    else:
+        cel = (9.81*h)**0.5
+        
+    # Compute time of travel
+    timeTravel = np.zeros_like(x)
+    timeTravel[1:] = np.cumsum(2.0/(cel[1:]+cel[:-1])*(x[1:] - x[:-1]))
+    
+    # Interpolate the location of instruments
+    timeInt    = spi.interpolate.interp1d(x,timeTravel)
+    timeOffset = timeInt(xInst)
+    
+    # Normalize the time travel vector
+    timeOffset -= timeOffset[0]
+
+    # Find the water depth at the instruments 
+    depthInt = spi.interpolate.interp1d(x,h)
+    depth    = depthInt(xInst) 
+    
+    # Expected average velocity between instrument locations
+    # Forward differences of course.
+    meanCel     = np.zeros_like(xInst) * np.NAN
+    meanCel[1:] = np.abs(np.diff(xInst)) / np.diff(timeOffset) 
+    
+    # Loop over local maxima and preallocate the variables
+    wave_tracks = np.ones((len(local_maxima[0]),xInst.shape[0]),
+                          dtype=np.int64) * -999999
+    wave_ind = np.copy(wave_tracks)                      
+    
+    for aa in range(wave_tracks.shape[0]):
+     
+        # Preallocate temporary variables
+        # tmp_ind will be allocated into wave_tracks 
+        # tmp_wave_ind will be allocated into wave_ind
+        tmp_ind = np.ones((wave_tracks.shape[1],)).astype(int) * -999999
+        tmp_wave_ind = np.copy(tmp_ind)
+        
+        tmp_ind[0] = local_maxima[0][aa]
+        tmp_wave_ind[0] = aa
+        
+        # Loop over sensors
+        for bb in range(1,tmp_ind.shape[0]):
+            
+            # Previous wave time
+            tmp_ot = ot[tmp_ind[bb-1]]
+    
+            # Find the next wave based on a celerity estimate
+            tmp_dt = ot[local_maxima[bb]] - tmp_ot
+            tmpCel = np.abs(xInst[bb-1] - xInst[bb]) / tmp_dt
+            tmp_min_ind = np.argmin(np.abs(tmpCel - meanCel[bb]))
+            
+            # Check if we are tracking well into the past based on half of the
+            # time series length
+            futureFlag = ((ot[local_maxima[bb][tmp_min_ind]] - tmp_ot) < 
+                          (ot[0] - ot[-1])/2.0)
+            if futureFlag:
+                break
+            
+            # Wave breaking flag based on saturated breaking (H=kh)
+            dWH = ((wave_height[bb-1][tmp_wave_ind[bb-1]] - wave_height[bb]) /
+                   wave_height[bb-1][tmp_wave_ind[bb-1]])
+            maxdWH = (depth[bb-1] - depth[bb])/depth[bb-1]
+            
+            # Three checks here to consider the previous wave as the correct one
+            # All must be true
+            # 1. If the wave moves slower than the shallow water celerity
+            # 2. The new trajectory does not exceed amplitude dispersion
+            # 3. The wave is not much smaller than the one it maps to  
+            
+            # Find amplitude dispersion effect
+            ampDisp = (9.81*wave_height[bb-1][tmp_wave_ind[bb-1]])**0.5   
+            if (tmpCel[tmp_min_ind] < meanCel[bb] and
+                tmpCel[tmp_min_ind-1] < (meanCel[bb]+ampDisp) and
+                dWH[tmp_min_ind-1]<=dWH[tmp_min_ind]):
+                tmp_min_ind -= 1
+            
+            # Check if we are tracking into the past      
+            futureFlag = (ot[local_maxima[bb][tmp_min_ind]] - tmp_ot) < 0
+            if futureFlag:
+                tmp_min_ind += 1
+                
+            # Stand alone wave breaking flag
+            if (dWH[tmp_min_ind] > maxdWH and 
+                dWH[tmp_min_ind-1] < dWH[tmp_min_ind]):
+
+                # Pick the previous wave if the speed makes sense
+                dCel = (meanCel[bb] - tmpCel[tmp_min_ind-1]) / meanCel[bb]
+                
+                # Check if we are tracking into the past            
+                futureFlag = ot[local_maxima[bb][tmp_min_ind-1]] > tmp_ot 
+                
+                # Negative means faster (need to do something objective here)
+                if dCel > -0.5 and futureFlag:
+                    tmp_min_ind -= 1       
+            
+            # Finally check for wave crossing (brute force bore capture)
+            if aa > 0:
+                if local_maxima[bb][tmp_min_ind] < wave_tracks[aa-1,bb]:
+                    tmp_min_ind = wave_ind[aa-1,bb]                
+                    
+            # Allocate in arrays
+            tmp_wave_ind[bb] = tmp_min_ind
+            tmp_ind[bb] = local_maxima[bb][tmp_min_ind]
+            
+        # Allocate wave data        
+        wave_tracks[aa,:] = np.copy(tmp_ind)
+        wave_ind[aa,:] = np.copy(tmp_wave_ind)
+
+    # Get out
+    return wave_tracks,wave_ind
