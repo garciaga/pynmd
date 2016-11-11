@@ -13,11 +13,16 @@ numpy
 
 Internal dependencies:
 ----------------------
+
    
 """
 
 # Import modules
 import numpy as np
+import scipy as spi
+
+# Internal modules
+import signal as _gsignal
 
 # ==============================================================================
 # Runup maxima
@@ -140,13 +145,16 @@ def runup_maxima(x,ot,sten):
 #===============================================================================
 # Compute mean setup
 #===============================================================================
-def runup_params(runup,ot):
+def runup_params(runup,ot,detrend=True,window=True,igcut=0.05):
     """
     
     Parameters:
     ----------
     runup        : Water surface elevation time series relative to SWL [m]
     ot           : Time stamp vector [s]
+    detrend      : Linearly detrend the data
+    window       : Apply a hanning window to the runup time series
+    igcut        : Infragravity wave frequency cutoff
     
     Output:
     -------
@@ -164,15 +172,6 @@ def runup_params(runup,ot):
     ------
     r2_combined = 1.1*(setup + 0.5*((ig**2 + in**2)**0.5))
     
-    See also:
-    ---------
-    runup
-    
-    TODO:
-    -----
-    r2_max_cdf   : 2% runup exceedence value computed from runup maxima CDF [m]
-    r1_max_cdf   : 1% runup exceedence value computed from runup maxima CDF [m]   
-
     """
     
     # Sampling time rate
@@ -182,22 +181,22 @@ def runup_params(runup,ot):
     setup = np.mean(runup)
     
     # Compute swash time series 
-    swash = runup - setup
-    
-    # Compute spectrum
-    freq = np.fft.fftshift(np.fft.fftfreq(ot.shape[0],dt))
-    Nt = freq.shape[0]
-    if np.mod(Nt,2) == 1:
-        zero_ind = np.int((Nt - 1.0)/2.0)
+    if detrend:
+        swash = spi.signal.detrend(runup)
     else:
-        zero_ind = np.int(Nt/2.0)  
-    freq_amp = freq[zero_ind:]
+        swash = runup - setup
     
     # Compute spectrum
-    ff = np.fft.fftshift(np.fft.fft(swash))
-    #sf = (2.0/Nt*(ff[zero_ind:].real**2 + ff[zero_ind:].imag**2)**0.5)
-    sf = (ff[zero_ind:].real**2 + ff[zero_ind:].imag**2)/Nt*dt
-    
+    if window:
+        
+        hwind = spi.signal.hanning(rz.shape[0])
+        ff,sf = gsignal.psdraw(swash*hwind,dt,False)
+        sf /= np.mean(hwind**2)
+
+    else:
+        
+        ff,sf = gsignal.psdraw(swash,dt,False)
+        
     # Compute significant infragravity swash
     freq_ig = freq_amp<0.05
     freq_in = freq_amp>=0.05
