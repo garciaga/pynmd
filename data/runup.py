@@ -19,7 +19,7 @@ Internal dependencies:
 
 # Import modules
 import numpy as np
-import scipy as spi
+import scipy as _spi
 
 # Internal modules
 import signal as _gsignal
@@ -182,26 +182,26 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05):
     
     # Compute swash time series 
     if detrend:
-        swash = spi.signal.detrend(runup)
+        swash = _spi.signal.detrend(runup)
     else:
         swash = runup - setup
     
     # Compute spectrum
     if window:
         
-        hwind = spi.signal.hanning(rz.shape[0])
-        ff,sf = gsignal.psdraw(swash*hwind,dt,False)
+        hwind = _spi.signal.hanning(ot.shape[0])
+        ff,sf = _gsignal.psdraw(swash*hwind,dt,False)
         sf /= np.mean(hwind**2)
 
     else:
         
-        ff,sf = gsignal.psdraw(swash,dt,False)
+        ff,sf = _gsignal.psdraw(swash,dt,False)
         
     # Compute significant infragravity swash
-    freq_ig = freq_amp<0.05
-    freq_in = freq_amp>=0.05
-    swash_ig = 4.0*(np.trapz(sf[freq_ig],freq_amp[freq_ig])**0.5)
-    swash_in = 4.0*(np.trapz(sf[freq_in],freq_amp[freq_in])**0.5)
+    freq_ig = ff<igcut
+    freq_in = ff>=igcut
+    swash_ig = 4.0*(np.trapz(sf[freq_ig],ff[freq_ig])**0.5)
+    swash_in = 4.0*(np.trapz(sf[freq_in],ff[freq_in])**0.5)
 
     # Compute R2% real and from formula
     r2_combined = (setup + 0.5*((swash_ig**2 + swash_in**2)**0.5))*1.1
