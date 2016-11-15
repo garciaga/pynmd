@@ -1053,7 +1053,7 @@ def baldock12(m,h,igFreq,H,wl,verbose=False):
     
     USAGE:
     ------
-    sbs = battjes04(m,h,igFreq,verbose)
+    sbs = baldock12(m,h,igFreq,verbose)
     
     PARAMETERS:
     -----------
