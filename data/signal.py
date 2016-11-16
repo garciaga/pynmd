@@ -147,10 +147,15 @@ def psdraw(ts,dt=1,demean=False):
     freq  : Spectral frequencies (Positive Fourier frequencies)
     Sf    : Variance spectrum
 
-    Notes:
+    NOTES:
+    ------
     var(ts) = integrate(freq,Sf)
         >>> np.var(ts)
         >>> spi.integrate.trapz(Sf,freq)
+
+    Nyquist frequency = (2*dt)**-1
+    
+    Frequency resolution = (N*dt)**-1
     """
 
     # Remove mean
