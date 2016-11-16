@@ -718,7 +718,7 @@ def directional_spreading(spec,peak_dir,m,dirs=None):
 #===============================================================================
 # Compute bulk wave parameters from water surface elevation time series
 #===============================================================================
-def eta_bulk_params(eta,ot,band_ave=False,window=False):
+def eta_bulk_params(eta,ot,band_ave=False,window=False,IGBand=[0.005,0.05]):
     """
     Compute bulk wave parameters from water surface elevation time series.
 
@@ -728,7 +728,8 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
     ot         : Time vector [s]
     band_ave   : (Optional) Bin average stencil
     Window     : (Optional) Application of a hanning window (True or False)
-
+    IGBand     : (Optional) Infragravity wave frequency band 
+                  defaults to 0.005-0.05 Hz   
     Output:
     -------
     Dictionary containing
@@ -746,6 +747,9 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
     Sw         : Spectral width (m0*m2/m1/m1 - 1)**2
     H1_t       : Mean wave height computed in the time domain [m]
     T1_t       : Mean wave period computed in the time domain [s]
+    Tm01IG     : First moment wave period over the infragravity frequency band
+    TpIG       : Peak wave period over the infragravity frequency band [s]
+   
 
     Notes:
     ------
@@ -796,7 +800,7 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
                    spec * band_ave * 2.0 / cl_upper - spec])
 
     # Compute bulk wave parameters
-    bwp = fspec_bulk_params(freq,spec)
+    bwp = fspec_bulk_params(freq,spec,IGBand)
     bwp['freq'] = freq
     bwp['spec'] = spec
     bwp['cl'] = cl
@@ -809,7 +813,7 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False):
 #===============================================================================
 # Function to compute bulk wave parameters from frequency spectrum
 #===============================================================================
-def fspec_bulk_params(freq,spec):
+def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
     """
     Function to compute bulk wave parameters from frequency spectrum
 
@@ -817,6 +821,8 @@ def fspec_bulk_params(freq,spec):
     -----------
     freq    : Vector of spectral frequencies [Hz]
     spec    : Frequency spectrum [m2/Hz]
+    IGBand  : Infragravity wave frequency cutoff 
+              defaults to 0.005-0.05 Hz
 
     Returns:
     --------
@@ -830,6 +836,8 @@ def fspec_bulk_params(freq,spec):
     Tm02       : Second moment wave period [s]
     Te         : Energy period [s]
     Sw         : Spectral width (m0*m2/m1/m1 - 1)**2
+    Tm01IG     : First moment wave period over the infragravity frequency band
+    TpIG       : Peak wave period over the infragravity frequency band [s]
 
     Notes:
     ------
@@ -847,7 +855,7 @@ def fspec_bulk_params(freq,spec):
     moment0 = np.trapz(spec,freq,axis=-1)
     moment1 = np.trapz(spec*freq,freq,axis=-1)
     moment2 = np.trapz(spec*(freq)**2,freq,axis=-1)
-    momentn1 = np.trapz(spec*(freq)**-1,freq,axis=-1)
+    momentn1 = np.trapz(spec*(freq)**-1,freq,axis=-1)    
 
     # Wave heights
     Hs = 4.004 * (moment0)**0.5
@@ -881,11 +889,18 @@ def fspec_bulk_params(freq,spec):
         tmp_fit = np.polyfit(freq[minfreq:maxfreq],spec[minfreq:maxfreq],2)
         Tp_fit = (-1.0 * tmp_fit[1] / (2.0* tmp_fit[0]))**-1
 
-
+    # Infragravity wave periods
+    igInd = np.logical_and(freq>=IGBand[0],freq<IGBand[1])
+    moment0 = np.trapz(spec[igInd],freq[igInd],axis=-1)
+    moment1 = np.trapz(spec[igInd]*freq[igInd],freq[igInd],axis=-1)
+    Tm01IG  = moment0 / moment1
+    
+    freq_max_ind = np.argmax(spec[igInd])
+    TpIG = freq[igInd][freq_max_ind]**-1
+    
     # Exit function
     return {'Hs':Hs,'H1':H1,'Tp':Tp,'Tp_fit':Tp_fit,'Tm01':Tm01,'Tm02':Tm02,
-            'Te':Te,'Sw':Sw}
-
+            'Te':Te,'Sw':Sw,'Tm01IG':Tm01IG,'TpIG':TpIG}
 
 #===============================================================================
 # Wave Height and Period From time series
@@ -1094,3 +1109,77 @@ def baldock12(m,h,igFreq,H,wl,verbose=False):
             print('sbs = ' + np.str(sbs))
     
     return sbs
+
+#===============================================================================
+# Reverse shoal waves
+#===============================================================================
+def deep_water_equivalent(H,h,period):
+    """
+    Code to find the equivalent deep water linear wave parameters based on
+    intermediate to shallow water conditions
+    
+    PARAMETERS:
+    -----------
+    H      : Wave height [m]
+    h      : Water depth [m]
+    period : Wave period [s]
+    
+    RETURNS:
+    --------
+    Deep water equivalents
+    H0     : Wave height [m]
+    k0     : Wave number [m-1]
+    
+    NOTES:
+    ------
+    1. Will not work if waves have broken already
+    
+    """
+    
+    # Find the wave celerity
+    c1,n1,cg1 = celerity(period,h)     # Intermediate water
+    cg0 = (9.81*period) / (4 * np.pi)  # Deep water
+    
+    # Deep water wave length
+    H0 = H * ((cg1/cg0)**0.5)
+    
+    # Deep water wave number
+    k0 = ((2.0 * np.pi / period) ** 2) / 9.81
+    
+    return H0,k0
+
+
+def shoal(H1,h1,period,h0):
+    """
+    Code to shoal waves based on linear wave theory
+    
+    PARAMETERS:
+    -----------
+    H1     : Wave height [m]
+    h1     : Water depth [m]
+    period : Wave period [s]
+    h0     : Water depth to find equivalent conditions [m] 
+    
+    RETURNS:
+    --------
+    Equivalent parameters at h0
+    H0     : Wave height [m]
+    k0     : Wave number [m-1]
+    
+    NOTES:
+    ------
+    1. Will not work if waves have broken already
+    
+    """
+    
+    # Find the wave celerity
+    c1,n1,cg1 = celerity(period,h1)     # Current conditions
+    c0,n0,cg0 = celerity(period,h0)     # Desired conditions
+    
+    # Deep water wave length
+    H0 = H1 * ((cg1/cg0)**0.5)
+    
+    # Deep water wave number
+    k0 = dispersion(period,h0)
+    
+    return H0,k0
