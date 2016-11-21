@@ -72,9 +72,9 @@ def gridVars():
 
 def gridDims():
     '''
-    Returns grid dimensions, incomplete list
+    Returns grid dimensions, incomplete list many nulvars to add
     '''
-    g = {}
+    g = defaultdict(dict)
     
     # 2D Vars
     g['r2dvar'] = ('eta_rho','xi_rho')
@@ -89,6 +89,42 @@ def gridDims():
     g['v3dvar'] = ('s_rho','eta_v','xi_v')
     g['w3dvar'] = ('s_w','eta_rho','xi_rho')
     
+    # Nulvars
+    g['nulvar']['zeta_west']  = ('eta_rho',)
+    g['nulvar']['zeta_east']  = ('eta_rho',)
+    g['nulvar']['zeta_north'] = ('xi_rho',)
+    g['nulvar']['zeta_south'] = ('xi_rho',)
+
+    g['nulvar']['ubar_west']  = ('eta_u',)
+    g['nulvar']['ubar_east']  = ('eta_u',)
+    g['nulvar']['ubar_north'] = ('xi_u',)
+    g['nulvar']['ubar_south'] = ('xi_u',)
+    
+    g['nulvar']['vbar_west']  = ('eta_v',)
+    g['nulvar']['vbar_east']  = ('eta_v',)
+    g['nulvar']['vbar_north'] = ('xi_v',)
+    g['nulvar']['vbar_south'] = ('xi_v',)
+       
+    g['nulvar']['u_west']  = ('s_rho','eta_u')
+    g['nulvar']['u_east']  = ('s_rho','eta_u')
+    g['nulvar']['u_north'] = ('s_rho','xi_u')
+    g['nulvar']['u_south'] = ('s_rho','xi_u')
+    
+    g['nulvar']['v_west']  = ('s_rho','eta_v')
+    g['nulvar']['v_east']  = ('s_rho','eta_v')
+    g['nulvar']['v_north'] = ('s_rho','xi_v')
+    g['nulvar']['v_south'] = ('s_rho','xi_v')
+
+    g['nulvar']['temp_west']  = ('s_rho','eta_rho')
+    g['nulvar']['temp_east']  = ('s_rho','eta_rho')
+    g['nulvar']['temp_north'] = ('s_rho','xi_rho')
+    g['nulvar']['temp_south'] = ('s_rho','xi_rho')
+
+    g['nulvar']['salt_west']  = ('s_rho','eta_rho')
+    g['nulvar']['salt_east']  = ('s_rho','eta_rho')
+    g['nulvar']['salt_north'] = ('s_rho','xi_rho')
+    g['nulvar']['salt_south'] = ('s_rho','xi_rho')
+       
     # Done    
     return g    
     
@@ -270,7 +306,7 @@ def writeROMSGrid(outFile,variables,varinfo,
     nc = netCDF4.Dataset(outFile, 'w', format='NETCDF4')    
     nc.Author = getpass.getuser()
     nc.Created = time.ctime()
-    nc.Owner = 'Nearshore Modeling Group (http://ozkan.oce.orst.edu/nmg)'
+    #nc.Owner = 'Nearshore Modeling Group (http://ozkan.oce.orst.edu/nmg)'
     nc.Software = 'Created with Python ' + sys.version
     nc.NetCDF_Lib = str(netCDF4.getlibversion())    
     
@@ -293,16 +329,20 @@ def writeROMSGrid(outFile,variables,varinfo,
     
     # Vertical dimensions
     if 's_rho' in variables.keys():
-        nc.createDimension('s_rho',s_rho.size)
-        nc.createDimension('s_w',s_w.size)
+        nc.createDimension('s_rho',variables['s_rho'].size)
+        nc.createDimension('s_w',variables['s_w'].size)
     
     # Time dimension and variable (unlimited,netCDF4 supports multiple)
     if timeinfo:
         
         if verbose:
-            print('  Writing Time Variables: ' + str(timeinfo.keys()))
+            print('  Writing Time Variables:')
             
         for aa in timeinfo.keys():
+            
+            if verbose:
+                print('    ' + aa)
+                
             # Create dimension
             nc.createDimension(aa,0)
             nc.createVariable(aa,'f8',(aa))
@@ -327,6 +367,8 @@ def writeROMSGrid(outFile,variables,varinfo,
         # Determine dimensions
         try:
             tmpdims = dimInfo[varinfodict[aa]['dimensions']]
+            if varinfodict[aa]['dimensions'] == 'nulvar':
+                tmpdims = tmpdims[aa]
         except:
             continue
         
