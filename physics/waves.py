@@ -749,8 +749,8 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False,IGBand=[0.005,0.05]):
     T1_t       : Mean wave period computed in the time domain [s]
     Tm01IG     : First moment wave period over the infragravity frequency band
     TpIG       : Peak wave period over the infragravity frequency band [s]
+    skew_t     : Wave skewness from time domain
    
-
     Notes:
     ------
     mn are the different spectral moments
@@ -765,6 +765,9 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False,IGBand=[0.005,0.05]):
     
     # Compute in time domain
     [wh,wp,zcind] = whwpts(ot,eta)
+    
+    # Wave skewness
+    skew_t = np.mean(etaw**3)/(np.mean(etaw**2)**1.5)
 
     # Data windowing
     if window:
@@ -807,6 +810,7 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False,IGBand=[0.005,0.05]):
 
     bwp['H1_t'] = np.nanmean(wh)
     bwp['T1_t'] = np.nanmean(wp)
+    bwp['skew_t'] = skew_t
     
     return bwp
 
