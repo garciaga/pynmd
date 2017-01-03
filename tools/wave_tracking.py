@@ -346,6 +346,10 @@ def time_lag(eta,ot,lags=None):
     DEPENDENCIES:
     -------------
     gsignal.cross_corr
+    
+    NOTES:
+    ------
+    eta    : Must me float not integer.
 
     """
 
@@ -357,7 +361,7 @@ def time_lag(eta,ot,lags=None):
     cum_lag_time = np.zeros((eta.shape[1],))
 
     # Time interval
-    dt = ot[2] - ot[1]
+    dt = np.mean(ot[1:] - ot[:-1])
 
     # Loop over points
     for aa in range(1,cum_lag_time.shape[0]):
