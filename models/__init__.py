@@ -9,6 +9,7 @@ from . import swan
 from . import ww3
 from . import parametric
 from . import xbeach
+from . import funwaveC
 
 try:
     from . import delft3d
