@@ -4,13 +4,40 @@ Collection of codes to process funwaveC output data
 
 from __future__ import division,print_function
 
+import sys
+import os
+import glob
+import time
 import numpy as np
 import netCDF4
+from collections import defaultdict
 
-# ==================================================================
+#===============================================================================
+# Pyroms subroutine to write NetCDF fields
+#===============================================================================
+def create_nc_var(nc, name, dimensions, units=None, longname=None):
+    '''
+    Not for standalone use
+    '''
+    nc.createVariable(name, 'f8', dimensions)
+    if units is not None:
+        nc.variables[name].units = units
+    if longname is not None:
+        nc.variables[name].long_name = longname    
+
+# Append NetCDF variable        
+def append_nc_var(nc,var,name,tstep):
+    '''
+    Not for standalone use
+    '''
+    nc.variables[name][tstep,...] = var
+
+
+# ==============================================================================
 # Create NetCDF file
-# ==================================================================    
-def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
+# ==============================================================================
+def convert_output(workfld,outfile,time_int=1.0,bathyfile=None,
+                   inpfile=None,verbose=False):
     '''
     
     Parameters:
@@ -21,6 +48,7 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
                    input file is provided)
     bathyfile    : Full path to input netcdf bathy file (optional)
     inpfile      : Funwave input file used for metadata (optional)
+    verbose      : Defaults to False
          
     Output:
     -------
@@ -30,16 +58,16 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
     '''
     
     # For testing only
-    #workfld = '/scratch/temp/ggarcia/spectralWidthFunwave/02-runs/results/'
-    #outfile = '/scratch/temp/ggarcia/spectralWidthFunwave/02-runs/test.nc'
-    #time_int = 0.1
-    #bathyfile = '/scratch/temp/ggarcia/spectralWidthFunwave/02-runs/depth.nc'
-    #inpfile = '/scratch/temp/ggarcia/spectralWidthFunwave/02-runs/input.txt'
+    #workfld = '/scratch/temp/ggarcia/funwaveC_ensemble/r0/'
+    #outfile = '/scratch/temp/ggarcia/funwaveC_ensemble/02-runs/tmp.nc'
+    #time_int = 0.5
+    #bathyfile = '/scratch/temp/ggarcia/funwaveC_ensemble/r0/depth.nc'
+    #inpfile = '/scratch/temp/ggarcia/funwaveC_ensemble/r0/input.init'
 
     # Get variable information ------------------------------------------------
-    archivos = os.listdir(workfld)                      # Get all files
-    tmpvars = [x.split('_')[0] for x in archivos]       # All variables
-    tmpvars = list(set(tmpvars))                        # Unique variables
+    # Need to generalize
+    archivos = glob.glob(workfld + '*.dat')                       # All files
+    tmpvars = [x.split('/')[-1].split('.')[0] for x in archivos]  # All vars
     
     # If no variables found exit    
     if not tmpvars:
@@ -48,17 +76,16 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
         return None
     
     # Make sure variables are within the supported ones
-    supported_vars_time = ['eta','etamean','havg','hmax','hmin','hrms',
-                           'mask','mask9','MFmax','u','umax','umean','v',
-                           'vmean','VORmax']
+    supported_vars_time = ['eta','u']
     vars_2d = [x for x in tmpvars if x in supported_vars_time]
     
     
     # Read input file if provided ----------------------------------------------
     if inpfile:
         
-        print("Reading data from input file:")
-        print("  " + inpfile)
+        if verbose:
+            print("Reading data from input file:")
+            print("  " + inpfile)
         
         # Open file
         tmpinpfile = open(inpfile,'r')
@@ -66,93 +93,56 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
         # Output dictionary
         inpinfo = {}
         
-        # Extract information (need to add wavemaker support)
-        for tmpline in tmpinpfile:
-            
-            # Skip blank lines
-            if len(tmpline.strip()) == 0:
-                continue
-            
-            if "TITLE" == tmpline.split()[0]:
-                inpinfo['title'] = tmpline.split()[2]
-            elif "PX" == tmpline.split()[0]:
-                inpinfo['px'] = tmpline.split()[2]
-            elif "PY" == tmpline.split()[0]:
-                inpinfo["py"] = tmpline.split()[2]
-            elif "Mglob" == tmpline.split()[0]:
-                inpinfo['mglob'] = tmpline.split()[2]
-            elif "Nglob" == tmpline.split()[0]:
-                inpinfo['nglob'] = tmpline.split()[2]
-            elif "TOTAL_TIME" == tmpline.split()[0]:
-                inpinfo['total_time'] = tmpline.split()[2]
-            elif "PLOT_INTV" == tmpline.split()[0]:
-                inpinfo["plot_intv"] = tmpline.split()[2]
-                time_int = np.double(tmpline.split()[2])
-            elif "DX" == tmpline.split()[0]:
-                inpinfo['dx'] = tmpline.split()[2]
-                dx = float(tmpline.split()[2])
-            elif "DY" == tmpline.split()[0]:
-                inpinfo['dy'] = tmpline.split()[2]
-                dy = float(tmpline.split()[2])
-            elif "WAVEMAKER" == tmpline.split()[0]:
-                inpinfo['wavemaker'] = tmpline.split()[2]
-            elif "PERIODIC" == tmpline.split()[0]:
-                inpinfo['periodic'] = tmpline.split()[2]
-            elif "SPONGE_ON" == tmpline.split()[0]:
-                sponge = tmpline.split()[2]
-                inpinfo['sponge'] = sponge
-            elif "Sponge_west_width" == tmpline.split()[0] and sponge == 'T':
-                inpinfo['sponge_west_width'] = tmpline.split()[2]
-            elif "Sponge_east_width" == tmpline.split()[0] and sponge == 'T':
-                inpinfo['sponge_east_width'] = tmpline.split()[2]
-            elif "Sponge_wouth_width" == tmpline.split()[0] and sponge == 'T':
-                inpinfo['sponge_south_width'] = tmpline.split()[2]
-            elif "Sponge_worth_width" == tmpline.split()[0] and sponge == 'T':
-                inpinfo['sponge_north_width'] = tmpline.split()[2]
-            elif "R_sponge" == tmpline.split()[0] and sponge == 'T':
-                inpinfo['r_sponge'] = tmpline.split()[2]
-            elif "A_sponge" == tmpline.split()[0] and sponge == 'T':
-                inpinfo['a_sponge'] = tmpline.split()[2]
-            elif "DISPERSION" == tmpline.split()[0]:
-                inpinfo['dispersion'] = tmpline.split()[2]
-            elif "Gamma1" == tmpline.split()[0]:
-                inpinfo['gamma1'] = tmpline.split()[2]
-            elif "Gamma2" == tmpline.split()[0]:
-                inpinfo['gamma2'] = tmpline.split()[2]
-            elif "Gamma3" == tmpline.split()[0]:
-                inpinfo['gamma3'] = tmpline.split()[2]
-            elif "Beta_ref" == tmpline.split()[0]:
-                inpinfo['beta_ref'] = tmpline.split()[2]
-            elif "SWE_ETA_DEP" == tmpline.split()[0]:
-                inpinfo['swe_eta_dep'] = tmpline.split()[2]
-            elif "Friction_Matrix" == tmpline.split()[0]:
-                inpinfo['friction_matrix'] = tmpline.split()[2]
-            elif "Cd_file" == tmpline.split()[0]:
-                inpinfo['cd_file'] = tmpline.split()[2]
-            elif "Cd" == tmpline.split()[0]:
-                inpinfo['cd'] = tmpline.split()[2]                              
-            elif "Time_Scheme" == tmpline.split()[0]:
-                inpinfo['time_scheme'] = tmpline.split()[2]
-            elif "HIGH_ORDER" == tmpline.split()[0]:
-                inpinfo['spatial_scheme'] = tmpline.split()[2]
-            elif "CONSTRUCTION" == tmpline.split()[0]:
-                inpinfo['construction'] = tmpline.split()[2]
-            elif "CFL" == tmpline.split()[0]:
-                inpinfo['cfl'] = tmpline.split()[2]                
-            elif "MinDepth" == tmpline.split()[0]:
-                inpinfo['min_depth'] = tmpline.split()[2]
-            elif "MinDepthFrc" == tmpline.split()[0]:
-                inpinfo['mindepthfrc'] = tmpline.split()[2]
-            
-        # Close file
+        # funwaveC is very structured so this is a simple way of reading
+        # Dynamics line
+        tmpLine = tmpinpfile.readline().rstrip()
+        inpinfo['dynamics'] = tmpLine.split(' ')[-1]
+        # Dimensions
+        tmpLine = tmpinpfile.readline().rstrip()
+        dx = np.float64(tmpLine.split(' ')[3])
+        dy = np.float64(tmpLine.split(' ')[4])
+        # Bottom stress
+        tmpLine = tmpinpfile.readline().rstrip()
+        inpinfo['bottomstress'] = tmpLine.split(' ')[2]
+        # Mixing
+        tmpLine = tmpinpfile.readline().rstrip()
+        inpinfo['mixing'] = tmpLine.split(' ')[1] + ' ' + tmpLine.split(' ')[2]
+        # Bathymetry
+        tmpinpfile.readline()
+        # Tide
+        tmpinpfile.readline()
+        # Wavemaker
+        tmpLine = tmpinpfile.readline().rstrip()        
+        inpinfo['eta_source'] = tmpLine[14:]
+        # Wave breaking
+        tmpLine = tmpinpfile.readline().rstrip()        
+        inpinfo['breaking'] = tmpLine[9:]
+        # Sponge layer
+        tmpLine = tmpinpfile.readline().rstrip()        
+        inpinfo['sponge'] = tmpLine[7:]
+        # Forcing, initial conditions, tracers
+        tmpinpfile.readline()
+        tmpinpfile.readline()
+        tmpinpfile.readline()
+        tmpinpfile.readline()
+        tmpinpfile.readline()
+        tmpinpfile.readline()
+        # Timing
+        tmpLine = tmpinpfile.readline().rstrip()
+        inpinfo['timing'] = tmpLine[7:]
+        time_int = np.float64(tmpLine.split(' ')[5])
+        
+        # Close me
         tmpinpfile.close()
+        
             
     else:
         
         # Assume grid spacing to be 1 meter
-        print("Input file not provided")
-        dx = 1
-        dy = 1
+        if verbose:
+            print("Input file not provided")
+        dx = 1.0
+        dy = 1.0
         inpinfo = False
     
     
@@ -160,8 +150,9 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
     # Bathymetry file provided
     if bathyfile: 
         
-        print("Reading coordinates and depth from:")
-        print("  " + bathyfile)
+        if verbose:
+            print("Reading coordinates and depth from:")
+            print("  " + bathyfile)
         
         ncfile = netCDF4.Dataset(bathyfile,'r')
         x_rho = ncfile.variables['x_rho'][:]
@@ -171,12 +162,18 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
             y_rho = None
         h = ncfile.variables['h'][:]
         ncfile.close()
+       
+        # Create u grid
+        x_u       = np.zeros((x_rho.shape[0]+1,))
+        x_u[0]    = x_rho[0] - dx/2
+        x_u[-1]   = x_rho[-1] + dx/2
+        x_u[1:-1] = (x_rho[1:] + x_rho[:-1])/2.0
         
     # Bathymetry file not provided but have output file        
-    elif os.path.isfile(workfld + '/dep.out'):
+    elif os.path.isfile(workfld + '/depth.txt'):
                
         # Fix this               
-        h = np.loadtxt(workfld + '/dep.out')
+        h = np.loadtxt(workfld + '/depth.txt')
         
         hdims = h.ndim
         if hdims == 1:
@@ -185,30 +182,28 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
             x_rho, y_rho = np.meshgrid(np.arange(0,h.shape[1],dx),
                                        np.arange(0,h.shape[0],dy))           
         else:
-            print('Something is wrong with the depth file')
-            return None    
+            if verbose:
+                print('Something is wrong with the depth file')
     
-    # No bathymetry file provided (I am not capable of reading the input file)
+    # No bathymetry file provided
     else:
-        print("No bathymetry file provided")
-        print("You could copy your input bathymetry text file to ")
-        print(workfld + '/dep.out')
-        return None
         
-    
+        if verbose:
+            print("No bathymetry file provided")
+
     # Get dimensions of variables
     hdims = h.ndim
     
     # Create NetCDF file -------------------------------------------------------
-    
-    print("Creating " + outfile)
+    if verbose:
+        print("Creating " + outfile)
     
     # Global attributes  
     nc = netCDF4.Dataset(outfile, 'w', format='NETCDF4')
-    nc.Description = 'Funwave Output'
+    nc.Description = 'FunwaveC Output'
     nc.Author = 'ggarcia@coas.oregonstate.edu'
     nc.Created = time.ctime()
-    nc.Type = 'Funwave v2.1 snapshot output'
+    nc.Type = 'FunwaveC snapshot output'
     nc.Owner = 'Nearshore Modeling Group'
     nc.Software = 'Created with Python ' + sys.version
     nc.NetCDF_Lib = str(netCDF4.getlibversion())
@@ -226,8 +221,10 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
         nc.createDimension('eta_rho', eta_rho)
     else:
         xi_rho = h.shape[0]
+        xi_u   = xi_rho + 1
         eta_rho = 1
-    nc.createDimension('xi_rho', xi_rho)            
+    nc.createDimension('xi_rho', xi_rho)
+    nc.createDimension('xi_u',xi_u)            
     nc.createDimension('ocean_time',0)
     
     # Write coordinate axes ----------------------------------------------
@@ -260,20 +257,16 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
         nc.variables['h'].units = 'meter'
         nc.variables['h'].longname = 'bathymetry at RHO points'
         nc.variables['h'][:] = h
+
+        nc.createVariable('x_u','f8',('xi_u'))
+        nc.variables['x_u'].units = 'meter'
+        nc.variables['x_u'].longname = 'x-locations of U points'
+        nc.variables['x_u'][:] = x_u        
         
-           
-    # Create time vector -------------------------------------------
-    tmpruns = [x for x in archivos if x.split('_')[0] == vars_2d[0]]
-    tmpruns.sort()
-    time_max = float(tmpruns[-1].split('_')[-1])
-    time_min = float(tmpruns[0].split('_')[-1])
-    
-    
-    twave = np.arange(time_min-1,time_int*(time_max-time_min+1)+time_min-1,
-                      time_int)
-    if twave.shape[0] > len(tmpruns):
-        twave = twave[:-1]
-        
+    # Create time vector -------------------------------------------------------
+    tmpvar = np.loadtxt(workfld + vars_2d[0] + '.dat')
+    twave  = np.arange(time_int,time_int*tmpvar.shape[0]+time_int,time_int)
+            
     nc.createVariable('ocean_time','f8','ocean_time')
     nc.variables['ocean_time'].units = 'seconds since 2000-01-01 00:00:00'
     nc.variables['ocean_time'].calendar = 'julian'
@@ -287,79 +280,38 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
 
     varinfo['eta']['units'] = 'meter'
     varinfo['eta']['longname'] = 'water surface elevation'
-    varinfo['etamean']['units'] = 'meter'
-    varinfo['etamean']['longname'] = 'Mean wave induced setup'
+    varinfo['eta']['dims'] = ('ocean_time','xi_rho')
     
     varinfo['u']['units'] = 'meter second-1'
     varinfo['u']['longname'] = 'Flow velocity in the xi direction'
+    varinfo['u']['dims'] = ('ocean_time','xi_u')
+    
     varinfo['v']['units'] = 'meter second-1'
     varinfo['v']['longname'] = 'Flow velocity in the eta direction'
-    
-    varinfo['umean']['units'] = 'meter second-1'
-    varinfo['umean']['longname'] = 'Time-averaged flow velocity in xi direction'
-    varinfo['vmean']['units'] = 'meter second-1'
-    varinfo['vmean']['longname'] = 'Time-averaged flow velocity in eta direction'
-    
-    varinfo['umax']['units'] = 'meter second-1'
-    varinfo['umax']['longname'] = 'Maximum flow velocity in xi direction'
-    varinfo['vmax']['units'] = 'meter second-1'
-    varinfo['vmax']['longname'] = 'Maximum flow velocity in eta direction'    
-    
-    varinfo['hmax']['units'] = 'meter'
-    varinfo['hmax']['longname'] = 'Maximum wave height'
-    varinfo['hmin']['units'] = 'meter'
-    varinfo['hmin']['longname'] = 'Minimum wave height'
-    varinfo['havg']['units'] = 'meter'
-    varinfo['havg']['longname'] = 'Average wave height'
-    varinfo['hrms']['units'] = 'meter'
-    varinfo['hrms']['longname'] = 'Root mean squared wave height'
-    
-    varinfo['mask']['units'] = 'Boolean'
-    varinfo['mask']['longname'] = 'Logical parameter for output wetting-drying'
-    varinfo['mask9']['units'] = 'Boolean'
-    varinfo['mask9']['longname'] = 'Logical parameter for output MASK9'
-    
-    varinfo['VORmax']['units'] = 'second-1'
-    varinfo['VORmax']['longname'] = 'Maximum vorticity'
-    varinfo['MFmax']['units'] = 'meter second-s'
-    varinfo['MFmax']['longname'] = 'Maximum momentum flux'    
-    
-    
-    # Create variables        
-    if hdims == 1:
-        nc_dims = ('ocean_time','xi_rho')
-    else:
-        nc_dims = ('ocean_time','eta_rho','xi_rho')
-          
-          
-    print("Creating variables")          
+    varinfo['v']['dims'] = ('ocean_time','xi_v')
+         
+    if verbose:          
+        print("Creating variables")
+                  
     for aa in vars_2d:
         
-        print('  ' + aa)
+        if verbose:
+            print('  ' + aa)
         
         # Create variable
-        create_nc_var(nc,aa,nc_dims,varinfo[aa]['units'],
+        create_nc_var(nc,aa,varinfo[aa]['dims'],varinfo[aa]['units'],
                       varinfo[aa]['longname'])
         
-        try:
-            tmpvar = np.loadtxt(workfld + '/' + aa + '_' + '%05.0f' % time_min)
-        except ValueError:
-            tmpvar = np.zeros_like(h) * np.NAN
-                    
-        nc.variables[aa][:] = np.expand_dims(tmpvar,axis=0)
+        # Load variable
+        tmpvar = np.loadtxt(workfld + '/' + aa + '.dat')
+
+        # Write variable
+        nc.variables[aa][:] = tmpvar
         
-        for bb in range(len(twave)):
-            
-            try:
-                tmpvar = np.loadtxt(workfld + '/' + aa + '_' + 
-                                    '%05.0f' % (bb + time_min))
-            except ValueError:
-                tmpvar = np.zeros_like(h) * np.NAN
-                
-            append_nc_var(nc,tmpvar,aa,bb-1)   
                     
     # Close NetCDF file
-    print('Closing ' + outfile)
+    if verbose:
+        print('Closing ' + outfile)
     nc.close()
     
     # End of function
