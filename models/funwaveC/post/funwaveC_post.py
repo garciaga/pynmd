@@ -298,12 +298,18 @@ def convert_output(workfld,outfile,time_int=1.0,bathyfile=None,
         if verbose:
             print('  ' + aa)
         
+                # Load variable
+        try:
+            tmpvar = np.loadtxt(workfld + '/' + aa + '.dat')
+        except:
+            if verbose:
+                print("  Could not create " + aa)
+                print("  Input file error")
+            continue
+        
         # Create variable
         create_nc_var(nc,aa,varinfo[aa]['dims'],varinfo[aa]['units'],
-                      varinfo[aa]['longname'])
-        
-        # Load variable
-        tmpvar = np.loadtxt(workfld + '/' + aa + '.dat')
+                      varinfo[aa]['longname'])        
 
         # Write variable
         nc.variables[aa][:] = tmpvar
