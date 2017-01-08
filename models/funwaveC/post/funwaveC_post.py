@@ -321,3 +321,122 @@ def convert_output(workfld,outfile,time_int=1.0,bathyfile=None,
     nc.close()
     
     # End of function
+
+
+#===============================================================================
+# Compute Runup
+#===============================================================================
+def runup(eta,h,x,r_depth=None):
+    """
+    
+    Parameters:
+    ----------
+    eta          : Water surface elevation time series [m]
+    h            : Bathymetry [m] (positive down)
+    x            : x coordinates of h [m]
+    r_depth      : Runup depth [m] (optional)
+    
+    Output:
+    -------
+    runup        : Water surface elevation time series relative to SWL given
+                   a contour depth [m]
+    x_runup      : Across-shore location of runup time series [m]
+                   
+    Notes:
+    ------
+    - Really meant for 1D simulations.
+    - Minimum runup depth as suggested by Salmon 2002 is estimated as
+      h0 = 4 * max(dh)
+                   
+    """
+
+    # Find the maximum runup depth
+    if r_depth is None:
+         runupInd = h < 1.0
+         r_depth = 4.0*np.nanmax(np.abs(h[runupInd][1:] - h[runupInd][:-1])) 
+             
+    # Preallocate runup variable
+    runup = np.zeros(eta.shape[0])
+    x_runup = np.zeros_like(runup)
+    
+    # Loop over time, which is assumed to be on the first dimension.
+    for aa in range(runup.shape[0]):
+        
+        # Water depth
+        wdepth = eta[aa,:] + h
+        
+        # Find the runup contour (search from left to right) 
+        wdepth_ind = np.argmin(wdepth>r_depth)-1
+        
+        # Store the water surface elevation in matrix
+        runup[aa]= eta[aa,wdepth_ind]
+        
+        # Store runup position
+        x_runup[aa] = x[wdepth_ind] 
+    
+    # Done
+    return runup,x_runup
+
+
+
+def nc_runup(nc,r_depth=None):
+    """
+    
+    Function to compute runup from netcdf file.
+    
+    runup,x_runup = nc_runup(nc,r_depth)
+    
+    Parameters:
+    -----------
+    nc           : NetCDF file handle
+    r_depth      : Runup depth [m] (optional)
+    
+    Output:
+    -------
+    runup        : Water surface elevation time series relative to SWL given
+                   a tolerance depth [m]
+    x_runup      : Across-shore location of runup time series [m]
+                   
+    Notes:
+    ------
+    -  Really meant for 1D simulations.
+    -  See convert_output for ASCII to NetCDF4 file conversion.
+    -  Minimum runup depth as suggested by Salmon 2002 is estimated as
+       h0 = 4 * max(dh)
+    
+    """
+    
+    # Load variables
+    h = nc.variables['h'][:]
+    ot = nc.variables['ocean_time'][:]
+    x = nc.variables['x_rho'][:]
+    
+    # Find the maximum runup depth
+    if r_depth is None:
+         runupInd = h < 1.0
+         r_depth = 4.0*np.nanmax(np.abs(h[runupInd][1:] - h[runupInd][:-1])) 
+
+    # Preallocate runup variable
+    runup = np.zeros(ot.shape[0])
+    x_runup = np.zeros_like(runup)
+    
+    # Loop over time, which is assumed to be on the first dimension.
+    for aa in range(runup.shape[0]):
+        
+        # Water depth
+        eta = nc.variables['eta'][aa,:]
+        wdepth = eta + h
+        
+        # Find the runup contour (search from left to right) 
+        wdepth_ind = np.argmin(wdepth>r_depth)-1
+        
+        # Store the water surface elevation in matrix
+        runup[aa] = eta[wdepth_ind]
+        
+        # Store runup position
+        x_runup[aa] = x[wdepth_ind] 
+        
+    
+    # Done
+    return runup,x_runup
+
