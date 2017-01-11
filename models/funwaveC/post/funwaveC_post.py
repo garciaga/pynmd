@@ -375,7 +375,7 @@ def runup(eta,h,x,r_depth=None):
         x_runup[aa] = x[wdepth_ind] 
     
     # Done
-    return runup,x_runup
+    return runup,x_runup,r_depth
 
 
 
@@ -438,5 +438,5 @@ def nc_runup(nc,r_depth=None):
         
     
     # Done
-    return runup,x_runup
+    return runup,x_runup,r_depth
 
