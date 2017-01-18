@@ -27,7 +27,7 @@ import signal as _gsignal
 # ==============================================================================
 # Runup maxima
 # ==============================================================================
-def runup_maxima(x,ot,sten):
+def runup_maxima(x,ot,sten,upcross=False):
     """
     Function to identify local minima from a water surface elevation time series
     
@@ -40,6 +40,7 @@ def runup_maxima(x,ot,sten):
     x       : Runup time series [m]
     ot      : Time vector, must have the same length as x and time in seconds. 
     sten    : Minimum runup period to consider [s]
+    uprcross: Use zero-upcrossing to identify runup events (optional)
     
     RETURNS:
     --------
@@ -48,7 +49,9 @@ def runup_maxima(x,ot,sten):
     
     NOTES:
     ------
-    All inputs should be numpy arrays
+    - All inputs should be numpy arrays
+    - If upcross = True then ot and sten will not be used. x must cross zero so
+      remove the setup.
     
     TODO:
     -----
@@ -56,7 +59,18 @@ def runup_maxima(x,ot,sten):
       maxima. 
     
     """
-
+    
+    if upcross:
+        
+        # Find the upcrossing locations
+        indCross = _gsignal.zero_crossing(x)
+        
+        # Find the index of the maximum runup between upcrossings
+        ind_max = [np.argmax(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+                   for aa in range(indCross.shape[0]-1)]
+        
+        return np.array(ind_max)
+    
     # Local minima analysis to identify the waves -----------------------------
 
     # Compute the first derivative of the data
