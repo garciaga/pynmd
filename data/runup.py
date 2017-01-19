@@ -33,7 +33,7 @@ def runup_maxima(x,ot,sten,upcross=False):
     
     USAGE:
     ------
-    max_ind = runup_maxima(x,ot,sten)
+    max_ind = runup_maxima(x,ot,sten,upcross=False)
     
     PARAMETERS:
     -----------
@@ -154,7 +154,65 @@ def runup_maxima(x,ot,sten,upcross=False):
     # Return minimum indices
     return ind_max
 
-
+# ==============================================================================
+# Runup maxima
+# ==============================================================================
+def runupUprushSpeed(x,ot):
+    """
+    This function finds the runup maxima and the uprush speed from the previous
+    minima and from the setup line. Zero upcrossing is used to find runup
+    maxima and minima.
+    
+    USAGE:
+    ------
+    max_ind,speedMinima,speedSetup = runup_maxima(x,ot)
+    
+    PARAMETERS:
+    -----------
+    x       : Runup time series [m]
+    ot      : Time vector, must have the same length as x and time in seconds. 
+    
+    RETURNS:
+    --------
+    max_ind : Vector of indices corresponding to the local maxima of the input
+              time series.
+    speedMinima : uprush speed with respect to previous minima
+    speedSetup  : uprush speed with respect to setup
+    
+    NOTES:
+    ------
+    - All inputs should be numpy arrays
+    - x must cross zero. You can for instance remove the setup from the time
+      series.
+    - The first uprush speed with respect to the minima is always NAN.
+    """
+        
+    # Find the upcrossing locations
+    indCross = _gsignal.zero_crossing(x)
+    
+    # Find the index of the maximum runup between upcrossings
+    ind_max = [np.argmax(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+               for aa in range(indCross.shape[0]-1)]
+    ind_min = [np.argmin(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+               for aa in range(indCross.shape[0]-1)]
+    
+    # Runup uprush speed with respect to previous minima (check me!)
+    speedMinima  = np.zeros((len(ind_max))) * np.NAN
+    for aa in range(1,len(ind_max)):
+        tmpIndMax = ind_max[aa]
+        tmpIndMin = ind_min[aa-1]
+        speedMinima[aa] = ((x[tmpIndMax] - x[tmpIndMin]) / 
+                           (ot[tmpIndMax] - ot[tmpIndMin]))
+    
+    # Runup uprush speed with respect to setup
+    speedSetup  = np.zeros((len(ind_max))) * np.NAN    
+    for aa in range(len(ind_max)):
+        tmpIndMax   = ind_max[aa]
+        tmpIndCross = indCross[aa]
+        speedSetup[aa] = x[tmpIndMax] / (ot[tmpIndMax]-ot[tmpIndCross])
+    
+    return np.array(ind_max),speedMinima,speedSetup
+    
 
 #===============================================================================
 # Compute mean setup
