@@ -356,3 +356,45 @@ def makeBathy1DPlanar(m,dx,hmax,hmin,flat,outFld):
     write_bathy_1d(x,h,outFld)
 
     return x,h
+
+#===============================================================================
+# Write spectra for input
+#===============================================================================
+def writeSpec1D(freq,spec,theta,spread,outFld):
+    """
+    Write a 1D spectra for funwaveC
+    
+    PARAMETERS:
+    -----------
+    freq   : frequency array [Hz]
+    spec   : spectra array [m**2/Hz]
+    theta  : Wave direction per frequency [deg]
+    spread : Directional spread per frequency [deg]
+    outFld : Output folder
+    
+    RETURNS:
+    --------
+    spec.txt with columns (freq fourierAmplitude theta spread)
+    
+    NOTES:
+    ------
+    1. The spectrum should not have a zeroth frequency. FunwaveC will not run.
+    2. Frequency should be equally spaced
+    3. Numpy arrays are expected
+    """
+    
+    # Scale the spectrum
+    # FunwaveC needs fourier amplitudes not spectra
+    df = freq[2] - freq[1]
+    fouramp = (df * spec * 2.0)**0.5 
+    
+    # Write the spectra file
+    fid = open(outFld + 'spec.txt','w')
+    for aa in range(fouramp.shape[0]):
+        fid.write('{:12.8f}'.format(freq[aa]) + ' ' +
+                  '{:12.8f}'.format(fouramp[aa]) + ' ' +
+                  '{:12.3f}'.format(theta[aa]) + ' ' +
+                  '{:12.3f}'.format(spread[aa]) + '\n')        
+    fid.close()
+    
+    
