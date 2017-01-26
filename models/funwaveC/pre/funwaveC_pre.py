@@ -262,7 +262,7 @@ def makeInput(inp,x,outfld):
     # Wavemaker
     if inp['eta_source'][0] == 'off':
         fid.write('eta_source off\n')
-    else:
+    elif inp['eta_source'][1] == 'random2nb':
         fid.write('eta_source on ' + inp['eta_source'][1])
         for aa in range(2,len(inp['eta_source'])):
             if aa == 5 or aa == 8 or aa == 10:
@@ -270,6 +270,17 @@ def makeInput(inp,x,outfld):
             else:
                 fid.write(' ' + np.str(inp['eta_source'][aa]))
         fid.write('\n')
+    elif inp['eta_source'][1] == 'random2filea':
+        fid.write('eta_source on ' + inp['eta_source'][1])
+        fid.write(' ' + inp['eta_source'][2]) # File name
+        for aa in range(3,len(inp['eta_source'])):
+            fid.write(' ' + np.str(np.int(inp['eta_source'][aa])))
+        fid.write('\n')
+    else:
+        print('Accepted eta_source parameters:')
+        print('  [random2nb,random2filea]')
+        print('  Turning wavemaker off')
+        fid.write('eta_source off\n')
         
     # Wave breaking
     if inp['breaking'] == 'off':

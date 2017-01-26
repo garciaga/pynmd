@@ -165,7 +165,7 @@ def runupUprushSpeed(x,ot):
     
     USAGE:
     ------
-    max_ind,speedMinima,speedSetup = runup_maxima(x,ot)
+    max_ind,min_ind,speedMinima,speedSetup = runup_maxima(x,ot)
     
     PARAMETERS:
     -----------
@@ -176,6 +176,8 @@ def runupUprushSpeed(x,ot):
     --------
     max_ind : Vector of indices corresponding to the local maxima of the input
               time series.
+    min_ind : Vector of indices corresponding to the local maxima of the input
+              time series.              
     speedMinima : uprush speed with respect to previous minima
     speedSetup  : uprush speed with respect to setup
     
@@ -211,7 +213,7 @@ def runupUprushSpeed(x,ot):
         tmpIndCross = indCross[aa]
         speedSetup[aa] = x[tmpIndMax] / (ot[tmpIndMax]-ot[tmpIndCross])
     
-    return np.array(ind_max),speedMinima,speedSetup
+    return np.array(ind_max),np.array(ind_min),speedMinima,speedSetup
     
 
 #===============================================================================
