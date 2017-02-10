@@ -10,16 +10,19 @@ Gabriel Garcia Medina
 Dependencies:
 -------------
 numpy
+scipy
+itertools
 
 Internal dependencies:
 ----------------------
-
+gsignal
    
 """
 
 # Import modules
 import numpy as np
 import scipy as _spi
+import itertools as _itertools
 
 # Internal modules
 import signal as _gsignal
@@ -295,3 +298,194 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05):
             'r2_combined':r2_combined,'r2_cdf':r2_cdf,
             'r1_cdf':r1_cdf,'r_max':runup.max(),'r_var':np.var(runup)}
 
+
+#===============================================================================
+# Find unexpected runup events
+#===============================================================================
+def unexpected_event(x,alpha,n,m,xMean=False):
+    """
+    Decides if the given event is unexpected by comparing each x value to the
+    previous n occurrences excluding the last m. If a given x value is greater
+    than all alpha*x[n...m] returns a true value.
+    
+    USAGE:
+    ------
+    unexpected = unexpected_event(x,alpha,n,m)
+    
+    PARAMETERS:
+    -----------
+    x         : Time series of runup maxima [m]
+    alpha     : Unexpected runup scale
+    n         : The last n values to consider
+    m         : Exclude the last m values
+    xMean     : (optional) value to use as datum (e.g. mean runup)
+    
+    RETURNS:
+    --------
+    unexpected  : Boolean array for values that satisfy the input conditions
+    
+    NOTES:
+    ------
+    - n must be larger than m
+    - If xMean is not given then the minimum value of x will be used as datum
+    
+    REFERENCES:
+    -----------
+    Gemmrich, J. and C. Garrett, 2008: Unexpected Waves. Journal of Physical
+        Oceanography, 38, 2330 - 2336.
+        
+    """
+    
+    # Check the input data
+    if x.shape[0] <= n:
+        print("x must be larger than n")
+        return np.array([])
+    elif m >= n:
+        print('n must be larger than m')
+        return np.array([])
+    elif n <= 0:
+        print('n must be a positive integer')
+        return np.array([])
+        
+    # Change to the correct variable type
+    n     = np.int(n)                   # Should be integer  
+    m     = np.int(m)                   # Should be integer
+    alpha = np.double(alpha)            # Should be double
+    
+    # Preallocate unexpected event
+    unex = [False]*x.shape[0]
+    
+    # Find unexpected events
+    for aa in range(n,x.shape[0]):
+        
+        # Extract stencil to evaluate
+        x_tmp = x[aa-n:aa+1]
+        
+        # Normalize with respect to minimum runup value
+        if xMean == False:
+            x_tmp = x_tmp - np.min(x_tmp)
+        else:
+            x_tmp - x_tmp - xMean
+        
+        unex[aa] = np.all(x_tmp[-1]>x_tmp[0:-1-m]*alpha)
+        
+    # Return unexpected event matrix
+    return np.array(unex)
+
+#==============================================================================
+# ROUS Wrapper        
+#==============================================================================
+def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
+                speedMinima=False,velocityMatrix=None,
+                periodMinima=False,timeMatrix=None,
+                randomize=False,xMean=False):
+    """
+    This function provides more options for computing unexpected events.
+    
+    PARAMETERS:
+    -----------
+    runupMatrix     : list of arrays of runup maxima
+    alpha           : Array (see unexpected_runup)
+    n               : idem
+    m               : idem
+    runNumberMatrix : Matrix to ID the simulations 
+    speedMinima     : Array of minimum uprush speed to consider
+    velocityMatrix  : Matrix like runupMatrix with uprush velocity
+    periodMinima    : Minimum period to consider
+    timeMatrix      : Crest-crest time matrix
+    randomize       : Randomize the sequence (Boolean)
+    xMean           : Legacy stuff, should be false now.
+    
+    NOTES:
+    ------
+    - I have not tested this for xMean=True
+    - All inputs should be numpy arrays because n.shape[0] type of identifier
+      is used.
+      
+    """
+    
+    # Check input --------------------------------------------------------------
+    if periodMinima is not False and timeMatrix is None:
+        print('Need timeMatrix if periodMinima is requested ')
+        return
+    if speedMinima is not False and velocityMatrix is None:
+        print('Need velocityMatrix if speedMinima is requested ')
+        return    
+    
+    # Preallocate matrices -----------------------------------------------------
+    rous = np.zeros((len(runupMatrix),alpha.shape[0],n.shape[0],m.shape[0],
+                     speedMinima.shape[0],periodMinima.shape[0]))
+    numRunup   = np.zeros_like(rous)
+    rousRunNum = np.zeros_like(rous,dtype=np.object)
+    rousDist   = np.zeros_like(rous,dtype=np.object)
+
+    # Loop over the stacks -----------------------------------------------------
+    
+    # Master      
+    iterList = (np.arange(rous.shape[0]),np.arange(rous.shape[1]),
+                np.arange(rous.shape[2]),np.arange(rous.shape[3]))
+    
+    for aa,bb,cc,dd in itertools.product(*iterList):
+        
+        print('  Stack: ' + np.str(aa+1) + ' of ' + np.str(rous.shape[0]))
+        if randomize:        
+            randInd = np.random.permutation(runupMatrix[aa].shape[0])
+            runupMatrix[aa] = runupMatrix[aa][randInd]
+            runNumberMatrix[aa] = runNumberMatrix[aa][randInd]
+            velocityMatrix[aa] = velocityMatrix[aa][randInd]
+            periodMinima = False
+
+        try:
+            # Find rous
+            tmpR = unexpected_event(runupMatrix[aa],alpha[bb],
+                                    n[cc],m[dd],xMean)
+        except:
+            for ii in range(rousRunNum.shape[4]):
+                for jj in range(rousRunNum.shape[5]):
+                    rousRunNum[aa,bb,cc,dd,ii,jj] = np.array([])
+                    rousDist[aa,bb,cc,dd,ii,jj]   = np.array([])
+            continue
+        
+        # No ROUS Found
+        if np.size(tmpR) < 1:
+            for ii in range(rousRunNum.shape[4]):
+                for jj in range(rousRunNum.shape[5]):
+                    rousRunNum[aa,bb,cc,dd,ii,jj] = np.array([])
+                    rousDist[aa,bb,cc,dd,ii,jj]   = np.array([])
+            continue
+        
+        # Filters on the data --------------------------------------------------
+        # This should be another function at some point, to many
+        # loops here.
+        tmpROrig = np.copy(tmpR)
+        for ii in range(speedMinima.shape[0]):
+            
+            for jj in range(periodMinima.shape[0]):
+                
+                # Load the default again
+                tmpR = np.copy(tmpROrig) 
+                
+                if speedMinima is not False:
+                    tmpR[velocityMatrix[aa]<speedMinima[ii]] = False
+        
+                # Time filter
+                if periodMinima is not False:
+                    tTM = np.zeros_like(tmpR,dtype=np.float64)
+                    tTM[n[cc]:] = (timeMatrix[aa][n[cc]:] - 
+                                   timeMatrix[aa][:-n[cc]])
+                    tmpR[tTM<periodMinima[jj]] = False
+            
+                # Allocate information -----------------------------
+                rous[aa,bb,cc,dd,ii,jj] = np.sum(tmpR)
+                rousRunNum[aa,bb,cc,dd,ii,jj] = runNumberMatrix[aa][tmpR]
+                
+                # Number of runups evaluated
+                numRunup[aa,bb,cc,dd,ii,jj] = (len(runupMatrix[aa]) - n[cc])
+                        
+                # Excursion of that runup event
+                tmpRD = [runupMatrix[aa][ee] - 
+                         np.max(runupMatrix[aa][ee-n[cc]:ee-m[dd]])
+                         for ee in np.where(tmpR)[0]]
+                rousDist[aa,bb,cc,dd,ii,jj] = tmpRD
+
+    return rous,rousRunNum,rousDist,numRunup
