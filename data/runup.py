@@ -425,7 +425,7 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
     iterList = (np.arange(rous.shape[0]),np.arange(rous.shape[1]),
                 np.arange(rous.shape[2]),np.arange(rous.shape[3]))
     
-    for aa,bb,cc,dd in itertools.product(*iterList):
+    for aa,bb,cc,dd in _itertools.product(*iterList):
         
         print('  Stack: ' + np.str(aa+1) + ' of ' + np.str(rous.shape[0]))
         if randomize:        
