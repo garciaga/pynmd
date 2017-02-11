@@ -396,6 +396,15 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
     randomize       : Randomize the sequence (Boolean)
     xMean           : Legacy stuff, should be false now.
     
+    RETURNS:
+    --------
+    rous             : Number of ROUS found 
+    rousRunNum       : ID of the run that flagged
+    rousDist         : How much farther did this ROUS travel with respect to
+                       the previous runup events
+    rousMag          : Absolute magnitude of the runup that flagged
+    numRunup         : Number of runup events evaluated
+    
     NOTES:
     ------
     - I have not tested this for xMean=True
@@ -413,11 +422,23 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
         return    
     
     # Preallocate matrices -----------------------------------------------------
-    rous = np.zeros((len(runupMatrix),alpha.shape[0],n.shape[0],m.shape[0],
-                     speedMinima.shape[0],periodMinima.shape[0]))
+    if periodMinima is not False and speedMinima is not False:
+        rous = np.zeros((len(runupMatrix),alpha.shape[0],n.shape[0],m.shape[0],
+                         speedMinima.shape[0],periodMinima.shape[0]))
+    elif periodMinima is not False and speedMinima is False:
+        rous = np.zeros((len(runupMatrix),alpha.shape[0],n.shape[0],m.shape[0],
+                         1,periodMinima.shape[0]))
+    elif speedMinima is not False and periodMinima is False:
+        rous = np.zeros((len(runupMatrix),alpha.shape[0],n.shape[0],m.shape[0],
+                         speedMinima.shape[0],1))
+    else:
+        rous = np.zeros((len(runupMatrix),alpha.shape[0],n.shape[0],m.shape[0],
+                         1,1))
+    
     numRunup   = np.zeros_like(rous)
     rousRunNum = np.zeros_like(rous,dtype=np.object)
     rousDist   = np.zeros_like(rous,dtype=np.object)
+    rousMag    = np.zeros_like(rous,dtype=np.object)
 
     # Loop over the stacks -----------------------------------------------------
     
@@ -427,7 +448,7 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
     
     for aa,bb,cc,dd in _itertools.product(*iterList):
         
-        print('  Stack: ' + np.str(aa+1) + ' of ' + np.str(rous.shape[0]))
+        #print('  Stack: ' + np.str(aa+1) + ' of ' + np.str(rous.shape[0]))
         if randomize:        
             randInd = np.random.permutation(runupMatrix[aa].shape[0])
             runupMatrix[aa] = runupMatrix[aa][randInd]
@@ -444,6 +465,7 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
                 for jj in range(rousRunNum.shape[5]):
                     rousRunNum[aa,bb,cc,dd,ii,jj] = np.array([])
                     rousDist[aa,bb,cc,dd,ii,jj]   = np.array([])
+                    rousMag[aa,bb,cc,dd,ii,jj]    = np.array([])
             continue
         
         # No ROUS Found
@@ -452,15 +474,16 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
                 for jj in range(rousRunNum.shape[5]):
                     rousRunNum[aa,bb,cc,dd,ii,jj] = np.array([])
                     rousDist[aa,bb,cc,dd,ii,jj]   = np.array([])
+                    rousMag[aa,bb,cc,dd,ii,jj]    = np.array([])
             continue
         
         # Filters on the data --------------------------------------------------
         # This should be another function at some point, to many
         # loops here.
         tmpROrig = np.copy(tmpR)
-        for ii in range(speedMinima.shape[0]):
+        for ii in range(rousRunNum.shape[4]):
             
-            for jj in range(periodMinima.shape[0]):
+            for jj in range(rousRunNum.shape[5]):
                 
                 # Load the default again
                 tmpR = np.copy(tmpROrig) 
@@ -487,5 +510,7 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
                          np.max(runupMatrix[aa][ee-n[cc]:ee-m[dd]])
                          for ee in np.where(tmpR)[0]]
                 rousDist[aa,bb,cc,dd,ii,jj] = tmpRD
-
-    return rous,rousRunNum,rousDist,numRunup
+                
+                rousMag[aa,bb,cc,dd,ii,jj] = runupMatrix[aa][tmpR]
+                
+    return rous,rousRunNum,rousDist,rousMag,numRunup
