@@ -65,18 +65,30 @@ def append_nc_var(nc,var,name,tstep):
     '''
     nc.variables[name][tstep,...] = var
 
-# ==================================================================
-# Write 1D bathymetry file 
-# ==================================================================  
+#===============================================================================
+# Backwards compatibility stuff
+#===============================================================================
+def makeBathy1DPlanar(m,dx,hmax,hmin,flat,outFld):
+    x,h = makeBathyPlanar(m,dx,hmax,hmin,flat,outFld,dy=None,ly=None)
+    return x,h
+
 def write_bathy_1d(x,h,path,ncsave=True,dt=None):
+    write_bathy(x,h,path,y=None,ncsave=ncsave,dt=dt)
+
+# ==============================================================================
+# Write 1D bathymetry file 
+# ==============================================================================
+def write_bathy(x,h,path,y=None,ncsave=True,dt=None):
     '''
     
     Parameters:    
     ----------
-    x           : 1D array of x coordinates
+    x           : array of x coordinates
+    y           : array of x coordinates (optional)
     h           : Bathymetry
     path        : Full path where the output will be saved
     ncsave      : Save bathy as NetCDF file
+    dt          : (Optional) informs about the stability for a chosen dt
     
     Output:
     -------
@@ -85,15 +97,24 @@ def write_bathy_1d(x,h,path,ncsave=True,dt=None):
     
     Notes:
     ------
-    Variables are assumed to be on a regularly spaced grid.
+    1. Variables are assumed to be on a regularly spaced grid.
+    2. If y is passed then 2D bathymetry is assumed. This means that 
+       x,y,h have to be 2D arrays. Otherwise the code will fail.
     
     '''
 
     # Output the text file -----------------------------------------------------        
     fid = open(path + 'depth.txt','w')
-    for aa in range(len(h)):
-        fid.write('%12.3f\n' % h[aa])
-    fid.close()
+    if y is None:
+        for aa in range(len(h)):
+            fid.write('%12.3f\n' % h[aa])
+        fid.close()
+    else:
+        for aa in range(h.shape[1]):
+            for bb in range(h.shape[0]):
+                fid.write('%12.3f' % h[bb,aa])
+            fid.write('\n')
+        fid.close()
 
     if ncsave:
     
@@ -108,17 +129,30 @@ def write_bathy_1d(x,h,path,ncsave=True,dt=None):
         nc.Script = os.path.realpath(__file__)
      
         # Create dimensions
-        xi_rho = len(h)
-        nc.createDimension('xi_rho', xi_rho)
-    
+        if y is None:
+            xi_rho = len(h)
+            nc.createDimension('xi_rho', xi_rho)
+            varShape = ('xi_rho')
+        else:
+            eta_rho,xi_rho = np.shape(h)
+            nc.createDimension('xi_rho', xi_rho)
+            nc.createDimension('eta_rho',eta_rho)
+            varShape = ('eta_rho','xi_rho')
+            
+            # Write y variable
+            create_nc_var(nc, 'y_rho',varShape, 
+                          'meter','y-locations of RHO-points')
+            nc.variables['y_rho'][:] = y
+                    
         # Write coordinates and depth to netcdf file
-        create_nc_var(nc, 'x_rho',('xi_rho'), 
+        create_nc_var(nc, 'x_rho',varShape, 
                      'meter','x-locations of RHO-points')
         nc.variables['x_rho'][:] = x
-        create_nc_var(nc,'h',('xi_rho'), 
+        
+        create_nc_var(nc,'h',varShape, 
                      'meter','bathymetry at RHO-points')
         nc.variables['h'][:] = h      
-                
+
         # Close NetCDF file
         nc.close()
 
@@ -134,21 +168,30 @@ def write_bathy_1d(x,h,path,ncsave=True,dt=None):
     print(' ')
     print('===================================================================')
     print('In your funwaveC init file:')
-    print('dimension ' + np.str(len(x)+1) + ' 6 ' +
-          np.str(np.abs(x[1] - x[0])) + ' 1')
+    if y is None:
+        dx = np.abs(x[1] - x[0])
+        print('dimension ' + np.str(len(x)+1) + ' 6 ' +
+              np.str(dx) + ' 1')
+    else:
+        dx = np.abs(x[0,1] - x[0,0]) # For later use
+        dy = np.abs(y[1,0] - y[0,0])
+        print('dimension ' + np.str(x.shape[1]+1) + ' ' + 
+              np.str(x.shape[0]) + ' ' +
+              np.str(dx) + ' ' + 
+              np.str(dy))
     print('===================================================================')
     print(' ')
     
-    # Stability options
-    dx = x[1] - x[0]
+    # Stability options    
     stabilityCriteria(dx,h.max(),dt=dt,verbose=True)
     
     # End of function
 
+
 #===============================================================================
 # Model stability criteria    
 #===============================================================================
-def stabilityCriteria(dx,hmax,dt=None,verbose=False):
+def stabilityCriteria(dx,hmax,dy=None,dt=None,verbose=False):
     """
     Give the user some ideas on the stability parameters
     """
@@ -157,10 +200,15 @@ def stabilityCriteria(dx,hmax,dt=None,verbose=False):
     print('Wave CFL Stability')
     cmax = (9.81*hmax)**0.5
     if not dt:
-        dt = 0.2*dx/cmax
+        dt = 0.2*dx/cmax # x direction
+        if dy:
+            dt = np.min([dt,0.2*dy/cmax])
         print('  Wave CFL stability requires: dt < ' + '{:6.4f}'.format(dt))
     else:
-        cfl_wave = cmax * dt / dx
+        cfl_wave = cmax * dt / dx # x direction
+        if dy:
+            cfl_wave = np.max([cfl_wave,cmax*dt/dy])
+            
         if cfl_wave > 0.2:
             print('  Warning CFL Wave = ' + '{:6.4f}'.format(cfl_wave) + 
                   ' > 0.2')
@@ -169,7 +217,7 @@ def stabilityCriteria(dx,hmax,dt=None,verbose=False):
             print('  dt is ok')
     
     if verbose:
-        print('    cmax * dt / dx < 0.2')
+        print('    cmax * dt / min(dx,dy) < 0.2')
         print('    cmax = (9.81 * hmax)**0.5 = ' + '{:8.4f}'.format(cmax))
         
     # Sponge layer -------------------------------------------------------------
@@ -185,11 +233,13 @@ def stabilityCriteria(dx,hmax,dt=None,verbose=False):
     print(' ')
     print('Biharmonic Friction')
     gamma_bi = 0.008 * (dx**4) / dt
+    if dy:
+        gamma_bi = np.max([gamma_bi,0.008*(dy**4)/dt])
     print('  Maximum biharmonic friction layer damping (gamma_bi) = ' + 
           '{:6.4f}'.format(gamma_bi))
     
     if verbose:
-        print('    S_bi = gamma_bi * dt / (dx**4) < 0.008')
+        print('    S_bi = gamma_bi * dt / min(dx**4,dy**4) < 0.008')
     
     # Breaking stability -------------------------------------------------------
     if verbose:
@@ -200,14 +250,13 @@ def stabilityCriteria(dx,hmax,dt=None,verbose=False):
 #===============================================================================
 # Create input file    
 #===============================================================================
-def makeInput(inp,x,outfld):
+def makeInput(inp,outfld):
     """
     Create input file to be used for funwaveC
     
     PARAMETERS:
     -----------
     inp     : Dictionary containing input file parameters
-    x       : x axis of the bathymetry 
     outfld  : path to write the input file (i.e. outfld/input.init)
     
     RETURNS:
@@ -232,14 +281,16 @@ def makeInput(inp,x,outfld):
     fid.write('funwaveC dynamics ' + inp['dynamics'] + '\n')
     
     # Grid size and spacing
-    if len(x.shape) == 1:
-        dx = x[2] - x[1]
-        # 1D model 
-        fid.write('dimension ' + np.str(x.shape[0]+1) + ' 6 ' + 
-                  np.str(dx) + ' ' + 
-                  np.str(np.ceil(dx)) + '\n')
+    dx = np.str(inp['dx'])
+    nx = np.str(inp['nx'])
+    if 'ny' in inp.keys():
+        ny = np.str(inp['ny'])
+        dy = np.str(inp['dy'])
     else:
-        print('Need to implement 2D model stuff')
+        ny = '6'
+        dy = np.str(np.ceil(np.float64(dx)))
+
+    fid.write('dimension ' + nx + ' ' + ny + ' ' + dx + ' ' + dy + '\n') 
     
     # Bottom stress
     fid.write('bottomstress const ' + np.str(inp['bottomstress']) + '\n')
@@ -249,12 +300,12 @@ def makeInput(inp,x,outfld):
               np.str(inp['mixing'][1]) + '\n')
     
     # Bathymetry
-    if len(x.shape) == 1:
-        # 1D bathymetry
-        fid.write('bathymetry file1d depth.txt\n')
-    else:
+    if np.double(ny) > 6.0:
         # 2D bathymetry assumed
         fid.write('bathymetry file2d depth.txt\n')
+    else:
+        # 1D bathymetry
+        fid.write('bathymetry file1d depth.txt\n')
     
     # Tides
     fid.write('tide off\n')
@@ -322,7 +373,7 @@ def makeInput(inp,x,outfld):
 #===============================================================================
 # Make a 1D bathymetry
 #===============================================================================
-def makeBathy1DPlanar(m,dx,hmax,hmin,flat,outFld):
+def makeBathyPlanar(m,dx,hmax,hmin,flat,outFld,dy=None,ly=None):
     """
     Make a planar beach bathymetry
     
@@ -334,15 +385,20 @@ def makeBathy1DPlanar(m,dx,hmax,hmin,flat,outFld):
     hmin : Minimum depth [m]
     flat : Length of flat part [m]
     
+    2D PARAMETRS (optional):
+    ------------------------
+    dy   : Grid resolution in y direction [m]
+    ly   : Grid alongshore length [m]
+        
     RETURNS:
     --------
-    x     : coordinates [m]
+    x     : cross-shore coordinates [m]
+    y     : alongshore coordinates [m] (if dy and ly are provided)
     h     : bathymetry [m]
     
     NOTES:
     ------
     - z is positive downwards
-    - Should expand to 2D
     
     """
 
@@ -353,9 +409,15 @@ def makeBathy1DPlanar(m,dx,hmax,hmin,flat,outFld):
     h[h>hmax] = hmax
     h = np.flipud(h)
 
-    write_bathy_1d(x,h,outFld)
-
-    return x,h
+    if dy is None:
+        write_bathy(x,h,outFld,y=None)        
+        return x,h
+    else:
+        y = np.arange(1.0,ly+dy,dy)
+        x,y = np.meshgrid(x,y)
+        h = np.repeat(np.expand_dims(h,axis=0),y.shape[0],axis=0)
+        write_bathy(x,h,outFld,y=y)
+        return x,y,h
 
 #===============================================================================
 # Write spectra for input

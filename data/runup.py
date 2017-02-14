@@ -445,7 +445,7 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
     # Master      
     iterList = (np.arange(rous.shape[0]),np.arange(rous.shape[1]),
                 np.arange(rous.shape[2]),np.arange(rous.shape[3]))
-    
+    iterListSP = (np.arange(rous.shape[4]),np.arange(rous.shape[5]))
     for aa,bb,cc,dd in _itertools.product(*iterList):
         
         #print('  Stack: ' + np.str(aa+1) + ' of ' + np.str(rous.shape[0]))
@@ -461,56 +461,52 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
             tmpR = unexpected_event(runupMatrix[aa],alpha[bb],
                                     n[cc],m[dd],xMean)
         except:
-            for ii in range(rousRunNum.shape[4]):
-                for jj in range(rousRunNum.shape[5]):
-                    rousRunNum[aa,bb,cc,dd,ii,jj] = np.array([])
-                    rousDist[aa,bb,cc,dd,ii,jj]   = np.array([])
-                    rousMag[aa,bb,cc,dd,ii,jj]    = np.array([])
+            for ii,jj in _itertools.product(*iterListSP):
+                rousRunNum[aa,bb,cc,dd,ii,jj] = np.array([])
+                rousDist[aa,bb,cc,dd,ii,jj]   = np.array([])
+                rousMag[aa,bb,cc,dd,ii,jj]    = np.array([])
             continue
         
         # No ROUS Found
         if np.size(tmpR) < 1:
-            for ii in range(rousRunNum.shape[4]):
-                for jj in range(rousRunNum.shape[5]):
-                    rousRunNum[aa,bb,cc,dd,ii,jj] = np.array([])
-                    rousDist[aa,bb,cc,dd,ii,jj]   = np.array([])
-                    rousMag[aa,bb,cc,dd,ii,jj]    = np.array([])
+            for ii,jj in _itertools.product(*iterListSP):
+                rousRunNum[aa,bb,cc,dd,ii,jj] = np.array([])
+                rousDist[aa,bb,cc,dd,ii,jj]   = np.array([])
+                rousMag[aa,bb,cc,dd,ii,jj]    = np.array([])
             continue
         
         # Filters on the data --------------------------------------------------
         # This should be another function at some point, to many
         # loops here.
         tmpROrig = np.copy(tmpR)
-        for ii in range(rousRunNum.shape[4]):
+        for ii,jj in _itertools.product(*iterListSP):
             
-            for jj in range(rousRunNum.shape[5]):
-                
-                # Load the default again
-                tmpR = np.copy(tmpROrig) 
-                
-                if speedMinima is not False:
-                    tmpR[velocityMatrix[aa]<speedMinima[ii]] = False
+            # Load the default again
+            tmpR = np.copy(tmpROrig) 
+            
+            if speedMinima is not False:
+                tmpR[velocityMatrix[aa]<speedMinima[ii]] = False
+    
+            # Time filter
+            if periodMinima is not False:
+                tTM = np.zeros_like(tmpR,dtype=np.float64)
+                tTM[n[cc]:] = (timeMatrix[aa][n[cc]:] - 
+                               timeMatrix[aa][:-n[cc]])
+                tmpR[tTM<periodMinima[jj]] = False
         
-                # Time filter
-                if periodMinima is not False:
-                    tTM = np.zeros_like(tmpR,dtype=np.float64)
-                    tTM[n[cc]:] = (timeMatrix[aa][n[cc]:] - 
-                                   timeMatrix[aa][:-n[cc]])
-                    tmpR[tTM<periodMinima[jj]] = False
+            # Allocate information ---------------------------------------
+            rous[aa,bb,cc,dd,ii,jj] = np.sum(tmpR)
+            rousRunNum[aa,bb,cc,dd,ii,jj] = runNumberMatrix[aa][tmpR]
             
-                # Allocate information -----------------------------
-                rous[aa,bb,cc,dd,ii,jj] = np.sum(tmpR)
-                rousRunNum[aa,bb,cc,dd,ii,jj] = runNumberMatrix[aa][tmpR]
-                
-                # Number of runups evaluated
-                numRunup[aa,bb,cc,dd,ii,jj] = (len(runupMatrix[aa]) - n[cc])
-                        
-                # Excursion of that runup event
-                tmpRD = [runupMatrix[aa][ee] - 
-                         np.max(runupMatrix[aa][ee-n[cc]:ee-m[dd]])
-                         for ee in np.where(tmpR)[0]]
-                rousDist[aa,bb,cc,dd,ii,jj] = tmpRD
-                
-                rousMag[aa,bb,cc,dd,ii,jj] = runupMatrix[aa][tmpR]
+            # Number of runups evaluated
+            numRunup[aa,bb,cc,dd,ii,jj] = (len(runupMatrix[aa]) - n[cc])
+                    
+            # Excursion of that runup event
+            tmpRD = [runupMatrix[aa][ee] - 
+                     np.max(runupMatrix[aa][ee-n[cc]:ee-m[dd]])
+                     for ee in np.where(tmpR)[0]]
+            rousDist[aa,bb,cc,dd,ii,jj] = tmpRD
+            
+            rousMag[aa,bb,cc,dd,ii,jj] = runupMatrix[aa][tmpR]
                 
     return rous,rousRunNum,rousDist,rousMag,numRunup
