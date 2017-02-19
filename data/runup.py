@@ -376,7 +376,7 @@ def unexpected_event(x,alpha,n,m,xMean=False):
 # ROUS Wrapper        
 #==============================================================================
 def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
-                speedMinima=False,velocityMatrix=None,
+                speedMinima=False,speedStats=False,velocityMatrix=None,
                 periodMinima=False,timeMatrix=None,
                 randomize=False,xMean=False):
     """
@@ -390,6 +390,12 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
     m               : idem
     runNumberMatrix : Matrix to ID the simulations 
     speedMinima     : Array of minimum uprush speed to consider
+    speedStats      : True the runup needs to satistfy (*) to be rous 
+                        vUprush > mean + speedMinima*std (*)
+                        mean = np.mean(velocityMatrix[ii])
+                        std  = np.str(velocityMatrix[ii])
+                      False the runup needs to satistfy (**) to be rous 
+                        vUprush > speedMinima (**)
     velocityMatrix  : Matrix like runupMatrix with uprush velocity
     periodMinima    : Minimum period to consider
     timeMatrix      : Crest-crest time matrix
@@ -435,6 +441,13 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
         rous = np.zeros((len(runupMatrix),alpha.shape[0],n.shape[0],m.shape[0],
                          1,1))
     
+    # Mange velocity
+    if speedMinima is not False and speedStats is not False:
+        print('  Using standard deviation filter on uprush speed')
+        velAvg = np.array([np.mean(aa) for aa in velocityMatrix])
+        velStd = np.array([np.std(aa) for aa in velocityMatrix])
+    
+    # Preallocate containers
     numRunup   = np.zeros_like(rous)
     rousRunNum = np.zeros_like(rous,dtype=np.object)
     rousDist   = np.zeros_like(rous,dtype=np.object)
@@ -476,8 +489,6 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
             continue
         
         # Filters on the data --------------------------------------------------
-        # This should be another function at some point, to many
-        # loops here.
         tmpROrig = np.copy(tmpR)
         for ii,jj in _itertools.product(*iterListSP):
             
@@ -485,7 +496,11 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
             tmpR = np.copy(tmpROrig) 
             
             if speedMinima is not False:
-                tmpR[velocityMatrix[aa]<speedMinima[ii]] = False
+                if speedStats is not False:
+                    tmpVT = velAvg[aa] + speedMinima[ii]*velStd[aa]
+                    tmpR[velocityMatrix[aa] < tmpVT] = False
+                else:
+                    tmpR[velocityMatrix[aa]<speedMinima[ii]] = False
     
             # Time filter
             if periodMinima is not False:
@@ -508,5 +523,5 @@ def rousWrapper(runupMatrix,alpha,n,m,runNumberMatrix,
             rousDist[aa,bb,cc,dd,ii,jj] = tmpRD
             
             rousMag[aa,bb,cc,dd,ii,jj] = runupMatrix[aa][tmpR]
-                
+            
     return rous,rousRunNum,rousDist,rousMag,numRunup
