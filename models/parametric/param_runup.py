@@ -13,12 +13,14 @@ numpy
 
 Internal dependencies:
 ----------------------
+physics.waves
    
 """
 
 from __future__ import division,print_function
 
 import numpy as np
+import pynmd.physics.waves as _gwaves
 
 #===============================================================================
 # Stockdon 2006
@@ -117,6 +119,9 @@ def stockdon2006Dissip(H,L):
     
     return r2
 
+#===============================================================================
+# Peter Ruggiero's Equation
+#===============================================================================
 def ruggiero2001(H,L,B):
     '''
     Estimate runup based on the parametric relation by Ruggiero et al 2001.
@@ -210,3 +215,63 @@ def guza2012(H,L,Fw,Ds=1.0):
     r2 =  (-0.013 * np.log(Fp/Fw*Ds) + 0.058) * ((H * L)**0.5)
     
     return r2
+
+#===============================================================================
+# Hajime Mase's Equation
+#===============================================================================
+def mase1989(H,L,B):
+    '''
+    Estimate runup based on the parametric relation by Ruggiero et al 2001.
+
+    
+    USAGE:
+    ------
+    R = mase1989(H,L,B)
+    
+    PARAMETERS:
+    -----------
+    H  : Offshore wave height [m]
+    L  : Offshore wave length [L]
+    B  : Beach slope
+    
+    RETURNS:
+    --------
+    Dictionary containing
+    Rmax  : Maximum runup [m]
+    R2    : 2% Runup exceedence [m]
+    R10   : 10% Runup exceedence [m]
+    R33   : Significant Runup [m] 
+    Rmean : Mean runup [m]
+    
+    NOTES:
+    ------
+    Rmax  = H*2.32*(ssp)**0.77
+    R2    = H*1.86*(ssp)**0.71
+    R10   = H*1.70*(ssp)**0.71
+    R33   = H*1.38*(ssp)**0.70
+    Rmean = H*0.69*(ssp)**0.69
+    ssp   = Surf similarity parameter
+    
+    REFERENCES:
+    -----------
+    Mase, H., 1989: Random Wave Runup Height on Gentle Slope. Journal of 
+        Waterway, Port, Coastal, and Ocean Engineering, 115 (5), 649-661.
+        
+    '''
+    
+    # Make sure parameters are double precision
+    H = np.double(H)
+    L = np.double(L)
+    B = np.double(B)
+    
+    # Surf similarity parameter
+    ssp = _gwaves.iribarren(B, H, L, verbose=False)
+    
+    # Compute Runup (Equation 6)   
+    rmax  = H * 2.32 * (ssp**0.77)
+    r2    = H * 1.86 * (ssp**0.71)
+    r10   = H * 1.70 * (ssp**0.71)
+    r33   = H * 1.38 * (ssp**0.70)
+    rmean = H * 0.69 * (ssp**0.69)
+    
+    return {'Rmax':rmax,'R2':r2,'R10':r10,'R33':r33,'Rmean':rmean}
