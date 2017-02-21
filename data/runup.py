@@ -222,7 +222,7 @@ def runupUprushSpeed(x,ot):
 #===============================================================================
 # Compute mean setup
 #===============================================================================
-def runup_params(runup,ot,detrend=True,window=True,igcut=0.05):
+def runup_params(runup,ot,detrend=True,window=True,igcut=0.05,hfNoise=None):
     """
     
     Parameters:
@@ -232,6 +232,7 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05):
     detrend      : Linearly detrend the data
     window       : Apply a hanning window to the runup time series
     igcut        : Infragravity wave frequency cutoff
+    hfNoise      : High frequency cutoff (S(f>hfNoise)=0.0)
     
     Output:
     -------
@@ -273,6 +274,10 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05):
     else:
         
         ff,sf = _gsignal.psdraw(swash,dt,False)
+    
+    # Remove noise frequencies
+    if hfNoise:
+        sf[ff>hfNoise] = 0.0
         
     # Compute significant infragravity swash
     freq_ig = ff<igcut
