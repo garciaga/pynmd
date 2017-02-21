@@ -240,11 +240,13 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05,hfNoise=None):
     setup        : Mean water surface elevation [m]
     r2_combined  : 2% runup exceedence value [m]
     r2_cdf       : 2% runup exceedence value computed from runup CDF [m]
+    r2_cdf_max   : 2% runup exceedence value computed from 
+                   CDF of runup maxima [m]
     r1_cdf       : 1% runup exceedence value computed from runup CDF [m]
     ig           : Significant infragravity swash elevation [m]
     in           : Significant incident swash elevation [m]
     r_max        : Maximum runup [m]
-    r_var        : Runup variance [m2]          
+    r_var        : Runup variance [m2]     
                
     Notes:
     ------
@@ -297,11 +299,15 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05,hfNoise=None):
     r1_cdf = np.sort(runup)[r1_ind]    
     
     # Compute the R2% from the runup maxima cumulative distribution function
+    max_ind = runup_maxima(swash,ot,0.1,upcross=True)
+    [xS,prob,_] = _gsignal.ecdf(swash[max_ind])
+    r2_cdf_max = np.interp(0.98,prob,xS)
     
     # Generate output
     return {'setup':setup, 'ig':swash_ig,'in':swash_in,
             'r2_combined':r2_combined,'r2_cdf':r2_cdf,
-            'r1_cdf':r1_cdf,'r_max':runup.max(),'r_var':np.var(runup)}
+            'r1_cdf':r1_cdf,'r_max':runup.max(),'r_var':np.var(runup),
+            'r2_cdf_max':r2_cdf_max+setup}
 
 
 #===============================================================================
