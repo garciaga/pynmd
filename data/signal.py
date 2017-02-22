@@ -1115,7 +1115,17 @@ def linReg(x,y):
     
     Examples:
     ---------
-    
+    Remove a yearly signal from the data
+    >> y = data
+    >> months = np.arange(0,y.shape[0]) # Assuming data is sampled monthly
+    >> months[np.isnan(y)] = np.NAN
+    >> x = np.ones((2,y.shape[0]))
+    >> x[1,:] = np.sin(2.0*np.pi/12*months)
+    >> x[2,:] = np.cos(2.0*np.pi/12*months)
+    >> B,p = linReg(x,y)
+    >> yReg = np.array([B[aa]*x[aa,:] for aa in range(B.shape[0])])
+    >> yReg = np.sum(yReg,axis=0)
+    >> yClean = y - yReg
     
     """
     
@@ -1134,7 +1144,7 @@ def linReg(x,y):
     B = np.linalg.lstsq(Dmat,Zmat)[0]
 
     # Evaluate the regression model
-    rMod = np.array([B[aa]*(x[aa,:]**aa) for aa in range(B.shape[0])])
+    rMod = np.array([B[aa]*x[aa,:] for aa in range(B.shape[0])])
     rMod = np.sum(rMod,axis=0)
     
     # Confidence interval for hindcast skill -----------------------------------
