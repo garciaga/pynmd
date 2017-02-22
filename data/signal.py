@@ -83,7 +83,7 @@ def cross_corr(x,y,lags,norma=1.0):
         norma = 1.0
 
     # Preallocate variables
-    rho = np.zeros((2*lags+1,1))
+    rho = np.zeros((2*lags+1,))
     stats = np.zeros((2*lags+1,5))
 
     # loop over lags
@@ -1090,3 +1090,189 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
     yflt = (np.fft.ifft(dft).real)/hamWind + dataMean
     
     return yflt
+
+
+#===============================================================================
+# Linear Regression
+#===============================================================================
+def linReg(x,y):
+    """
+    Compute linear regression using the least squares method
+    
+    PARAMETERS:
+    -----------
+    x : Coefficient matrix of size (N,M)
+    y : Target Predictor of size (M,)
+    
+    RETURNS:
+    --------
+    B : Coefficents of linear regression
+    p : Array of performance statistics
+    
+    Notes:
+    ------
+    y can be thought of as the measurements.
+    
+    Examples:
+    ---------
+    
+    
+    """
+    
+    # Confidence level
+    cl = 0.95
+       
+    # Linear regression --------------------------------------------------------
+    Dmat = np.zeros((x.shape[0],x.shape[0]))
+    Zmat = np.zeros((x.shape[0],))
+    
+    # Fill the coefficient matrix
+    for aa in range(Dmat.shape[0]):
+        for bb in range(Dmat.shape[1]):
+            Dmat[aa,bb] = np.nanmean(x[aa,:]*x[bb,:])
+        Zmat[aa] = np.nanmean(y*x[aa,:])
+    B = np.linalg.lstsq(Dmat,Zmat)[0]
+
+    # Evaluate the regression model
+    rMod = np.array([B[aa]*(x[aa,:]**aa) for aa in range(B.shape[0])])
+    rMod = np.sum(rMod,axis=0)
+    
+    # Confidence interval for hindcast skill -----------------------------------
+    
+    # Compute the skill of the regression
+    rho,stats = cross_corr(y,rMod,0)
+    rhosq = rho[0]**2 # Skill
+    
+    # Compute the effective sample size
+    Nstar = essize(y)[0]
+    
+    # Compute the critical skill
+    M = x.shape[0] - 1
+    sc = scrit(Nstar,M,cl=cl)
+    
+    # Confidence interval in each of the regression parameters
+    Dinv = np.linalg.inv(Dmat)
+    sigma_b1 = ((np.nanvar(y) * (1.0 - rhosq) * np.diagonal(Dinv))/
+                (Nstar - M - 1.0))
+    db = (sigma_b1**0.5) * spi.stats.t.ppf(0.5+cl/2.0,Nstar-M-1)
+    
+    # Prepare for ouptut -------------------------------------------------------
+    p = {'skill':rhosq,'Nstar':Nstar,'scrit':sc,'db':db}
+    
+    return B,p
+    
+#===============================================================================
+# Effective Sample Size
+#===============================================================================
+def essize(x,y=None):
+    """
+
+    This function computes the effective sample size for a given time series
+    based on the 'Artificial Skill Method' and the 'Probability Density
+    Function Method'
+    
+    PARAMETERS:
+    -----------
+    x : Time series, missing values should be flagged as NaNs
+    y : Second time series (optional)
+    
+    RETURNS:
+    --------
+    essize : Effective sample size
+
+    NOTES:
+    ------
+    essize[0]: Using artificial skill method
+    essize[1]: Using the PDF method
+    
+    """
+    
+    # Check for optional parameters         
+    if y is None:
+        y = np.copy(x)
+    
+    # Estimate the effective sample size and confidence interval with the
+    # artificial skill method --------------------------------------------------
+    
+    # Get number of samples
+    Nall = np.sum(np.isfinite(x*y))
+    
+    # Compute the bounds for the lagged auto-correlation
+    klow  = np.floor(0.6*Nall)
+    khigh = np.ceil(0.8*Nall)
+    
+    # Cross-correlation to the appropriate bounds
+    rho,stats = cross_corr(x,y,khigh)
+    
+    # Eliminate short lags
+    keep_lags = np.abs(stats[:,0])>=klow
+    rho = rho[keep_lags]
+    stats = stats[keep_lags,:]
+    rhosq = rho**2
+    
+    # Compute the 'Artificial Skill'
+    neg_lag_ind = stats[:,0] < 0
+    neg_lags = rhosq[neg_lag_ind] * stats[neg_lag_ind,-1]
+    pos_lag_ind = stats[:,0] > 0
+    pos_lags = rhosq[pos_lag_ind] * stats[pos_lag_ind,-1]
+    pos_lags = pos_lags[::-1]   
+    
+    Ask = 1.0/(2*(khigh-klow+1)) * np.sum(pos_lags + neg_lags)
+     
+    # Compute nuhat
+    nuhat_ask = 1.0/Ask;
+     
+    # Compute effective sample size
+    nstar_ask = np.floor(nuhat_ask*Nall)
+     
+     
+    # Compute N* with the 'PDF' method -----------------------------------------
+    neg_lags_rho = rhosq[neg_lag_ind]
+    pos_lags_rho = rhosq[pos_lag_ind][::-1]
+    neg_lags_n   = stats[neg_lag_ind,-1]
+    pos_lags_n   = stats[pos_lag_ind,-1][::-1]
+    A1 = (1.0/(2*(khigh-klow+1)) * 
+          np.sum(pos_lags_rho/(1.0-pos_lags_rho) + 
+                 neg_lags_rho/(1.0-neg_lags_rho)))
+    A2 = (1.0/(2*(khigh-klow+1)) * 
+          np.sum(pos_lags_n*pos_lags_rho/(1.0-pos_lags_rho) +
+                 neg_lags_n*neg_lags_rho/(1.0-neg_lags_rho)))
+    
+    # Compute nuhat
+    nuhat_pdf = (1.0 + 4.0*A1)/A2
+    
+    # Compute effective sample size
+    nstar_pdf = np.floor(nuhat_pdf*Nall)
+
+    # Create output matrix
+    return [np.int64(nstar_ask),np.int64(nstar_pdf)]
+
+
+#===============================================================================
+# Critical skill for significance
+#===============================================================================
+def scrit(N,dof,cl=0.95):
+    """
+    Critical skill at a given significance level
+    
+    PARAMETERS:
+    -----------
+    N    : Number of effective sample size (see signal.essize)
+    dof  : Degrees of freedom (i.e. number of variables fit, do not consider
+           the constant term)
+    cl   : Confidence level (e.g. for 95% is 0.95)
+    
+    RETURNS:
+    --------
+    scrit : Critical skill for the model to be significant at a given 
+            confidence level
+
+    """
+    
+    # Inverse of Fisher's cumulative distribution function
+    finv = spi.stats.f.ppf(cl,dof,N-dof-1)
+    
+    # Critical model skill
+    scrit = (dof*finv)/((N-dof-1) + dof*finv)
+
+    return scrit
