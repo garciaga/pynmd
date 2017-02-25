@@ -815,7 +815,6 @@ def slow_dft(yt,freq=None,dt=1):
 #===============================================================================
 # Compute statistics from two time series
 #===============================================================================
-
 def basic_stats(x,y):
     '''
     Compute basic statistics for time series analysis.
@@ -833,7 +832,7 @@ def basic_stats(x,y):
     nrmse  : Normalized root-mean squared error [percentage]
     bias   : Bias [input units]
     si     : Scatter index
-    r2     : Linear correlation coefficient
+    r2     : Linear correlation coefficient    
 
     '''
 
@@ -853,18 +852,21 @@ def basic_stats(x,y):
     si = rmse/np.mean(x)
 
     # Linear correlation coefficient
-    r2 = np.corrcoef(x,y)
-
+    #r2 = np.corrcoef(x,y)
+    r2,_ = cross_corr(x,y,0)
+    
+    # Effective length of time series using artificial skill method
+    #Nstar = essize(x,y)[0]
+    
     # Function output
     return {'N':N, 'rmse':rmse,'nrmse':nrmse,
-            'bias':bias,'si':si,'r2':r2}
+            'bias':bias,'si':si,'r2':r2[0]}
 
 
 
 #===============================================================================
 # zero crossing
 #===============================================================================
-
 def zero_crossing(x,d='up'):
     '''
     Find zero crossings in a signal
@@ -1116,16 +1118,16 @@ def linReg(x,y):
     Examples:
     ---------
     Remove a yearly signal from the data
-    >> y = data
-    >> months = np.arange(0,y.shape[0]) # Assuming data is sampled monthly
-    >> months[np.isnan(y)] = np.NAN
-    >> x = np.ones((2,y.shape[0]))
-    >> x[1,:] = np.sin(2.0*np.pi/12*months)
-    >> x[2,:] = np.cos(2.0*np.pi/12*months)
-    >> B,p = linReg(x,y)
-    >> yReg = np.array([B[aa]*x[aa,:] for aa in range(B.shape[0])])
-    >> yReg = np.sum(yReg,axis=0)
-    >> yClean = y - yReg
+    >>> y = data
+    >>> months = np.arange(0,y.shape[0]) # Assuming data is sampled monthly
+    >>> months[np.isnan(y)] = np.NAN
+    >>> x = np.ones((2,y.shape[0]))
+    >>> x[1,:] = np.sin(2.0*np.pi/12*months)
+    >>> x[2,:] = np.cos(2.0*np.pi/12*months)
+    >>> B,p = linReg(x,y)
+    >>> yReg = np.array([B[aa]*x[aa,:] for aa in range(B.shape[0])])
+    >>> yReg = np.sum(yReg,axis=0)
+    >>> yClean = y - yReg
     
     """
     
@@ -1161,11 +1163,16 @@ def linReg(x,y):
     sc = scrit(Nstar,M,cl=cl)
     
     # Confidence interval in each of the regression parameters
-    Dinv = np.linalg.inv(Dmat)
-    sigma_b1 = ((np.nanvar(y) * (1.0 - rhosq) * np.diagonal(Dinv))/
-                (Nstar - M - 1.0))
-    db = (sigma_b1**0.5) * spi.stats.t.ppf(0.5+cl/2.0,Nstar-M-1)
-    
+    try:
+        Dinv = np.linalg.inv(Dmat)
+        sigma_b1 = ((np.nanvar(y) * (1.0 - rhosq) * np.diagonal(Dinv))/
+                    (Nstar - M - 1.0))
+        db = (sigma_b1**0.5) * spi.stats.t.ppf(0.5+cl/2.0,Nstar-M-1)
+    except:
+        print('Singular regression matrix')
+        print('  Cannot do one parameter models yet')
+        db = 0.0
+        
     # Prepare for ouptut -------------------------------------------------------
     p = {'skill':rhosq,'Nstar':Nstar,'scrit':sc,'db':db}
     
