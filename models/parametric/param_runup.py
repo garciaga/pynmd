@@ -237,11 +237,13 @@ def mase1989(H,L,B):
     RETURNS:
     --------
     Dictionary containing
-    Rmax  : Maximum runup [m]
-    R2    : 2% Runup exceedence [m]
-    R10   : 10% Runup exceedence [m]
-    R33   : Significant Runup [m] 
-    Rmean : Mean runup [m]
+    Rmax    : Maximum runup [m]
+    R2      : 2% Runup exceedence [m]
+    R10     : 10% Runup exceedence [m]
+    R33     : Significant Runup [m] 
+    Rmean   : Mean runup [m]
+    boreRed : Bore reduction factor
+    Tmean   : Mean runup period [s]
     
     NOTES:
     ------
@@ -251,6 +253,7 @@ def mase1989(H,L,B):
     R33   = H*1.38*(ssp)**0.70
     Rmean = H*0.69*(ssp)**0.69
     ssp   = Surf similarity parameter
+    Tmean = [(2*pi*L/g)**0.5]/boreRed
     
     REFERENCES:
     -----------
@@ -274,4 +277,17 @@ def mase1989(H,L,B):
     r33   = H * 1.38 * (ssp**0.70)
     rmean = H * 0.69 * (ssp**0.69)
     
-    return {'Rmax':rmax,'R2':r2,'R10':r10,'R33':r33,'Rmean':rmean}
+    # Compute bore reduction (Equation 7)
+    if ssp > 3.57:
+        boreRed = 1.0
+    elif ssp > 0.91 and ssp <= 3.57:
+        boreRed = 0.70 * (ssp**0.28)
+    else:
+        boreRed = 0.72 * (ssp**0.58)
+    
+    # Mean runup crest period (Equation 8)
+    Tmean = ((2.0*np*pi*L/9.81)**0.5)/boreRed
+    
+    return {'Rmax':rmax,'R2':r2,'R10':r10,'R33':r33,'Rmean':rmean,
+            'boreRed':boreRed,'Tmean':Tmean}
+
