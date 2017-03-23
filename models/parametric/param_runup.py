@@ -286,7 +286,7 @@ def mase1989(H,L,B):
         boreRed = 0.72 * (ssp**0.58)
     
     # Mean runup crest period (Equation 8)
-    Tmean = ((2.0*np*pi*L/9.81)**0.5)/boreRed
+    Tmean = ((2.0*np.pi*L/9.81)**0.5)/boreRed
     
     return {'Rmax':rmax,'R2':r2,'R10':r10,'R33':r33,'Rmean':rmean,
             'boreRed':boreRed,'Tmean':Tmean}

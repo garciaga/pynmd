@@ -65,7 +65,10 @@ def gridVars():
     gridInfo['f']['long_name'] = 'Coriolis parameter at RHO-points'
     gridInfo['f']['units'] = 'second-1'
     gridInfo['f']['field'] = 'coriolis, scalar'
-    gridInfo['f']['dimensions'] = 'r2dvar'
+    gridInfo['f']['dimensions'] = 'r2dvar' 
+    
+    gridInfo['river']['long_name'] = 'river runoff identification number'
+    gridInfo['river']['dimensions'] = 'nulvar'
     
     return gridInfo
 
@@ -124,7 +127,17 @@ def gridDims():
     g['nulvar']['salt_east']  = ('s_rho','eta_rho')
     g['nulvar']['salt_north'] = ('s_rho','xi_rho')
     g['nulvar']['salt_south'] = ('s_rho','xi_rho')
-       
+    
+    # River variables
+    g['nulvar']['river'] = ('river',)
+    g['nulvar']['river_Xposition'] = ('river',)
+    g['nulvar']['river_Eposition'] = ('river',)
+    g['nulvar']['river_direction'] = ('river',)
+    g['nulvar']['river_Vshape'] = ('s_rho','river')
+    g['nulvar']['river_transport'] = ('river',)
+    g['nulvar']['river_temp'] = ('s_rho','river')
+    g['nulvar']['river_salt'] = ('s_rho','river')
+    
     # Done    
     return g    
     
@@ -228,7 +241,7 @@ def writeROMSGrid(outFile,variables,varinfo,
     >>>
     >>> variables['type'] = 'ROMS FORCING FILE'
     >>>
-    >>> timeinfo = defaultdict(time)
+    >>> timeinfo = defaultdict(dict)
     >>> timeinfo['sms_time']['units'] = 'seconds since 1970-01-01 00:00:00 UTC'
     >>> timeinfo['sms_time']['data'] = np.arange(0,1000,10)
     >>> timeinfo['sms_time']['long_name'] = 'surface momentum stress time'
@@ -330,7 +343,12 @@ def writeROMSGrid(outFile,variables,varinfo,
     # Vertical dimensions
     if 's_rho' in variables.keys():
         nc.createDimension('s_rho',variables['s_rho'].size)
+    if 's_w' in variables.keys():
         nc.createDimension('s_w',variables['s_w'].size)
+    
+    # river variables
+    if 'river' in variables.keys():
+        nc.createDimension('river',variables['river'].size)
     
     # Time dimension and variable (unlimited,netCDF4 supports multiple)
     if timeinfo:
@@ -370,14 +388,23 @@ def writeROMSGrid(outFile,variables,varinfo,
             if varinfodict[aa]['dimensions'] == 'nulvar':
                 tmpdims = tmpdims[aa]
         except:
+            if verbose:
+                #print('    ' + aa + ': Not in varinfodict[aa][dimensions]')
+                print('    ' + aa + ': skipped')
             continue
         
         if verbose:
             print('    ' + aa)
             
         if 'time' in varinfodict[aa].keys():
-            tmpdims = (varinfodict[aa]['time'],) + tmpdims
-        
+            # Some variables have info on the time slot no time
+            # See river_Xpoisition for example
+            if 'time' in varinfodict[aa]['time']:
+                tmpdims = (varinfodict[aa]['time'],) + tmpdims
+            else:
+                # Get rid of the time variable
+                varinfodict[aa].pop('time')
+                
         # Create Variable
         nc.createVariable(aa,'f8',tmpdims)
         
