@@ -128,3 +128,50 @@ def write_dep(fname,data):
   
     f.close()        
 
+def write_table(fname,data):
+    """
+    To write one table block of text boundary into .bcc or .bct file:
+    
+    In some cases you need to read in the file into GUI and save it again
+    to be able to read it by Delft3D properly.
+    
+    Linear : time interpolation  
+    Linear : Depth interpolation (e.g salinity)
+    """
+    fmt = "%.7e"
+    f   = open(fname,"a")
+    
+    params_header = []
+    params_header.append( "table-name          '"  +  data["table_name"]    +"'\n") 
+    params_header.append( "contents            '"  +  data["contents"]      +"'\n") 
+    params_header.append( "location            '"  +  data["location"]      +"'\n") 
+    params_header.append( "time-function       '"  +  data["time-function"] +"'\n") 
+    params_header.append( "reference-time       "  +  data["time-ref"]      +" \n") 
+    params_header.append( "time-unit           '"  +  data["time-unit"]     +"'\n") 
+    params_header.append( "interpolation       '"  +  data["interpolation"] +"'\n") 
+    
+    main_param      = data["main_param"]
+    main_param_unit = data["main_param_unit"]
+    params_header.append(     "parameter           'time                '  unit '[min]' \n")
+    if "linear" in data["contents"].lower():
+        params_header.append( "parameter           '" +  main_param +  "   end A surface'       unit '" + main_param_unit+"' \n")
+        params_header.append( "parameter           '" +  main_param +  "   end A bed    '       unit '" + main_param_unit+"' \n")
+        params_header.append( "parameter           '" +  main_param +  "   end B surface'       unit '" + main_param_unit+"' \n")
+        params_header.append( "parameter           '" +  main_param +  "   end B bed    '       unit '" + main_param_unit+"' \n")
+    elif "uniform" in data["contents"].lower():     
+        params_header.append( "parameter           '" +  main_param +  "  end A uniform'        unit '" + main_param_unit+"' \n")
+        params_header.append( "parameter           '" +  main_param +  "  end B uniform'        unit '" + main_param_unit+"' \n")
+    else:
+        sys.exit(data["contents"]+' > contents < method not yet implemented !!')
+    
+    data = data["data"]
+    nl,_ = data.shape
+    params_header.append( "records-in-table "  +  str(int(nl)) +"\n") 
+    
+    for il in range(len(params_header)):
+        f.write(params_header[il])
+    
+    np.savetxt(f,data , fmt=fmt)
+    f.close()
+    #####
+

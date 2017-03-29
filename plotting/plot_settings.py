@@ -70,7 +70,7 @@ def get_figsize(fig_width_pt):
     return fig_size
 
 # Publishable quality image settings for 2-column papers
-params0 = {'backend': 'eps',
+params0 = {'backend': 'pdf',
           'axes.labelsize': 4,
           'text.fontsize': 4,
           'xtick.labelsize': 4,
@@ -83,7 +83,7 @@ params0 = {'backend': 'eps',
           'figure.figsize': get_figsize(250)}
 
 # Medium sized images
-params1 = {'backend': 'eps',
+params1 = {'backend': 'pdf',
           'axes.labelsize': 8,
           'text.fontsize': 8,
           'xtick.labelsize': 8,
@@ -96,7 +96,7 @@ params1 = {'backend': 'eps',
           'figure.figsize': get_figsize(500)}
 
 # Large images (default)
-params2 = {'backend': 'eps',
+params2 = {'backend': 'pdf',
           'axes.labelsize': 11,
           'text.fontsize': 11,
           'xtick.labelsize': 11,
@@ -239,4 +239,29 @@ def jetWoGn(reverse=False):
     return LinearSegmentedColormap('new_RdBl',cdict,256)
 
 
+def mkd(t_vec,date_orig):
+    """
+    For plotting in decimal years, rather than datenum.
 
+    t_vec : vector of matlab datenume (floats)
+    date_orig : python date time of orig
+    output: vector of number of days
+
+    """
+    t_orig = datetime2matlabdn(date_orig)
+    return (t_vec - t_orig) / 365.25 + t_orig
+
+
+def exp_func(x, a, b, c):
+    return a*pylab.exp(-b*x)+c
+
+def power_func(x, a, b,c):
+    return a * x**b + c
+
+def x2_func(x, a, b):
+    return a * x**2 + b
+
+# define a gaussian function to fit the data
+def gaussian_func(x, a, b, c, d):
+    val = a* pylab.exp(-(x - b)**2 / c**2) + d
+    return val

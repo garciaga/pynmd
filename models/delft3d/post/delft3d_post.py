@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os,sys
 
-import okean.calc as calc
 from pynmd.plotting.vars_param import *
 import pynmd.plotting.plot_settings as ps
 import datetime
@@ -90,6 +89,8 @@ def read_d3d_time(netcdf_vars):
     return dates
 
 def rotate_3d_vel(u1,v1,w1=None,ang=0):
+    import okean.calc as calc
+
     """
     horizontal rotation of D3D 3D flow field. Fro Curvilinear grids 
     """
