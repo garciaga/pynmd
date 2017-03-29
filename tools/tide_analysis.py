@@ -17,7 +17,6 @@ import  cPickle as pickle
 import  string
 import  matplotlib.pyplot as plt
 import  pynmd.plotting.plot_settings as ps
-from    pynmd.plotting.plot_settings import mat2py_datenum
 import  glob
 
 def projection_nri ():

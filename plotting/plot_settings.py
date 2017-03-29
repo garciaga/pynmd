@@ -238,7 +238,6 @@ def jetWoGn(reverse=False):
 
     return LinearSegmentedColormap('new_RdBl',cdict,256)
 
-
 def mkd(t_vec,date_orig):
     """
     For plotting in decimal years, rather than datenum.
