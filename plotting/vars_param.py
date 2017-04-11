@@ -144,6 +144,32 @@ defs['wcap']['label'] = 'Dissp. Wcap [Wat m-2]'
 defs['wcap']['format']= '%.1g'
 defs['wcap']['cmap']  = ps.my_cmap
 
+defs['sin_wind']={}
+defs['sin_wind']['var']   = 'win'
+defs['sin_wind']['tvar']   = 'time'
+defs['sin_wind']['vmin']  =  0.
+defs['sin_wind']['vmax']  =  3e-5
+defs['sin_wind']['label'] = 'Wind input [m$^ \mathrm{2}$s$^ \mathrm{-1}$] '
+defs['sin_wind']['format']= '%.1g'
+defs['sin_wind']['cmap']  = ps.my_cmap
+
+defs['sdis_wave']={}
+defs['sdis_wave']['var']   = 'dis'
+defs['sdis_wave']['tvar']   = 'time'
+defs['sdis_wave']['vmin']  =  0.
+defs['sdis_wave']['vmax']  =  3e-5
+defs['sdis_wave']['label'] = 'Surf. Dissip. [m$^ \mathrm{2}$s$^ \mathrm{-1}$] '
+defs['sdis_wave']['format']= '%.1g'
+defs['sdis_wave']['cmap']  = ps.my_cmap
+
+defs['tke']={}
+defs['tke']['var']   = 'tke'
+defs['tke']['vmin']  = 0e-4
+defs['tke']['vmax']  = 6e-4
+defs['tke']['label'] = 'TKE [m2s-2]'
+defs['tke']['format']= '%.1g'
+defs['tke']['cmap']  = ps.jetWoGn()
+
 defs['wlen']={}
 defs['wlen']['var']   = 'Lwave'
 defs['wlen']['vmin']  =  10.
@@ -167,6 +193,27 @@ defs['spmdif']['vmax']  =   0.01
 defs['spmdif']['label'] = 'SPM diff. [kgm-3] '   
 defs['spmdif']['format']= '%.1g'
 defs['spmdif']['cmap']  = ps.jetWoGn()
+
+
+### Basic Defs
+defs['wind']={}
+defs['wind']['var']   = 'wind'
+defs['wind']['tvar']   = 'time'
+defs['wind']['vmin']  =  0.
+defs['wind']['vmax']  =  10.
+defs['wind']['label'] = 'Wind speed [ms$^ \mathrm{-1}$] '
+defs['wind']['format']= '%.1g'
+defs['wind']['cmap']  = ps.my_cmap
+
+
+defs['windd']={}
+defs['windd']['var']   = 'wdir.'
+defs['windd']['tvar']   = 'time'
+defs['windd']['vmin']  =  0.
+defs['windd']['vmax']  =  360.
+defs['windd']['label'] = 'Wind direction [deg] '
+defs['windd']['format']= '%.1g'
+defs['windd']['cmap']  = ps.my_cmap
 
 
 #plot extent
