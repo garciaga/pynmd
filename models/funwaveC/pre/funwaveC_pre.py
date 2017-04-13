@@ -327,9 +327,17 @@ def makeInput(inp,outfld):
         for aa in range(3,len(inp['eta_source'])):
             fid.write(' ' + np.str(np.int(inp['eta_source'][aa])))
         fid.write('\n')
+    elif inp['eta_source'][1] == 'monochromatic':
+        fid.write('eta_source on ' + inp['eta_source'][1])
+        for aa in range(2,len(inp['eta_source'])):
+            if aa == 5:
+                fid.write(' ' + np.str(np.int(inp['eta_source'][aa])))
+            else:
+                fid.write(' ' + np.str(inp['eta_source'][aa]))
+        fid.write('\n')
     else:
         print('Accepted eta_source parameters:')
-        print('  [random2nb,random2filea]')
+        print('  [random2nb,random2filea,monochromatic]')
         print('  Turning wavemaker off')
         fid.write('eta_source off\n')
         

@@ -23,6 +23,8 @@ gsignal
 import numpy as np
 import scipy as _spi
 import itertools as _itertools
+import scipy as _spi
+import scipy.optimize
 
 # Internal modules
 import signal as _gsignal
@@ -753,3 +755,73 @@ def unexpected_event_period(x,alpha,pM,tM,m,xMean=False):
         
     # Return unexpected event matrix
     return np.array(unex),nR
+
+#===============================================================================
+# Carrier and Greenspan Runup
+#===============================================================================
+def carrierGreenspanRunup(per,s,a):
+    """
+    Gives the predicted runup from as derived by Carrier and Greenspan.
+    
+    USAGE:
+    ------
+    xR = carrierGreenspanRunup(per,s,a)
+    
+    PARAMETERS:
+    -----------
+    per : long wave period [s]
+    s   : beach slope
+    a   : wave amplitude
+        
+    RETURNS:
+    --------
+    xR  : Runup [m]
+    ot  : time [s]
+       
+    REFERENCES:
+    -----------
+    Carrier, G. F., and H. P. Greenspan, 1958: Water waves of finite amplitude
+        on a sloping beach. Journal of Fluid Mechanics, 4 (01), 97-109.
+    Mei, Chiang C., Michael Stiassnie, and Dick K-P. Yue. Theory and
+        applications of ocean surface waves: nonlinear aspects. 
+        Vol. 23. World scientific, 2005.
+        
+    """
+    
+    # Maximum allowed amplitude
+    amax = 9.81 * (((per * s) / (2.0 * np.pi)) ** 2) 
+    
+    if a > amax:
+        print("Wave amplitude is not ok")
+    else:
+        print("Wave amplitude is ok")
+    print('    Maximum Amplitude:' + "{:6.3f}".format(a) + ' m')
+
+    # Function to find lambda given the time of simulation (12.3.37)
+    t = np.arange(0,per*2,0.01)
+    omega = 2.0 * np.pi / per
+    l = np.zeros_like(t)
+
+    def _f(l,a,per,s,t):
+        omega = 2.0 * np.pi / per
+        g = 9.81
+        m = s * g
+        p1 = -1.0/(2.0 * m)
+        p2 = 2.0 * g * a * omega / m
+        p3 = np.cos(omega * l / 2.0 / m)
+        y = p1 * (l - p2 * p3) - t
+        return y
+    
+    # Get lambda for a given time
+    linit = 0.0
+    for aa in range(t.shape[0]):
+        linit = _spi.optimize.newton(_f,linit,fprime=None,
+                                     args=(a,per,s,t[aa]),maxiter=100)
+        l[aa] = linit
+    
+    # Get the shoreline position (12.3.36c)
+    x = a / s * (-np.sin(omega*l/(2.0*s*9.81)) + 
+                 9.81 * a / 2.0 * (omega/(s*9.81))**2 * 
+                 (np.cos(omega * l / (2.0 * s * 9.81)))**2)
+    
+    return x,t
