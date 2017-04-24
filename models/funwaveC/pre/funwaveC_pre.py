@@ -238,8 +238,14 @@ def stabilityCriteria(dx,hmax,dy=None,dt=None,verbose=False):
     print('  Maximum biharmonic friction layer damping (gamma_bi) = ' + 
           '{:6.4f}'.format(gamma_bi))
     
+    # Reynolds grid based on maximum velocity
+    re_bi = cmax * (dx**3) / gamma_bi    
+    print('  Grid Reynolds number (R_bi) = ' + '{:6.4f}'.format(re_bi))
+    print('    Assuming U = (gh)**0.5')
+    
     if verbose:
         print('    S_bi = gamma_bi * dt / min(dx**4,dy**4) < 0.008')
+        print('    R_bi = U min(dx**3,dy**3) / gamma_bi << 1')        
     
     # Breaking stability -------------------------------------------------------
     if verbose:

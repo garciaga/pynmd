@@ -945,7 +945,7 @@ def whwpts(t,x,d='up'):
     '''
     
     # Find the zero crossings
-    zcross = gsignal.zero_crossing(x,d='up')
+    zcross = gsignal.zero_crossing(x,d=d)
     
     # Find the wave period
     wp = t[zcross[1:]] - t[zcross[:-1]]

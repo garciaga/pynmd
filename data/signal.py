@@ -1038,7 +1038,7 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
     dt      : Sampling interval of the time series of interest
     freqmin : (Optional) minimum frequency to keep
     freqmax : (Optional) maximum frequency to keep
-    demean  : Remove mean from data
+    demean  : Remove mean from data before computing the Fourier Transform.
     window  : Apply a hamming window to the data
     
     RETURNS:
@@ -1049,6 +1049,8 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
     ------
     - Need to provide freqmin or freqmax at least. Provide both for band pass
       filtering.
+    - The mean will be added back to the time series after performing the 
+      frequency domain filtering when demean=True.
     
     """
     
