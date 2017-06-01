@@ -18,6 +18,7 @@ Internal Dependencies:
 
 from __future__ import division,print_function
 import datetime as _datetime
+import numpy as _np
 
 # Import internal modules ------------------------------------------------------
 
@@ -99,3 +100,60 @@ def dayOfYear(year,month,day):
     a = _datetime.datetime(year,month,day) - _datetime.datetime(year,1,1)
     
     return a.days + 1
+
+#===============================================================================
+# Monthly vector
+#===============================================================================
+def monthVector(yr1,yr2):
+    """
+    Create a monthly vector in datetime format between both given years
+    
+    PARAMETERS:
+    -----------
+    yr1 : Start Year
+    yr2 : End Year (inclusive)
+    
+    RETURNS:
+    --------
+    dateVec : Vector of monthly entries including Jan yr1 and Dec yr2
+    
+    NOTES:
+    ------
+    yr1 and yr2 are integers
+    """
+    
+    # Compute a safety range in case this function goes crazy
+    time1 = _datetime.datetime(yr1,1,1)
+    time2 = _datetime.datetime(yr2,12,31)   
+    dateRange = time2 - time1
+    
+    # Preallocate variables
+    timeVec = []
+    cnt = 1 # Global counter and safety variable
+    monthCnt = 0
+    tmpYear = yr1
+    
+    while cnt < dateRange.days:
+        
+        cnt += 1       # global counter
+        monthCnt += 1  # Next month
+        
+        # Month 13 is january of next year
+        if monthCnt%13 == 0:
+            monthCnt = 1
+            tmpYear += 1
+    
+        # Current month as datetime object
+        tmpTime = _datetime.datetime(tmpYear,monthCnt,1)
+                
+        # Check if the final month has been reached
+        if tmpYear > yr2:
+            break
+        
+        # If everything looks good allocate
+        timeVec.append(tmpTime)
+        
+    # Convert to array
+    timeVec = _np.array(timeVec)
+    
+    return timeVec

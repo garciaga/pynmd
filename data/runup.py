@@ -162,7 +162,7 @@ def runup_maxima(x,ot,sten,upcross=False):
 # ==============================================================================
 # Runup maxima
 # ==============================================================================
-def runupUprushSpeed(x,ot):
+def runupUprushSpeed(x,ot,interpSetup=False):
     """
     This function finds the runup maxima and the uprush speed from the previous
     minima and from the setup line. Zero upcrossing is used to find runup
@@ -170,12 +170,14 @@ def runupUprushSpeed(x,ot):
     
     USAGE:
     ------
-    max_ind,min_ind,speedMinima,speedSetup = runup_maxima(x,ot)
+    max_ind,min_ind,speedMinima,speedSetup = runupUprushSpeed(x,ot)
     
     PARAMETERS:
     -----------
     x       : Runup time series [m]
-    ot      : Time vector, must have the same length as x and time in seconds. 
+    ot      : Time vector, must have the same length as x and time in seconds.
+    interpSetup: If True the zero crossing position is interpolated. Otherwise
+                 the closest measured point to the zero crossing is used. 
     
     RETURNS:
     --------
@@ -216,10 +218,15 @@ def runupUprushSpeed(x,ot):
     for aa in range(len(ind_max)):
         tmpIndMax   = ind_max[aa]
         tmpIndCross = indCross[aa]
-        speedSetup[aa] = x[tmpIndMax] / (ot[tmpIndMax]-ot[tmpIndCross])
+        if interpSetup:
+            tmpOt = np.interp(0.0,x[tmpIndCross:tmpIndMax],
+                              ot[tmpIndCross:tmpIndMax])
+            speedSetup[aa] = x[tmpIndMax] /(ot[tmpIndMax]-tmpOt)            
+        else:
+            speedSetup[aa] = ((x[tmpIndMax] - x[tmpIndCross]) /
+                              (ot[tmpIndMax]-ot[tmpIndCross]))
     
-    return np.array(ind_max),np.array(ind_min),speedMinima,speedSetup
-    
+    return np.array(ind_max),np.array(ind_min),speedMinima,speedSetup    
 
 #===============================================================================
 # Compute mean setup

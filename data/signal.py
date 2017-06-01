@@ -1295,3 +1295,67 @@ def scrit(N,dof,cl=0.95):
     scrit = (dof*finv)/((N-dof-1) + dof*finv)
 
     return scrit
+
+#===============================================================================
+# Running variance
+#===============================================================================
+def runVar(y,span,nanTreat=False):
+    """
+
+    Compute running variance
+    
+    Usage:
+    ------
+    var = runVariance(y,span)
+
+    Input
+    -----
+       - y is the signal whose variance will be computed
+       - span is the stencil width (should be an odd number, otherwise it will
+         be forced to be so)
+       - nanTreat (default = False) if true uses nansum instead of sum. Does
+         not affect end treatment.
+
+    Results
+    -------
+       - Returns variance along the signal
+
+    Notes
+    -----
+       - Operates on first dimension of the array
+       - A lot of assumptions about the data are made here, this function is by
+         no means as robust as Matlab's smooth function. Only real valued
+         numbers are assumed to be passed to the array and no repetition in the
+         coordinate variable is assumed. Use at your own risk.
+
+    """
+
+    # Quick data check
+    if span > y.shape[0]:
+        print("Stencil of " + np.str(span) + " is larger than the " +
+              "length of the array (" + np.str(y.shape[0]) + ")")
+        return
+
+
+    # Span must be an odd number
+    width = span - 1 + span % 2
+    offset = np.int((width - 1.0)/2.0)
+
+    # Preallocate variable
+    ybox = np.zeros_like(y) * np.NAN
+
+    # Find indices for averaging
+    first = np.int(np.ceil(width/2.0) - 1.0)
+    last = np.int(y.shape[0] - first - 1.0)
+
+    if nanTreat:
+        for aa in range(first,last+1):
+            ybox[aa] = np.nanvar(y[aa-offset:aa+offset+1],axis=0)
+    else:
+        for aa in range(first,last+1):
+            if np.isnan(np.sum(y[aa-offset:aa+offset+1])):
+                continue
+            ybox[aa] = np.var(y[aa-offset:aa+offset+1],axis=0)
+
+    return ybox
+
