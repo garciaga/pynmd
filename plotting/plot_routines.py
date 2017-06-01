@@ -639,6 +639,9 @@ def TimeSeriesPlot(ax,data,args):
     return 
 
 
+
+#### below this line not well tested yet
+
 def read_salt_temp(filename,ncvar,wher,dates,data):
     """
     Find model point based on min rms error 
@@ -679,3 +682,30 @@ def read_salt_temp(filename,ncvar,wher,dates,data):
     nc.close()
 
     return dates_r[ind_sim].squeeze()[:-1],val_interp  
+def statatistics(val_da,val_mo):
+    data_me=val_da
+    data_mo=val_mo
+    # Calculate statistics
+    mean_me = data_me.mean()
+    mean_mo = data_mo.mean()
+    sd1 = data_me.std()
+    sd2 = data_mo.std()
+    delta = data_mo-data_me
+    R2 = 1.-((data_me-data_mo)**2).sum()/((data_me-mean_me)**2).sum()
+    bias=mean_mo-mean_me
+    rmse=np.sqrt((delta**2).mean())
+    nrmse1 = rmse / (data_me.max() - data_me.min())
+    nrmse2 = rmse/ abs(data_me.mean() )
+    nrmse3 = np.sqrt( (delta**2).sum() / (data_me**2).sum() )
+    big_error=(np.abs(delta)).max()
+    mae = np.abs(delta).mean()
+    cor1 = (((data_me-mean_me)*(data_mo-mean_mo)).mean()/sd1/sd2)
+    return bias,rmse,R2
+
+
+def ncks(param='zeta',xvar='eta_rho',yvar='xi_rho',ix=0,jy=0,filein='tmp.nc',fileout='tmp2.nc'):
+      comm1='ncks -O  -v '+ param+' -d '+xvar +' '+str(jnum)+' -d '+ yvar +' '+str(inum)+' '+filein+' '+fileout
+      os.system(comm1)
+
+
+
