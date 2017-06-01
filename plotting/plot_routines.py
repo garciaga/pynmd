@@ -639,5 +639,43 @@ def TimeSeriesPlot(ax,data,args):
     return 
 
 
+def read_salt_temp(filename,ncvar,wher,dates,data):
+    """
+    Find model point based on min rms error 
+    
+    """
 
+    nc    = netCDF4.Dataset(filename)
+    ncv   = nc.variables
+    tvar  ='ocean_time'
+    utd   = netcdftime.utime(ncv[tvar].units)
+    dates_r = utd.num2date(ncv[tvar][:] )
+    ind_sim   =  np.where (   (dates_r>=date_first) & (dates_r<=date_last )   )
+    option = 'find_min_rmse'
+    #option = 'find_min_bias'    
+    val  = ncv[ncvar][:,wher,:,:].squeeze()
+    nmodj,nmodi = val[0,:].shape
+    if option in ['find_min_rmse' ,'find_min_bias']:
+        val_rms = []
+        val_bis = []
+        val_all = []
+        for modj in range(nmodj):
+            for modi in range(nmodi):
+                pre_val = val[:,modj,modi]
+                pre_val_interp =  np.interp( utd.date2num(dates),
+                                             utd.date2num(dates_r[ind_sim].squeeze()),
+                                             pre_val[ind_sim].squeeze())
+                bias,rmse,r2=statatistics(data , pre_val_interp)
+                val_all.append(pre_val_interp)
+                val_rms.append(rmse)
+                val_bis.append(bias)
+        if option in ['find_min_rmse']:
+            indx    = np.argmin(np.array(val_rms))
+        else:
+            indx    = np.argmin(np.array(val_bis))
 
+        print 'index>',indx #,'   rmse> ',val_rms[indx],val_rms
+        val_interp = val_all[indx]
+    nc.close()
+
+    return dates_r[ind_sim].squeeze()[:-1],val_interp  
