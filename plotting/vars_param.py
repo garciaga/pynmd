@@ -120,6 +120,15 @@ defs['uv']['label'] = 'Tot. Vel. [ms$^\mathrm{-1}$]'
 defs['uv']['format']= '%.2g'
 defs['uv']['cmap']  = ps.my_cmap
 
+defs['discharge']={}
+defs['discharge']['var']   = 'discharge'
+defs['discharge']['vmin']  =  0.0
+defs['discharge']['vmax']  =  30.0
+defs['discharge']['label'] = 'Q [m$^\mathrm{3}$s$^\mathrm{-1}$]'
+defs['discharge']['format']= '%.2g'
+defs['discharge']['cmap']  = ps.my_cmap
+
+
 defs['hs']={}
 defs['hs']['var']   = 'Hwave'
 defs['hs']['vmin']  =  0.
