@@ -842,6 +842,7 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
     Sw         : Spectral width (m0*m2/m1/m1 - 1)**2
     Tm01IG     : First moment wave period over the infragravity frequency band
     TpIG       : Peak wave period over the infragravity frequency band [s]
+    HsIG       : Significant wave height in the infragravity frequency band [m]
 
     Notes:
     ------
@@ -851,7 +852,7 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
 
     """
 
-    # Remove zeroth frequencies
+    # Remove zeroth frequencies ------------------------------------------------
     spec = spec[1:]
     freq = freq[1:]
 
@@ -893,18 +894,20 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
         tmp_fit = np.polyfit(freq[minfreq:maxfreq],spec[minfreq:maxfreq],2)
         Tp_fit = (-1.0 * tmp_fit[1] / (2.0* tmp_fit[0]))**-1
 
-    # Infragravity wave periods
+    # Infragravity wave periods ------------------------------------------------
     igInd = np.logical_and(freq>=IGBand[0],freq<IGBand[1])
     moment0 = np.trapz(spec[igInd],freq[igInd],axis=-1)
     moment1 = np.trapz(spec[igInd]*freq[igInd],freq[igInd],axis=-1)
     Tm01IG  = moment0 / moment1
+    
+    HsIG = 4.004 * (moment0)**0.5     
     
     freq_max_ind = np.argmax(spec[igInd])
     TpIG = freq[igInd][freq_max_ind]**-1
     
     # Exit function
     return {'Hs':Hs,'H1':H1,'Tp':Tp,'Tp_fit':Tp_fit,'Tm01':Tm01,'Tm02':Tm02,
-            'Te':Te,'Sw':Sw,'Tm01IG':Tm01IG,'TpIG':TpIG}
+            'Te':Te,'Sw':Sw,'Tm01IG':Tm01IG,'TpIG':TpIG,'HsIG':HsIG}
 
 #===============================================================================
 # Wave Height and Period From time series
