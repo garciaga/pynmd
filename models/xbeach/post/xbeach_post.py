@@ -33,18 +33,25 @@ def nc_runup(nc,r_depth=0.01,yind=None):
     Notes:
     ------
     1. Test for 1D simulations.
+    2. Will fail for non time dependent zb0
     """
     
     # See if this is a 1d or 3d simulation
-    simShape = nc.variables['zb'].shape
+    simShape = nc.variables['zs'].shape
+    
     # 2DH simulation
     if len(simShape) == 3:
         
         if yind is None:
             yind = np.round(simShape[1]/2)
-            
-        h   = nc.variables['zb'][:,yind,:].squeeze()
+
+        try:            
+            h   = nc.variables['zb'][:,yind,:].squeeze()
+        except:
+            h   = nc.variables['zb0'][:,yind,:].squeeze()
+        
         eta = nc.variables['zs'][:,yind,:].squeeze()
+        # Need to fix this for h != h(t)
         d   = eta - h
         x   = nc.variables['globalx'][yind,:].squeeze()    
     
@@ -52,7 +59,10 @@ def nc_runup(nc,r_depth=0.01,yind=None):
     else:        
         
         # Load variables
-        h   = nc.variables['zb'][:]
+        try:
+            h   = nc.variables['zb'][:]
+        except:
+            h   = nc.variables['zb0'][:]
         eta = nc.variables['zs'][:]
         d   = eta - h
         x   = nc.variables['globalx'][:]    

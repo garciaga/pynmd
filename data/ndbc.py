@@ -398,8 +398,8 @@ def spec2nc(buoyfld,dtheta=5):
       Physical Oceanography, 18, 1020-1034.
       
     TODO:
-    Only works with newer formats (YY MM DD hh mm)
-    
+    - Only works with newer formats (YY MM DD hh mm)
+    - Fix negative energy (the fix is in the code just incorporate)
     '''
     
     # For testing only ---------------------------------------------------------
@@ -744,7 +744,22 @@ def spec2nc(buoyfld,dtheta=5):
                                             np.cos(2 * np.pi / 180.0 * 
                                                    (angles[dd]-alpha_2[bb,cc])))
                                            )
-            
+#             CLEAN ME UP---------------
+#             # Get the positive energy
+#             tmpSpec = spec.copy()
+#             tmpSpec[tmpSpec<0] = 0.0
+#             tmpFreqSpec = np.sum(tmpSpec,axis=-1)*(dirs[2]-dirs[1])
+#             posEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
+#             
+#             # Get the total energy
+#             tmpFreqSpec = np.sum(spec,axis=-1)*(dirs[2]-dirs[1])
+#             totalEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
+#             
+#             # Scale the spectrum
+#             spec = np.array([spec[aa,...] * totalEnergy[aa]/posEnergy[aa] 
+#                              for aa in range(spec.shape[0])])
+#             spec[spec<0] = 0.0
+
             # Write to file
             if cnt_dir == 1:
                 nc.variables['dir_spec'+formId][:] = wspec

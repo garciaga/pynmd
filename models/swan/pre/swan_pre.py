@@ -15,6 +15,8 @@ from __future__ import division,print_function,absolute_import
 __author__ = "Gabriel Garcia Medina"
 
 # Import modules
+import datetime as _datetime
+import getpass as _getpass
 
 # Import pynmd modules
 
@@ -56,12 +58,15 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
     - Add flag for cartesian or nautical convention
     
     """
-       
+    
     # Open the output file
     fid = open(outfile,'w')
     
     # Write file header
     fid.write('SWAN 1\n')
+    fid.write('$ File produced by ' + _getpass.getuser() + '\n')
+    now = _datetime.datetime.utcnow()
+    fid.write('$   ' + now.strftime('%d-%b-%Y %H:%M:%S')+' UTC\n')
     
     # File locations
     fid.write('LOCATIONS\n')

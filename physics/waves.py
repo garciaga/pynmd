@@ -32,7 +32,7 @@ import scipy.signal
 
 # Internal modules
 import pynmd.data.signal as gsignal
-
+import pynmd.data.angles as _gangles
 
 #===============================================================================
 # Compute radian frequency from wave number
@@ -908,6 +908,75 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
     # Exit function
     return {'Hs':Hs,'H1':H1,'Tp':Tp,'Tp_fit':Tp_fit,'Tm01':Tm01,'Tm02':Tm02,
             'Te':Te,'Sw':Sw,'Tm01IG':Tm01IG,'TpIG':TpIG,'HsIG':HsIG}
+
+#===============================================================================
+# Bulk parameters from a directional spectrum
+#===============================================================================
+def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05]):
+    """
+    Function to compute bulk wave parameters from frequency-direction spectrum
+
+    Parameters:
+    -----------
+    freq    : Vector of spectral frequencies [Hz]
+    dirs    : Vector of directions (nautical convention) [Deg or Rad]
+    spec    : Wave spectrum [m2/Hz/Deg or m2/Hz/Deg]
+              The shape must be [freq,dirs]
+    IGBand  : Infragravity wave frequency cutoff 
+              defaults to 0.005-0.05 Hz
+
+    Returns:
+    --------
+    Dictionary containing bulk wave parameters
+    Hs         : Significant wave height [m]
+    H1         : Mean wave height [m]
+    Tp         : Peak wave period [s]
+    Tp_fit     : Peak wave period computed from second order polynomial fit
+                 near Tp[s]
+    Tm01       : First moment wave period [s]
+    Tm02       : Second moment wave period [s]
+    Te         : Energy period [s]
+    Sw         : Spectral width (m0*m2/m1/m1 - 1)**2
+    Tm01IG     : First moment wave period over the infragravity frequency band
+    TpIG       : Peak wave period over the infragravity frequency band [s]
+    HsIG       : Significant wave height in the infragravity frequency band [m]
+    Dm         : Mean wave direction, second moment (Kuik et al. 1988)
+    Dp         : Peak wave direction (computed from directional spectrum)
+    
+    Notes:
+    ------
+    - mn are the different spectral moments
+    - First frequency will be discarded from the analysis. It is assumed to be
+      the zeroth-frequency.
+
+    REFERENCES:
+    -----------
+    Kuik, A.J., G.P. Van Vledder, and L.H. Holthuijsen, 1988: A method for the
+        routine analysis of pitch-and-roll buoy wave data. Journal of Physical
+        Oceanography, 18(7), pp.1020-1034.
+    """
+    
+    # Get directional properties
+    dirSpec = np.trapz(spec,freq,axis=0)
+    
+    # Find peak wave directon
+    Dp = np.argmax(dirSpec)
+    Dp = dirs[Dp]
+    dirDict = dict(Dp=Dp)
+    
+    # Find mean wave direction (Kuik et al 1988)
+    a1 = np.trapz(dirSpec*np.cos((270.0-dirs)*np.pi/180),dirs)
+    b1 = np.trapz(dirSpec*np.sin((270.0-dirs)*np.pi/180),dirs)
+    # Mean wave direction in nautical coordinates
+    Dm = _gangles.wrapto360(270.0 - np.arctan2(b1,a1) * 180.0 / np.pi)
+    dirDict.update(Dm=Dm)
+    
+    # Get the parameter from the frequency spectrum
+    freqSpec = np.trapz(spec,dirs,axis=-1)
+    bp = fspec_bulk_params(freq,freqSpec,IGBand)
+    bp.update(dirDict)
+    
+    return bp
 
 #===============================================================================
 # Wave Height and Period From time series
