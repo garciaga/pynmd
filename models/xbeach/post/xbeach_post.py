@@ -45,15 +45,24 @@ def nc_runup(nc,r_depth=0.01,yind=None):
         if yind is None:
             yind = np.round(simShape[1]/2)
 
+        # Load the bottom topography
         try:            
             h   = nc.variables['zb'][:,yind,:].squeeze()
         except:
-            h   = nc.variables['zb0'][:,yind,:].squeeze()
+            zbShape = nc.variables['zb0'].shape
+            if len(zbShape) == 3:
+                h   = nc.variables['zb0'][:,yind,:].squeeze()
+            else:
+                h   = nc.variables['zb0'][yind,:].squeeze()
         
+        # Total water depth
         eta = nc.variables['zs'][:,yind,:].squeeze()
-        # Need to fix this for h != h(t)
-        d   = eta - h
-        x   = nc.variables['globalx'][yind,:].squeeze()    
+        
+        if len(h.shape) == 1:
+            h = np.repeat(np.expand_dims(h,axis=0),eta.shape[0],axis=0)
+
+        d = eta - h 
+        x = nc.variables['globalx'][yind,:].squeeze()    
     
     # 1D simulation   
     else:        
