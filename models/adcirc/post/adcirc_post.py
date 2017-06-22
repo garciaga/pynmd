@@ -5,7 +5,6 @@ __version__ = "1.0"
 __email__ = "moghimis@gmail.com"
 
 
-
 import netCDF4
 import netcdftime
 
@@ -95,14 +94,14 @@ def ReadVar(fname='',varname='',time_name=None , tind = None):
     else:
         var = nc.variables[varname][tind].squeeze()
 
-    x   = nc.variables['longitude'][:]
-    y   = nc.variables['latitude'][:]
+    # x   = nc.variables['longitude'][:]
+    # y   = nc.variables['latitude'][:]
     # read connectivity array
-    el  = nc.variables['tri'][:] - 1
+    # el  = nc.variables['tri'][:] - 1
     # create a triangulation object, specifying the triangle connectivity array
-    tri = Tri.Triangulation(x,y, triangles=el)
+    # tri = Tri.Triangulation(x,y, triangles=el)
     nc.close()
-    out.update({'ncv':ncv,varname:var, 'tri':tri}) 
+    out.update({'ncv':ncv,varname:var}) 
     return out   
 
 def ReadTri(DirName):
@@ -122,6 +121,91 @@ def ReadTri(DirName):
     tri = Tri.Triangulation(x,y, triangles=el)
     nc.close()
     return x,y,tri
+
+
+
+def ReadFort80(dir):
+    """
+    Read fort.80 file for domain decomposition information
+    
+    return a dictionary including:
+    IMAP_EL_LG
+    IMAP_NOD_LG
+    IMAP_NOD_GL (negative values for not owned elements)
+    
+    """
+    fdata = open( dir + 'fort.80' ,  'r')
+    while True:
+    #for  line in fdata.readlines():
+        line = fdata.readline()
+        if 'Number of processors'     in line: nproc = int(line.split()[0]) 
+        if 'Total # elements & nodes' in line: 
+            nelem = int(line.split()[0])
+            nnode = int(line.split()[1])          
+        if 'NWLON, NWLAT'             in line:
+            print line
+            break
+
+    #allocate
+    IMAP_NOD_LG  = []
+    IMAP_NOD_GL   = np.zeros((nnode,3),dtype=np.int)
+    IMAP_EL_LG   = []
+    #IMAP_STAE_LG = []
+    #IMAP_STAV_LG = []
+    #IMAP_STAC_LG = []
+    #IMAP_STAM_LG = []
+    pe_all        = []
+    # read nodes local2global
+    for inp in  range( nproc ):
+        line1       = fdata.readline()
+        print line1
+        pe          = int(line1.split()[0])
+        nnodp       = int(line1.split()[1])                
+        nod_res_tot = int(line1.split()[2])                
+        pe_all.append(pe)
+        tmpa = np.array([])
+        proc_read = True
+        while proc_read:
+           line1 = fdata.readline()
+           tmp = np.array([int(v) for v in line1.split()])
+           tmpa = np.r_[tmpa,tmp]
+           if len(tmpa) == nnodp:
+               IMAP_NOD_LG.append(tmpa)
+               proc_read = False
+      
+    # read nodes local2global
+    line1       = fdata.readline()
+    print line1
+    for il in range(nnode):
+        line1       = fdata.readline()
+        node_globa = int(line1.split()[0])
+        pe         = int(line1.split()[1])                
+        node_local = int(line1.split()[2]) 
+        IMAP_NOD_GL[il,:] = node_globa , pe ,  node_local
+
+    # read elements local2global
+    for inp in  range( nproc ):
+        line1       = fdata.readline()
+        print line1
+        pe          = int(line1.split()[0])   # pe number
+        nelmp       = int(line1.split()[1])   # element on pe             
+
+        pe_all.append(pe)
+        tmpa = np.array([])
+        proc_read = True
+        while proc_read:
+           line1 = fdata.readline()
+           tmp = np.array([int(v) for v in line1.split()])
+           tmpa = np.r_[tmpa,tmp]
+           if len(tmpa) == nelmp:
+               IMAP_EL_LG.append(tmpa)
+               proc_read = False
+           
+    fdata.close() 
+    return (dict (nproc = nproc, nelem = nelem, nnode = nnode ,
+                  IMAP_EL_LG  = np.array(IMAP_EL_LG) ,
+                  IMAP_NOD_LG = np.array(IMAP_NOD_LG),
+                  IMAP_NOD_GL = np.array(IMAP_NOD_GL) )) 
 
 
   

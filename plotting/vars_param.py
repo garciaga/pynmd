@@ -216,6 +216,15 @@ defs['windd']['format']= '%.1g'
 defs['windd']['cmap']  = ps.my_cmap
 
 
+defs['pres']={}
+defs['pres']['var']   = 'pres'
+defs['pres']['tvar']   = 'time'
+defs['pres']['vmin']  =  0.
+defs['pres']['vmax']  =  2.0e5
+defs['pres']['label'] = 'pressure [Pa] '
+defs['pres']['format']= '%.1g'
+defs['pres']['cmap']  = ps.my_cmap
+
 #plot extent
 defs['lim']['xmin']  = -100.0 
 defs['lim']['xmax']  =  400.0
