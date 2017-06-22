@@ -640,4 +640,72 @@ def TimeSeriesPlot(ax,data,args):
 
 
 
+#### below this line not well tested yet
+
+def read_salt_temp(filename,ncvar,wher,dates,data):
+    """
+    Find model point based on min rms error 
+    
+    """
+
+    nc    = netCDF4.Dataset(filename)
+    ncv   = nc.variables
+    tvar  ='ocean_time'
+    utd   = netcdftime.utime(ncv[tvar].units)
+    dates_r = utd.num2date(ncv[tvar][:] )
+    ind_sim   =  np.where (   (dates_r>=date_first) & (dates_r<=date_last )   )
+    option = 'find_min_rmse'
+    #option = 'find_min_bias'    
+    val  = ncv[ncvar][:,wher,:,:].squeeze()
+    nmodj,nmodi = val[0,:].shape
+    if option in ['find_min_rmse' ,'find_min_bias']:
+        val_rms = []
+        val_bis = []
+        val_all = []
+        for modj in range(nmodj):
+            for modi in range(nmodi):
+                pre_val = val[:,modj,modi]
+                pre_val_interp =  np.interp( utd.date2num(dates),
+                                             utd.date2num(dates_r[ind_sim].squeeze()),
+                                             pre_val[ind_sim].squeeze())
+                bias,rmse,r2=statatistics(data , pre_val_interp)
+                val_all.append(pre_val_interp)
+                val_rms.append(rmse)
+                val_bis.append(bias)
+        if option in ['find_min_rmse']:
+            indx    = np.argmin(np.array(val_rms))
+        else:
+            indx    = np.argmin(np.array(val_bis))
+
+        print 'index>',indx #,'   rmse> ',val_rms[indx],val_rms
+        val_interp = val_all[indx]
+    nc.close()
+
+    return dates_r[ind_sim].squeeze()[:-1],val_interp  
+def statatistics(val_da,val_mo):
+    data_me=val_da
+    data_mo=val_mo
+    # Calculate statistics
+    mean_me = data_me.mean()
+    mean_mo = data_mo.mean()
+    sd1 = data_me.std()
+    sd2 = data_mo.std()
+    delta = data_mo-data_me
+    R2 = 1.-((data_me-data_mo)**2).sum()/((data_me-mean_me)**2).sum()
+    bias=mean_mo-mean_me
+    rmse=np.sqrt((delta**2).mean())
+    nrmse1 = rmse / (data_me.max() - data_me.min())
+    nrmse2 = rmse/ abs(data_me.mean() )
+    nrmse3 = np.sqrt( (delta**2).sum() / (data_me**2).sum() )
+    big_error=(np.abs(delta)).max()
+    mae = np.abs(delta).mean()
+    cor1 = (((data_me-mean_me)*(data_mo-mean_mo)).mean()/sd1/sd2)
+    return bias,rmse,R2
+
+
+def ncks(param='zeta',xvar='eta_rho',yvar='xi_rho',ix=0,jy=0,filein='tmp.nc',fileout='tmp2.nc'):
+      comm1='ncks -O  -v '+ param+' -d '+xvar +' '+str(jnum)+' -d '+ yvar +' '+str(inum)+' '+filein+' '+fileout
+      os.system(comm1)
+
+
 
