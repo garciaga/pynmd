@@ -122,8 +122,6 @@ def ReadTri(DirName):
     nc.close()
     return x,y,tri
 
-
-
 def ReadFort80(dir):
     """
     Read fort.80 file for domain decomposition information
@@ -132,9 +130,9 @@ def ReadFort80(dir):
     IMAP_EL_LG
     IMAP_NOD_LG
     IMAP_NOD_GL (negative values for not owned elements)
-    
+   
     """
-    fdata = open( dir + 'fort.80' ,  'r')
+    fdata = open( dir + '/fort.80' ,  'r')
     while True:
     #for  line in fdata.readlines():
         line = fdata.readline()
@@ -155,10 +153,10 @@ def ReadFort80(dir):
     #IMAP_STAC_LG = []
     #IMAP_STAM_LG = []
     pe_all        = []
-    # read nodes local2global
+    print '[info:] read nodes local2global'
     for inp in  range( nproc ):
         line1       = fdata.readline()
-        print line1
+        #print line1
         pe          = int(line1.split()[0])
         nnodp       = int(line1.split()[1])                
         nod_res_tot = int(line1.split()[2])                
@@ -173,9 +171,9 @@ def ReadFort80(dir):
                IMAP_NOD_LG.append(tmpa)
                proc_read = False
       
-    # read nodes local2global
+    print '[info:] read nodes local2global'
     line1       = fdata.readline()
-    print line1
+    #print line1
     for il in range(nnode):
         line1       = fdata.readline()
         node_globa = int(line1.split()[0])
@@ -183,10 +181,10 @@ def ReadFort80(dir):
         node_local = int(line1.split()[2]) 
         IMAP_NOD_GL[il,:] = node_globa , pe ,  node_local
 
-    # read elements local2global
+    print '[info:] read elements local2global'
     for inp in  range( nproc ):
         line1       = fdata.readline()
-        print line1
+        #print line1
         pe          = int(line1.split()[0])   # pe number
         nelmp       = int(line1.split()[1])   # element on pe             
 
@@ -206,6 +204,48 @@ def ReadFort80(dir):
                   IMAP_EL_LG  = np.array(IMAP_EL_LG) ,
                   IMAP_NOD_LG = np.array(IMAP_NOD_LG),
                   IMAP_NOD_GL = np.array(IMAP_NOD_GL) )) 
+
+
+def make_map(projection=ccrs.PlateCarree()):
+    """
+    Generate fig and ax using cartopy
+    input: projection
+    output: fig and ax
+    """
+
+    subplot_kw = dict(projection=projection)
+    fig, ax = plt.subplots(figsize=(9, 13),
+                           subplot_kw=subplot_kw)
+    gl = ax.gridlines(draw_labels=True)
+    gl.xlabels_top = gl.ylabels_right = False
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    return fig, ax
+
+
+def tri_mask(Tri,zmask):
+    """
+    Inputs: 
+    tri object
+    mask array of vertex
+    
+    Returned: maksed tri object
+    """
+    
+    print '[info]: Mask Tri '
+    mask = np.ones(len(Tri.triangles), dtype=bool)
+    count = 0
+    for t in Tri.triangles:
+        count+=1
+        ind = t
+        if np.any(zmask[ind-1]):
+            mask[count-1] = False    
+    Tri.set_mask = mask
+    return Tri
+
+
+
+
 
 
   
