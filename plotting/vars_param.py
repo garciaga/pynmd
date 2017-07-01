@@ -370,6 +370,17 @@ defs['accel']['label'] = '3D momentum, acceleration term [m s$^ \mathrm{-2}] '
 defs['accel']['format']= '%.1g'
 defs['accel']['cmap']  = ps.jetWoGn()
 
+
+defs['pres']={}
+defs['pres']['var']   = 'pres'
+defs['pres']['tvar']   = 'time'
+defs['pres']['vmin']  =  0.
+defs['pres']['vmax']  =  2.0e5
+defs['pres']['label'] = 'pressure [Pa] '
+defs['pres']['format']= '%.1g'
+defs['pres']['cmap']  = ps.my_cmap
+
+
 #plot extent
 defs['lim']['xmin']  = -100.0 
 defs['lim']['xmax']  =  400.0
