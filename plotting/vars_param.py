@@ -16,7 +16,6 @@ __version__ = "1.0"
 __email__ = "moghimis@gmail.com"
 
 
-
 defs =  defaultdict(dict)
 
 defs['elev']['var']   = 'zeta'
@@ -58,7 +57,7 @@ defs['salt']['var']   = 'salt'
 defs['salt']['vmin']  = 34.0
 defs['salt']['vmax']  = 35.0
 defs['salt']['label'] = 'Salt. [psu]'
-defs['salt']['format']= '%.2g'
+defs['salt']['format']= '%.3g'
 defs['salt']['cmap']  = ps.jetWoGn()
 
 defs['saltdif']['var']   = 'saltdif'
@@ -268,107 +267,210 @@ defs['windd']['cmap']  = ps.my_cmap
 ### ROMS momentum diagnostics
 defs['cor']={}
 defs['cor']['var']   = 'cor'
-defs['cor']['vmin']  =  -0.01
-defs['cor']['vmax']  =   0.01
-defs['cor']['label'] = '3D momentum, Coriolis term [m s$^ \mathrm{-2}] '   
-defs['cor']['format']= '%.1g'
+defs['cor']['vmin']  =  -2e-5
+defs['cor']['vmax']  =   2e-5
+defs['cor']['label'] = 'Coriolis [m s$^ \mathrm{-2}$] '   
+defs['cor']['format']= '%.2g'
 defs['cor']['cmap']  = ps.jetWoGn()
+
+defs['fsco']={}
+defs['fsco']['var']   = 'fsco'
+defs['fsco']['vmin']  = -1e-5
+defs['fsco']['vmax']  =  1e-5
+defs['fsco']['label'] ='horizontal Coriolis-stokes [m s$^ \mathrm{-2}$] '   
+defs['fsco']['format']= '%.2g'
+defs['fsco']['cmap']  = ps.jetWoGn()
 
 defs['vadv']={}
 defs['vadv']['var']   = 'vadv'
-defs['vadv']['vmin']  =  -0.01
-defs['vadv']['vmax']  =   0.01
-defs['vadv']['label'] = '3D momentum, vertical advection term [m s$^ \mathrm{-2}] '   
-defs['vadv']['format']= '%.1g'
+defs['vadv']['vmin']  =  -0.0002
+defs['vadv']['vmax']  =   0.0002
+defs['vadv']['label'] ='vertical advection [m s$^ \mathrm{-2}$] '   
+defs['vadv']['format']= '%.2g'
 defs['vadv']['cmap']  = ps.jetWoGn()
 
 defs['hadv']={}
 defs['hadv']['var']   = 'hadv'
-defs['hadv']['vmin']  =  -0.01
-defs['hadv']['vmax']  =   0.01
-defs['hadv']['label'] = '3D momentum, horizontal advection term [m s$^ \mathrm{-2}] '   
-defs['hadv']['format']= '%.1g'
+defs['hadv']['vmin']  =  -0.0002
+defs['hadv']['vmax']  =   0.0002
+defs['hadv']['label'] ='horizontal advection [m s$^ \mathrm{-2}$] '   
+defs['hadv']['format']= '%.2g'
 defs['hadv']['cmap']  = ps.jetWoGn()
 
 defs['xadv']={}
 defs['xadv']['var']   = 'xadv'
 defs['xadv']['vmin']  =  -0.01
 defs['xadv']['vmax']  =   0.01
-defs['xadv']['label'] = '3D momentum, horizontal XI-advection term [m s$^ \mathrm{-2}] '   
-defs['xadv']['format']= '%.1g'
+defs['xadv']['label'] ='horizontal XI-advection [m s$^ \mathrm{-2}$] '   
+defs['xadv']['format']= '%.2g'
 defs['xadv']['cmap']  = ps.jetWoGn()
 
 defs['yadv']={}
 defs['yadv']['var']   = 'yadv'
 defs['yadv']['vmin']  =  -0.01
 defs['yadv']['vmax']  =   0.01
-defs['yadv']['label'] = '3D momentum, horizontal ETA-advection term [m s$^ \mathrm{-2}] '   
-defs['yadv']['format']= '%.1g'
+defs['yadv']['label'] ='horizontal ETA-advection [m s$^ \mathrm{-2}$] '   
+defs['yadv']['format']= '%.2g'
 defs['yadv']['cmap']  = ps.jetWoGn()
 
-defs['fsco']={}
-defs['fsco']['var']   = 'fsco'
-defs['fsco']['vmin']  =  -0.01
-defs['fsco']['vmax']  =   0.01
-defs['fsco']['label'] = '3D momentum, horizontal Coriolis-stokes term [m s$^ \mathrm{-2}] '   
-defs['fsco']['format']= '%.1g'
-defs['fsco']['cmap']  = ps.jetWoGn()
+
 
 defs['vjvf']={}
 defs['vjvf']['var']   = 'vjvf'
-defs['vjvf']['vmin']  =  -0.01
-defs['vjvf']['vmax']  =   0.01
-defs['vjvf']['label'] = '3D momentum, vertical J vortex force term [m s$^ \mathrm{-2}] '   
-defs['vjvf']['format']= '%.1g'
+defs['vjvf']['vmin']  =  -5e-6
+defs['vjvf']['vmax']  =   5e-6
+defs['vjvf']['label'] ='vertical J vortex force [m s$^ \mathrm{-2}$] '   
+defs['vjvf']['format']= '%.2g'
 defs['vjvf']['cmap']  = ps.jetWoGn()
 
 defs['hjvf']={}
 defs['hjvf']['var']   = 'hjvf'
-defs['hjvf']['vmin']  =  -0.01
-defs['hjvf']['vmax']  =   0.01
-defs['hjvf']['label'] = '3D momentum, J vortex force term [m s$^ \mathrm{-2}] '   
-defs['hjvf']['format']= '%.1g'
+defs['hjvf']['vmin']  =  -1e-5
+defs['hjvf']['vmax']  =   1e-5
+defs['hjvf']['label'] ='J vortex force [m s$^ \mathrm{-2}$] '   
+defs['hjvf']['format']= '%.2g'
 defs['hjvf']['cmap']  = ps.jetWoGn()
 
 defs['kvrf']={}
 defs['kvrf']['var']   = 'kvrf'
-defs['kvrf']['vmin']  =  -0.01
-defs['kvrf']['vmax']  =   0.01
-defs['kvrf']['label'] = '3D momentum, K vortex force term [m s$^ \mathrm{-2}] '   
-defs['kvrf']['format']= '%.1g'
+defs['kvrf']['vmin']  =  -1e-5
+defs['kvrf']['vmax']  =   1e-5
+defs['kvrf']['label'] ='K vortex force [m s$^ \mathrm{-2}$] '   
+defs['kvrf']['format']= '%.2g'
 defs['kvrf']['cmap']  = ps.jetWoGn()
+
+defs['wbrk']={}
+defs['wbrk']['var']   = 'wbrk'
+defs['wbrk']['vmin']  =  -1e-8
+defs['wbrk']['vmax']  =   1e-8
+defs['wbrk']['label'] ='Wave breaking [m s$^ \mathrm{-2}$] '   
+defs['wbrk']['format']= '%.2g'
+defs['wbrk']['cmap']  = ps.jetWoGn()
 
 defs['wrol']={}
 defs['wrol']['var']   = 'wrol'
 defs['wrol']['vmin']  =  -0.01
 defs['wrol']['vmax']  =   0.01
-defs['wrol']['label'] = '3D momentum, wave roller acceleration term [m s$^ \mathrm{-2}] '   
-defs['wrol']['format']= '%.1g'
+defs['wrol']['label'] ='wave roller acceleration [m s$^ \mathrm{-2}$] '   
+defs['wrol']['format']= '%.2g'
 defs['wrol']['cmap']  = ps.jetWoGn()
 
 defs['prsgrd']={}
 defs['prsgrd']['var']   = 'prsgrd'
-defs['prsgrd']['vmin']  =  -0.01
-defs['prsgrd']['vmax']  =   0.01
-defs['prsgrd']['label'] = '3D momentum, pressure gradient term [m s$^ \mathrm{-2}] '   
-defs['prsgrd']['format']= '%.1g'
+defs['prsgrd']['vmin']  =  -0.0002
+defs['prsgrd']['vmax']  =   0.0002
+defs['prsgrd']['label'] ='pressure gradient [m s$^ \mathrm{-2}$] '   
+defs['prsgrd']['format']= '%.2g'
 defs['prsgrd']['cmap']  = ps.jetWoGn()
 
 defs['vvisc']={}
 defs['vvisc']['var']   = 'vvisc'
-defs['vvisc']['vmin']  =  -0.01
-defs['vvisc']['vmax']  =   0.01
-defs['vvisc']['label'] = '3D momentum, vertical viscosity term [m s$^ \mathrm{-2}] '   
-defs['vvisc']['format']= '%.1g'
+defs['vvisc']['vmin']  =  -0.0004
+defs['vvisc']['vmax']  =   0.0004
+defs['vvisc']['label'] ='vertical viscosity [m s$^ \mathrm{-2}$] '   
+defs['vvisc']['format']= '%.2g'
 defs['vvisc']['cmap']  = ps.jetWoGn()
 
 defs['accel']={}
 defs['accel']['var']   = 'accel'
-defs['accel']['vmin']  =  -0.01
-defs['accel']['vmax']  =   0.01
-defs['accel']['label'] = '3D momentum, acceleration term [m s$^ \mathrm{-2}] '   
-defs['accel']['format']= '%.1g'
+defs['accel']['vmin']  =  -0.00005
+defs['accel']['vmax']  =   0.00005
+defs['accel']['label'] ='acceleration [m s$^ \mathrm{-2}$] '   
+defs['accel']['format']= '%.2g'
 defs['accel']['cmap']  = ps.jetWoGn()
+
+defs['salt_hadv']={}
+defs['salt_hadv']['var']   = 'salt_hadv'
+defs['salt_hadv']['vmin']  =  -0.05
+defs['salt_hadv']['vmax']  =   0.05
+defs['salt_hadv']['label'] ='Salt horizontal advection [s$^ \mathrm{-1}$] '   
+defs['salt_hadv']['format']= '%.2g'
+defs['salt_hadv']['cmap']  = ps.jetWoGn()
+
+defs['salt_vadv']={}
+defs['salt_vadv']['var']   = 'salt_vadv'
+defs['salt_vadv']['vmin']  =  -0.05
+defs['salt_vadv']['vmax']  =   0.05
+defs['salt_vadv']['label'] ='Salt vertical advection [s$^ \mathrm{-1}$] '   
+defs['salt_vadv']['format']= '%.2g'
+defs['salt_vadv']['cmap']  = ps.jetWoGn()
+
+defs['salt_hdiff']={}
+defs['salt_hdiff']['var']   = 'salt_hdiff'
+defs['salt_hdiff']['vmin']  =  -0.001
+defs['salt_hdiff']['vmax']  =   0.001
+defs['salt_hdiff']['label'] ='Salt horizontal diffusion [s$^ \mathrm{-1}$] '   
+defs['salt_hdiff']['format']= '%.2g'
+defs['salt_hdiff']['cmap']  = ps.jetWoGn()
+
+defs['salt_vdiff']={}
+defs['salt_vdiff']['var']   = 'salt_vdiff'
+defs['salt_vdiff']['vmin']  =  -0.001
+defs['salt_vdiff']['vmax']  =   0.001
+defs['salt_vdiff']['label'] ='Salt vertical diffusion [s$^ \mathrm{-1}$] '   
+defs['salt_vdiff']['format']= '%.2g'
+defs['salt_vdiff']['cmap']  = ps.jetWoGn()
+
+defs['salt_rate']={}
+defs['salt_rate']['var']   = 'salt_rate'
+defs['salt_rate']['vmin']  =  -0.001
+defs['salt_rate']['vmax']  =   0.001
+defs['salt_rate']['label'] ='Salt time rate change [s$^ \mathrm{-1}$] '   
+defs['salt_rate']['format']= '%.2g'
+defs['salt_rate']['cmap']  = ps.jetWoGn()
+
+
+
+defs['dye']={}
+defs['dye']['var']   = 'dye'
+defs['dye']['vmin']  =  0.0
+defs['dye']['vmax']  =  0.25
+defs['dye']['label'] ='Dye concentration [kg m$^ \mathrm{-3}$] '   
+defs['dye']['format']= '%.2g'
+defs['dye']['cmap']  = ps.jetWoGn()
+
+
+
+defs['dye_hadv']={}
+defs['dye_hadv']['var']   = 'dye_hadv'
+defs['dye_hadv']['vmin']  =  -0.0001
+defs['dye_hadv']['vmax']  =   0.0001
+defs['dye_hadv']['label'] ='Dye horizontal advection [kg m$^ \mathrm{-3}$ s$^ \mathrm{-1}$] '   
+defs['dye_hadv']['format']= '%.2g'
+defs['dye_hadv']['cmap']  = ps.jetWoGn()
+
+defs['dye_vadv']={}
+defs['dye_vadv']['var']   = 'dye_vadv'
+defs['dye_vadv']['vmin']  =  -0.0001
+defs['dye_vadv']['vmax']  =   0.0001
+defs['dye_vadv']['label'] ='Dye vertical advection [kg m$^ \mathrm{-3}$ s$^ \mathrm{-1}$]  '   
+defs['dye_vadv']['format']= '%.2g'
+defs['dye_vadv']['cmap']  = ps.jetWoGn()
+
+defs['dye_hdiff']={}
+defs['dye_hdiff']['var']   = 'dye_hdiff'
+defs['dye_hdiff']['vmin']  =  -0.0001
+defs['dye_hdiff']['vmax']  =   0.0001
+defs['dye_hdiff']['label'] ='Dye horizontal diffusion [kg m$^ \mathrm{-3}$ s$^ \mathrm{-1}$]  '   
+defs['dye_hdiff']['format']= '%.2g'
+defs['dye_hdiff']['cmap']  = ps.jetWoGn()
+
+defs['dye_vdiff']={}
+defs['dye_vdiff']['var']   = 'dye_vdiff'
+defs['dye_vdiff']['vmin']  =  -0.0001
+defs['dye_vdiff']['vmax']  =   0.0001
+defs['dye_vdiff']['label'] ='Dye vertical diffusion [kg m$^ \mathrm{-3}$ s$^ \mathrm{-1}$]  '   
+defs['dye_vdiff']['format']= '%.2g'
+defs['dye_vdiff']['cmap']  = ps.jetWoGn()
+
+defs['dye_rate']={}
+defs['dye_rate']['var']   = 'dye_rate'
+defs['dye_rate']['vmin']  =  -0.0001
+defs['dye_rate']['vmax']  =   0.0001
+defs['dye_rate']['label'] ='Dye time rate change [kg m$^ \mathrm{-3}$ s$^ \mathrm{-1}$]  '   
+defs['dye_rate']['format']= '%.2g'
+defs['dye_rate']['cmap']  = ps.jetWoGn()
+
 
 
 defs['pres']={}
@@ -379,7 +481,6 @@ defs['pres']['vmax']  =  2.0e5
 defs['pres']['label'] = 'pressure [Pa] '
 defs['pres']['format']= '%.1g'
 defs['pres']['cmap']  = ps.my_cmap
-
 
 #plot extent
 defs['lim']['xmin']  = -100.0 
