@@ -250,6 +250,41 @@ def datetime2matlabdn(dt):
    return mdn.toordinal() + frac
 
 
+def read_noaa_station(fname):
+    print 'Read observation for: ', fname
+    #
+    fp   = open(fname, "r")
+    line = ''
+    line = fp.readline()
+    #
+    obs = []
+    obs_dates = []
+    for line in fp:
+        words = string.split(line)
+        #Date Time, Water Level, Sigma, I, L 
+        try:
+           
+           tstr =  words[1]+'-'+words[2]+'-'+words[3]+' '+words[4]+':'+words[5]
+           obs_dates.append( parse(tstr))
+        except:
+           break
+        wl = float(words[-1])            # m
+        obs.append(wl)
+    #
+    fp.close()
+    #
+    obs       = np.array(obs)
+    obs_dates = np.array(obs_dates)
+    #
+    data  = pd.DataFrame(data = obs, columns = ['wl'], index = obs_dates)    
+    data  = data.dropna()
+    #data  = data.resample('H')  #hourly mean
+
+    date_tmp =  datetime64todatetime(data.index.values)
+    return dict(dates=date_tmp, wl = data.wl.values)
+
+
+
 #
 def do_r_t_tide_analysis(flow_data,constits,out_dir):
     """
