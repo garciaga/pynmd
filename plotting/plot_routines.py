@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pynmd.plotting.plot_settings as ps
+from   pynmd.tools.compute_statistics import statatistics
 import datetime
 import matplotlib.tri as Tri
 
@@ -317,8 +318,9 @@ def TriMapPlot(fig,axp,data,args):
     yy    = data['tri'].y
     tri   = data['tri']
     #
-    uu    = data['uu'][:]
-    vv    = data['vv'][:]
+    if 'uu' in data.keys():
+      uu    = data['uu'][:]
+      vv    = data['vv'][:]
     val   = data['val'][:]
     #
     var   = data['var']
@@ -531,6 +533,7 @@ def TimeSeriesPlot(ax,data,args):
     #TODO: check if the xaxis is not date omit the title! 
     """
     
+    
     #plot options
     width      = 0.015
     linewidth  = 0.1
@@ -552,15 +555,20 @@ def TimeSeriesPlot(ax,data,args):
         marker0    = 'o'
         linestyle0 = 'None'
         lw = 0.5
-        ms = 2  #orig
+        #ms = 2  #orig
         #ms = 1  #reviewer 2
         label ='OBS'
     else:
         marker0    = None
         linestyle0 = '-'
-        ms = 2  #orig
+        #ms = 2  #orig
         lw = 1.5    
 
+    if 'ms' in args.keys():
+        ms = args['ms']
+    else:
+        ms = 2        
+    
     if 'label' in args.keys():
         label = args['label']
         
@@ -574,12 +582,17 @@ def TimeSeriesPlot(ax,data,args):
     else:
         panel_num = None 
     
-    ax.plot(data['xx'],data['val'] ,color=color,label=label,
+    xmin,xmax  = lim['xmin'],lim['xmax']        
+
+    if type(data['xx'][0]) is datetime.date:
+        if type(xmin) is not datetime.date:
+            print ' This is a plot_date call make sure xlims are datetime objs ... '
+            sys.exit('ERROR !')
+    
+    ax.plot(data['xx'],data['val'],color=color,label=label,
             linestyle=linestyle0,marker=marker0,ms=ms,lw = lw)
     
-    xmin,xmax  = lim['xmin'],lim['xmax']
-    date_first = xmin
-    date_last  = xmax
+
     ax.set_xlim(xmin,xmax)
     ax.set_ylim(var['vmin'],var['vmax'])
     
@@ -615,9 +628,9 @@ def TimeSeriesPlot(ax,data,args):
     #to add a) , b) and ..  to top of the panels
     if panel_num is not None:
         ytext = var['vmax']+ 0.05 * (var['vmax']-var['vmin'])         
-        if type(date_last) is datetime.date:
-            ddt =  (date_last - date_first).total_seconds()
-            xtext = date_last - datetime.timedelta(0.05 * ddt/86400.0)
+        if type(xmax) is datetime.date:
+            ddt =  (xmax - xmin).total_seconds()
+            xtext = xmax - datetime.timedelta(0.05 * ddt/86400.0)
         else:
             xtext = xmax - 0.05 (xmax-xmin)
         
@@ -682,30 +695,72 @@ def read_salt_temp(filename,ncvar,wher,dates,data):
     nc.close()
 
     return dates_r[ind_sim].squeeze()[:-1],val_interp  
-def statatistics(val_da,val_mo):
-    data_me=val_da
-    data_mo=val_mo
-    # Calculate statistics
-    mean_me = data_me.mean()
-    mean_mo = data_mo.mean()
-    sd1 = data_me.std()
-    sd2 = data_mo.std()
-    delta = data_mo-data_me
-    R2 = 1.-((data_me-data_mo)**2).sum()/((data_me-mean_me)**2).sum()
-    bias=mean_mo-mean_me
-    rmse=np.sqrt((delta**2).mean())
-    nrmse1 = rmse / (data_me.max() - data_me.min())
-    nrmse2 = rmse/ abs(data_me.mean() )
-    nrmse3 = np.sqrt( (delta**2).sum() / (data_me**2).sum() )
-    big_error=(np.abs(delta)).max()
-    mae = np.abs(delta).mean()
-    cor1 = (((data_me-mean_me)*(data_mo-mean_mo)).mean()/sd1/sd2)
-    return bias,rmse,R2
 
 
 def ncks(param='zeta',xvar='eta_rho',yvar='xi_rho',ix=0,jy=0,filein='tmp.nc',fileout='tmp2.nc'):
       comm1='ncks -O  -v '+ param+' -d '+xvar +' '+str(jnum)+' -d '+ yvar +' '+str(inum)+' '+filein+' '+fileout
       os.system(comm1)
+
+
+
+def plot_scatter(ax,data,model,var=dict(),color='k',marker = None,nn=None, title=None):
+    """
+    plot scatter
+    """
+    
+    min1 = var['vmin']
+    max1 = var['vmax']
+    line=[min1,max1]                
+    ax.plot   (line,line,'k' ,linewidth=0.2)
+
+
+    if marker is None:
+        marker='.'
+    else:
+        marker = marker
+    scat = ax.scatter(data,model,edgecolor='none', alpha=0.7,c=color,marker=marker)
+    ax.set_xlabel('Data')
+    ax.set_ylabel('Model')
+    ax.set_xlim(min1,max1)
+    ax.set_ylim(min1,max1)
+    ax.set_aspect(1)    
+    
+    ddt =  max1-min1
+    
+    if nn is not None:
+        txt = '(' + ps.ordinal[nn]
+        if title is not None:
+            txt = txt +' '+ title
+      
+        ax.text (max1 - 0.95 * ddt ,var['vmax']+ 0.05 * (var['vmax']-var['vmin']) , txt, fontsize=9)
+
+    stat = statatistics(data,model)
+    txt = 'RMSE='+"%3.3f" % stat['rmse'] +\
+          '\nbias='+"%3.3f" % stat['bias'] +\
+          '\nR2='+"%3.3f" % stat['r2']+\
+          '\nskill='+"%3.3f" % stat['skill'] +\
+          '\nRB='+"%3.3f" % stat['rbias'] +\
+            '\nIA='+"%3.3f" % stat['ia']
+
+    ax.text (min1 + 0.05 * ddt ,var['vmax'] - 0.35 * (var['vmax']-var['vmin']) , txt , fontsize=7)
+    print var['label']    
+
+    # the linewidth of the rectangular axis frame
+    fr_linewidth=0.5
+    [i.set_linewidth(fr_linewidth) for i in ax.spines.itervalues()]
+    
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_rotation(0)
+        tick.label.set_fontsize(10)
+
+    #if not ax.is_last_row():
+    #   ax.set_xlabel('')
+    #   plt.setp( ax, 'xticklabels', [] )
+    #if not ax.is_last_col():
+    #   ax.set_ylabel('')
+    #   plt.setp( ax, 'yticklabels', [] )
+
+    return scat
 
 
 

@@ -17,6 +17,10 @@ import datetime
 import matplotlib.tri as Tri
 
 
+import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
+                                   LATITUDE_FORMATTER)
+
 #import seaborn as sns
 #plt.style.use('seaborn-white')
 
@@ -29,6 +33,7 @@ def ReadDates(DirName):
     ncv = nc.variables
     t_var   = nc.variables['time'] 
     dates = netCDF4.num2date(t_var[:],t_var.units)
+    nc.close()
     return dates
 
 
@@ -104,6 +109,27 @@ def ReadVar(fname='',varname='',time_name=None , tind = None):
     out.update({'ncv':ncv,varname:var}) 
     return out   
 
+def tri_mask(Tri,zmask):
+    """
+    Inputs: 
+    tri object
+    mask array of vertex
+    
+    Returned: maksed tri object
+    """
+    
+    print '[info:] Mask Tri ... '
+    mask = np.ones(len(Tri.triangles), dtype=bool)
+    count = 0
+    for t in Tri.triangles:
+        count+=1
+        ind = t
+        if np.any(zmask[ind-1]):
+            mask[count-1] = False    
+    Tri.set_mask = mask
+    return Tri
+
+
 def ReadTri(DirName):
 
     """
@@ -118,7 +144,15 @@ def ReadTri(DirName):
     # read connectivity array
     el  = nc.variables['element'][:] - 1
     # create a triangulation object, specifying the triangle connectivity array
-    tri = Tri.Triangulation(x,y, triangles=el)
+    print '[info:] Generate Mask ...'
+    tri  = Tri.Triangulation(x,y, triangles=el)
+    try:
+        zeta = nc.variables['zeta'][0].squeeze()
+        #zeta = np.ma.masked_where(np.isnan(zeta),zeta)
+        tri = tri_mask(tri,zeta.mask)
+    except:
+        print ' Tri mask did not applied !'
+        pass
     nc.close()
     return x,y,tri
 
@@ -206,12 +240,13 @@ def ReadFort80(dir):
                   IMAP_NOD_GL = np.array(IMAP_NOD_GL) )) 
 
 
-def make_map(projection=ccrs.PlateCarree()):
+def make_map(ax,projection=ccrs.PlateCarree()):
     """
     Generate fig and ax using cartopy
     input: projection
     output: fig and ax
     """
+
 
     subplot_kw = dict(projection=projection)
     fig, ax = plt.subplots(figsize=(9, 13),
@@ -222,26 +257,6 @@ def make_map(projection=ccrs.PlateCarree()):
     gl.yformatter = LATITUDE_FORMATTER
     return fig, ax
 
-
-def tri_mask(Tri,zmask):
-    """
-    Inputs: 
-    tri object
-    mask array of vertex
-    
-    Returned: maksed tri object
-    """
-    
-    print '[info]: Mask Tri '
-    mask = np.ones(len(Tri.triangles), dtype=bool)
-    count = 0
-    for t in Tri.triangles:
-        count+=1
-        ind = t
-        if np.any(zmask[ind-1]):
-            mask[count-1] = False    
-    Tri.set_mask = mask
-    return Tri
 
 
 

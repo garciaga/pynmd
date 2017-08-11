@@ -203,6 +203,9 @@ cdict = {'red':  ((0.   , 1, 1),
                   (0.65 , 0, 0),
                   (1.0  , 0, 0))}
 
+
+
+
 my_cmap2 = LinearSegmentedColormap('my_colormap2',cdict,256)
 
 def jetWoGn(reverse=False):
@@ -264,3 +267,14 @@ def x2_func(x, a, b):
 def gaussian_func(x, a, b, c, d):
     val = a* pylab.exp(-(x - b)**2 / c**2) + d
     return val
+    
+    
+
+# find the indices of the points in (x,y) closest to the points in (xi,yi)
+def nearxy(x,y,xi,yi):
+    ind=ones(len(xi),dtype=int)
+    for i in arange(len(xi)):
+        dist=sqrt((x-xi[i])**2+(y-yi[i])**2)
+        ind[i]=dist.argmin()
+    return ind
+        
