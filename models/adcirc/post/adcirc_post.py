@@ -16,6 +16,9 @@ import pynmd.plotting.plot_settings as ps
 import datetime
 import matplotlib.tri as Tri
 
+import cartopy.crs as ccrs
+from cartopy.io import shapereader
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,

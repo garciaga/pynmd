@@ -696,13 +696,6 @@ def read_salt_temp(filename,ncvar,wher,dates,data):
 
     return dates_r[ind_sim].squeeze()[:-1],val_interp  
 
-
-def ncks(param='zeta',xvar='eta_rho',yvar='xi_rho',ix=0,jy=0,filein='tmp.nc',fileout='tmp2.nc'):
-      comm1='ncks -O  -v '+ param+' -d '+xvar +' '+str(jnum)+' -d '+ yvar +' '+str(inum)+' '+filein+' '+fileout
-      os.system(comm1)
-
-
-
 def plot_scatter(ax,data,model,var=dict(),color='k',marker = None,nn=None, title=None):
     """
     plot scatter
@@ -761,6 +754,60 @@ def plot_scatter(ax,data,model,var=dict(),color='k',marker = None,nn=None, title
     #   plt.setp( ax, 'yticklabels', [] )
 
     return scat
+
+
+def statatistics(val_da,val_mo):
+    data_me=val_da
+    data_mo=val_mo
+    # Calculate statistics
+    mean_me = data_me.mean()
+    mean_mo = data_mo.mean()
+    sd1 = data_me.std()
+    sd2 = data_mo.std()
+    delta = data_mo-data_me
+    R2 = 1.-((data_me-data_mo)**2).sum()/((data_me-mean_me)**2).sum()
+    bias=mean_mo-mean_me
+    rmse=np.sqrt((delta**2).mean())
+    nrmse1 = rmse / (data_me.max() - data_me.min())
+    nrmse2 = rmse/ abs(data_me.mean() )
+    nrmse3 = np.sqrt( (delta**2).sum() / (data_me**2).sum() )
+    big_error=(np.abs(delta)).max()
+    mae = np.abs(delta).mean()
+    cor1 = (((data_me-mean_me)*(data_mo-mean_mo)).mean()/sd1/sd2)
+    return bias,rmse,R2
+
+
+def ncks(param='zeta',xvar='eta_rho',yvar='xi_rho',ix=0,jy=0,filein='tmp.nc',fileout='tmp2.nc'):
+      comm1='ncks -O  -v '+ param+' -d '+xvar +' '+str(jnum)+' -d '+ yvar +' '+str(inum)+' '+filein+' '+fileout
+      os.system(comm1)
+
+
+from matplotlib.dates import date2num
+def stick_plot(time, u, v, **kw):
+    width = kw.pop('width', 0.002)
+    headwidth = kw.pop('headwidth', 0)
+    headlength = kw.pop('headlength', 0)
+    headaxislength = kw.pop('headaxislength', 0)
+    angles = kw.pop('angles', 'uv')
+    ax = kw.pop('ax', None)
+    
+    if angles != 'uv':
+        raise AssertionError("Stickplot angles must be 'uv' so that"
+                             "if *U*==*V* the angle of the arrow on"
+                             "the plot is 45 degrees CCW from the *x*-axis.")
+
+    time, u, v = map(np.asanyarray, (time, u, v))
+    if not ax:
+        fig, ax = plt.subplots()
+    
+    q = ax.quiver(date2num(time), [[0]*len(time)], u, v,
+                  angles='uv', width=width, headwidth=headwidth,
+                  headlength=headlength, headaxislength=headaxislength,
+                  **kw)
+
+    ax.axes.get_yaxis().set_visible(False)
+    ax.xaxis_date()
+    return q
 
 
 
