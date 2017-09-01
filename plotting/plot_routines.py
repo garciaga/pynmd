@@ -711,9 +711,9 @@ def plot_scatter(ax,data,model,var=dict(),color='k',marker = None,nn=None, title
         marker='.'
     else:
         marker = marker
-    scat = ax.scatter(data,model,edgecolor='none', alpha=0.7,c=color,marker=marker)
-    ax.set_xlabel('Data')
-    ax.set_ylabel('Model')
+    scat = ax.scatter(model,data,edgecolor='none', alpha=0.7,c=color,marker=marker)
+    ax.set_ylabel('Data')
+    ax.set_xlabel('Model')
     ax.set_xlim(min1,max1)
     ax.set_ylim(min1,max1)
     ax.set_aspect(1)    
@@ -754,27 +754,6 @@ def plot_scatter(ax,data,model,var=dict(),color='k',marker = None,nn=None, title
     #   plt.setp( ax, 'yticklabels', [] )
 
     return scat
-
-
-def statatistics(val_da,val_mo):
-    data_me=val_da
-    data_mo=val_mo
-    # Calculate statistics
-    mean_me = data_me.mean()
-    mean_mo = data_mo.mean()
-    sd1 = data_me.std()
-    sd2 = data_mo.std()
-    delta = data_mo-data_me
-    R2 = 1.-((data_me-data_mo)**2).sum()/((data_me-mean_me)**2).sum()
-    bias=mean_mo-mean_me
-    rmse=np.sqrt((delta**2).mean())
-    nrmse1 = rmse / (data_me.max() - data_me.min())
-    nrmse2 = rmse/ abs(data_me.mean() )
-    nrmse3 = np.sqrt( (delta**2).sum() / (data_me**2).sum() )
-    big_error=(np.abs(delta)).max()
-    mae = np.abs(delta).mean()
-    cor1 = (((data_me-mean_me)*(data_mo-mean_mo)).mean()/sd1/sd2)
-    return bias,rmse,R2
 
 
 def ncks(param='zeta',xvar='eta_rho',yvar='xi_rho',ix=0,jy=0,filein='tmp.nc',fileout='tmp2.nc'):

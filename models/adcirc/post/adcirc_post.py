@@ -112,7 +112,7 @@ def ReadVar(fname='',varname='',time_name=None , tind = None):
     out.update({'ncv':ncv,varname:var}) 
     return out   
 
-def tri_mask(Tri,zmask):
+def maskTri(Tri,zmask):
     """
     Inputs: 
     tri object
@@ -132,8 +132,12 @@ def tri_mask(Tri,zmask):
     Tri.set_mask = mask
     return Tri
 
+def maskTri_v2 (Tri,mask):
+    m = np.all(mask[Tri.triangles],axis=1) 
+    Tri.set_mask = m
+    return Tri
 
-def ReadTri(DirName):
+def ReadTri_v1(DirName):
 
     """
     fname: one of fort.*.nc file
@@ -158,6 +162,37 @@ def ReadTri(DirName):
         pass
     nc.close()
     return x,y,tri
+
+
+def ReadTri(DirName):
+
+    """
+    fname: one of fort.*.nc file
+    tind: time index
+    """ 
+    fname =  os.path.abspath(DirName + '/maxele.63.nc'  )
+    nc  = netCDF4.Dataset(fname)
+    ncv = nc.variables
+    x   = nc.variables['x'][:]
+    y   = nc.variables['y'][:]
+    # read connectivity array
+    el  = nc.variables['element'][:] - 1
+    # create a triangulation object, specifying the triangle connectivity array
+    print '[info:] Generate Tri ...'
+    tri  = Tri.Triangulation(x,y, triangles=el)
+    if False:
+        try:
+            zeta = nc.variables['zeta_max'][:].squeeze()
+            zeta = np.ma.masked_where(np.isnan(zeta),zeta)
+            tri = tri_mask(tri,zeta.mask)
+            print '[info:] Generate Tri.mask ...'
+
+        except:
+            print ' Tri mask did not applied !'
+            pass
+    nc.close()
+    return x,y,tri
+
 
 def ReadFort80(dir):
     """
@@ -243,7 +278,8 @@ def ReadFort80(dir):
                   IMAP_NOD_GL = np.array(IMAP_NOD_GL) )) 
 
 
-def make_map(ax,projection=ccrs.PlateCarree()):
+def make_map(projection=ccrs.PlateCarree(), bg='m'):
+    
     """
     Generate fig and ax using cartopy
     input: projection
@@ -258,13 +294,99 @@ def make_map(ax,projection=ccrs.PlateCarree()):
     gl.xlabels_top = gl.ylabels_right = False
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
+    
+    
+    if bg is not None:
+        if res == 'm':
+            ax.background_img(name='BM', resolution='high')   # from local hdd you need to > import pynmd.plotting
+        else:
+            ax.background_img(name='BMH', resolution='high')   # from local hdd you need to > import pynmd.plotting
+
     return fig, ax
 
+def maskDryElements(grid):
+    dry_masked = np.ma.masked_where(grid['depth']<=0., grid['depth'])
+    return np.all(dry_masked.mask[grid['Elements']-1],axis=1)
+
+def maskTri(tri,mask):
+    return np.all(mask[tri.triangles],axis=1)
+
+def maskTolExceed(OldGrid,NewGrid,tol=0.1):
+    diff = OldGrid['depth'] - NewGrid['depth']
+    diffm = np.ma.masked_where(np.abs(diff) <= tol*np.abs(OldGrid['depth']), diff)
+    return np.all(diffm.mask[NewGrid['Elements']-1],axis=1)
 
 
+def readTrack ( atcfFile ):
+    """
+    Reads ATCF-formatted file
+    Args:
+        'atcfFile': (str) - full path to the ATCF file
+    Returns:
+        dict: 'lat', 'lon', 'vmax', 'mslp','dates'
+    """
+    lines = open(atcfFile).readlines()
+        
+    myOcn  = []
+    myCy   = []
+    myDate = []
+    myLat  = []
+    myLon  = []
+    myVmax = []
+    myMSLP = []
+    for line in lines:
+        r = line.rstrip().split(',')
+        myOcn.append  (r[0])
+        myCy.append   (int(r[1]))
+        myDate.append (datetime.strptime(r[2].strip(),'%Y%m%d%H'))
+        latSign = -1.0
+        if 'N' in r[6]:
+            latSign = 1.0     
+        myLat.append  (latSign*0.1*float(r[6][:-1]))
+        lonSign = -1.0
+        if 'E' in r[7]:
+            lonSign = 1.0
+        myLon.append  (lonSign*0.1*float(r[7][:-1]))
+        myVmax.append (float(r[8]))
+        myMSLP.append (float(r[9]))
+    
+    return { 
+            'basin' : myOcn,    'cy' : myCy, 'dates' : myDate, 
+            'lat'   : myLat,   'lon' : myLon,
+            'vmax'  : myVmax, 'mslp' : myMSLP }
 
 
+def read_track(ax,path,date):
+    ike_track_file = '/scratch4/COASTAL/coastal/save/Saeed.Moghimi/models/NEMS/NEMS_inps/data/tracks/ike_bal092008.dat'
+    track = readTrack(ike_track_file)
+    keys = ['dates', 'lon', 'vmax', 'lat']
+    for key in keys:
+        tmp   = pd.DataFrame(track[key],columns=[key])
 
+        #dfh   = df
+        if 'trc' not in globals():
+            trc = tmp
+        else:
+            trc  = pd.concat([trc,tmp],axis=1,join_axes=[trc.index])    
+    
+    
+    
+    trc = trc.drop_duplicates(subset='dates',keep='first')
+    trc = trc.set_index (trc.dates)
+    trc = trc.resample('H').interpolate()
+    trc.drop('dates',axis=1,inplace=True)
+    
+    dates = datetime64todatetime(trc.index)
+    
+    return dates,trc.lon.values, trc.lat.values
+    
 
+def plot_track(ax,track,date=None):
+    
+    if date is not None:
+        dates = np.array(track['dates'])
+        ind = np.array(np.where((dates==date))).squeeze().item()
+        ax.scatter(lon[ind],lat[ind],s=50,c='r',alpha=50)
+    ax.plot(track['lon'],track['lat'],lw=2,c='r')
   
 ##### end of Funcs

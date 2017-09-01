@@ -3,5 +3,15 @@
     "__comment__": "Blue Marble Next Generation, July ",
     "__source__": "https://neo.sci.gsfc.nasa.gov/view.php?datasetId=BlueMarbleNG-TB",
     "__projection__": "PlateCarree",
-    "high": "BMNG_hirez.png"}
+    "high": "BMNG_hirez.png"},
+
+  "BMH": {
+    "__comment__": "Blue Marble Next Generation, Oct ",
+    "__source__": "https://visibleearth.nasa.gov/view.php?id=74167",
+    "__projection__": "PlateCarree",
+    "high": "world.200410.3x21600x10800.jpg"}
 }
+
+
+
+
