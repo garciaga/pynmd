@@ -365,8 +365,8 @@ defs['prsgrd']['cmap']  = ps.jetWoGn()
 
 defs['vvisc']={}
 defs['vvisc']['var']   = 'vvisc'
-defs['vvisc']['vmin']  =  -0.0004
-defs['vvisc']['vmax']  =   0.0004
+defs['vvisc']['vmin']  =   0.0
+defs['vvisc']['vmax']  =   1e-5
 defs['vvisc']['label'] ='vertical viscosity [m s$^ \mathrm{-2}$] '   
 defs['vvisc']['format']= '%.2g'
 defs['vvisc']['cmap']  = ps.jetWoGn()
@@ -410,6 +410,16 @@ defs['salt_vdiff']['vmax']  =   0.001
 defs['salt_vdiff']['label'] ='Salt vertical diffusion [s$^ \mathrm{-1}$] '   
 defs['salt_vdiff']['format']= '%.2g'
 defs['salt_vdiff']['cmap']  = ps.jetWoGn()
+
+
+defs['salt_vflux']={}
+defs['salt_vflux']['var']   = 'salt_vdiff'
+defs['salt_vflux']['vmin']  =  -0.001
+defs['salt_vflux']['vmax']  =   0.001
+defs['salt_vflux']['label'] ='Salt vertical flux [s$^ \mathrm{-1}$] '   
+defs['salt_vflux']['format']= '%.2g'
+defs['salt_vflux']['cmap']  = ps.jetWoGn()
+
 
 defs['salt_rate']={}
 defs['salt_rate']['var']   = 'salt_rate'
@@ -462,6 +472,14 @@ defs['dye_vdiff']['vmax']  =   0.0001
 defs['dye_vdiff']['label'] ='Dye vertical diffusion [kg m$^ \mathrm{-3}$ s$^ \mathrm{-1}$]  '   
 defs['dye_vdiff']['format']= '%.2g'
 defs['dye_vdiff']['cmap']  = ps.jetWoGn()
+
+defs['dye_vflux']={}
+defs['dye_vflux']['var']   = 'dye_vdiff'
+defs['dye_vflux']['vmin']  =  -0.0001
+defs['dye_vflux']['vmax']  =   0.0001
+defs['dye_vflux']['label'] ='Dye vertical diffusion [kg m$^ \mathrm{-3}$ s$^ \mathrm{-1}$]  '   
+defs['dye_vflux']['format']= '%.2g'
+defs['dye_vflux']['cmap']  = ps.jetWoGn()
 
 defs['dye_rate']={}
 defs['dye_rate']['var']   = 'dye_rate'
