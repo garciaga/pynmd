@@ -170,8 +170,12 @@ def runupUprushSpeed(x,ot,interpSetup=False):
     
     USAGE:
     ------
-    max_ind,min_ind,speedMinima,speedSetup = runupUprushSpeed(x,ot)
-    
+    max_ind,min_ind,speedMinima,speedSetup =\
+      runupUprushSpeed(x,ot,interpSetup=False)
+
+    max_ind,min_ind,speedMinima,speedSetup,otCross =\
+      runupUprushSpeed(x,ot,interpSetup=True)
+          
     PARAMETERS:
     -----------
     x       : Runup time series [m]
@@ -187,6 +191,7 @@ def runupUprushSpeed(x,ot,interpSetup=False):
               time series.              
     speedMinima : uprush speed with respect to previous minima
     speedSetup  : uprush speed with respect to setup
+    otCross     : Interpolated setup crossing
     
     NOTES:
     ------
@@ -194,6 +199,7 @@ def runupUprushSpeed(x,ot,interpSetup=False):
     - x must cross zero. You can for instance remove the setup from the time
       series.
     - The first uprush speed with respect to the minima is always NAN.
+    
     """
         
     # Find the upcrossing locations
@@ -214,20 +220,29 @@ def runupUprushSpeed(x,ot,interpSetup=False):
                            (ot[tmpIndMax] - ot[tmpIndMin]))
     
     # Runup uprush speed with respect to setup
+    if interpSetup:
+        crossOt = np.zeros((len(ind_max),)) * np.NAN
+        
     speedSetup  = np.zeros((len(ind_max))) * np.NAN    
     for aa in range(len(ind_max)):
         tmpIndMax   = ind_max[aa]
         tmpIndCross = indCross[aa]
         if interpSetup:
             tmpOt = np.interp(0.0,x[tmpIndCross:tmpIndMax],
-                              ot[tmpIndCross:tmpIndMax])
-            speedSetup[aa] = x[tmpIndMax] /(ot[tmpIndMax]-tmpOt)            
+                              ot[tmpIndCross:tmpIndMax])            
+            speedSetup[aa] = x[tmpIndMax] /(ot[tmpIndMax]-tmpOt)
+            crossOt[aa] = tmpOt            
         else:
             speedSetup[aa] = ((x[tmpIndMax] - x[tmpIndCross]) /
-                              (ot[tmpIndMax]-ot[tmpIndCross]))
+                              (ot[tmpIndMax] - ot[tmpIndCross]))
     
-    return np.array(ind_max),np.array(ind_min),speedMinima,speedSetup    
-
+    # Output management
+    output = [np.array(ind_max),np.array(ind_min),speedMinima,speedSetup]
+    if interpSetup:
+        output.append(crossOt)
+    
+    return output
+    
 #===============================================================================
 # Compute mean setup
 #===============================================================================

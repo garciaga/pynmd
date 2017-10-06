@@ -1068,10 +1068,10 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
         # Band pass filtering
         rmvInd = np.logical_or(freq<freqmin,freq>freqmax)
     elif freqmin:
-        # Low pass filtering
+        # High pass filtering
         rmvInd = freq < freqmin
     else:
-        # High pass filtering
+        # Low pass filtering
         rmvInd = freq > freqmax
         
     # Remove mean if requested
