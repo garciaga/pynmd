@@ -18,12 +18,13 @@ __email__ = "moghimis@gmail.com"
 
 defs =  defaultdict(dict)
 
+
 defs['elev']['var']   = 'zeta'
-defs['elev']['vmin']  = -1.0
-defs['elev']['vmax']  = 1.0
+defs['elev']['vmin']  = -1
+defs['elev']['vmax']  =  1
 defs['elev']['label'] = 'Elev. [m]'
 defs['elev']['format']= '%3.1g'
-defs['elev']['cmap']  = plt.cm.jet
+defs['elev']['cmap']  = maps.jetWoGn()
 
 defs['elevdif']['var']   = 'zeta'
 defs['elevdif']['vmin']  = -0.25
@@ -313,8 +314,6 @@ defs['yadv']['label'] ='horizontal ETA-advection [m s$^ \mathrm{-2}$] '
 defs['yadv']['format']= '%.2g'
 defs['yadv']['cmap']  = maps.jetWoGn()
 
-
-
 defs['vjvf']={}
 defs['vjvf']['var']   = 'vjvf'
 defs['vjvf']['vmin']  =  -5e-6
@@ -419,8 +418,6 @@ defs['salt_rate']['label'] ='Salt time rate change [s$^ \mathrm{-1}$] '
 defs['salt_rate']['format']= '%.2g'
 defs['salt_rate']['cmap']  = maps.jetWoGn()
 
-
-
 defs['dye']={}
 defs['dye']['var']   = 'dye'
 defs['dye']['vmin']  =  0.0
@@ -428,8 +425,6 @@ defs['dye']['vmax']  =  0.25
 defs['dye']['label'] ='Dye concentration [kg m$^ \mathrm{-3}$] '   
 defs['dye']['format']= '%.2g'
 defs['dye']['cmap']  = maps.jetWoGn()
-
-
 
 defs['dye_hadv']={}
 defs['dye_hadv']['var']   = 'dye_hadv'
@@ -471,16 +466,27 @@ defs['dye_rate']['label'] ='Dye time rate change [kg m$^ \mathrm{-3}$ s$^ \mathr
 defs['dye_rate']['format']= '%.2g'
 defs['dye_rate']['cmap']  = maps.jetWoGn()
 
+defs['pmsl']={}
+defs['pmsl']['var']   = 'pmsl'
+defs['pmsl']['tvar']   = 'time'
+defs['pmsl']['vmin']  =  0.
+defs['pmsl']['vmax']  =  2.0e5
+defs['pmsl']['label'] = 'pressure [Pa] '
+defs['pmsl']['format']= '%.1g'
+defs['pmsl']['cmap']  = maps.jetMinWi
 
 
-defs['pres']={}
-defs['pres']['var']   = 'pres'
-defs['pres']['tvar']   = 'time'
-defs['pres']['vmin']  =  0.
-defs['pres']['vmax']  =  2.0e5
-defs['pres']['label'] = 'pressure [Pa] '
-defs['pres']['format']= '%.1g'
-defs['pres']['cmap']  = maps.jetMinWi
+## ADCIRC defs
+defs['rad']={}
+defs['rad']['var']   = 'radstress'
+defs['rad']['tvar']   = 'time'
+defs['rad']['vmin']  =  -1e-3
+defs['rad']['vmax']  =   1e-3
+defs['rad']['label'] = 'Wave force [m$^ \mathrm{-2}$ s$^ \mathrm{-2}$] '
+defs['rad']['format']= '%.1g'
+defs['rad']['cmap']  = maps.jetWoGn()
+
+
 
 #plot extent
 defs['lim']['xmin']  = -100.0 

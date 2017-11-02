@@ -198,3 +198,32 @@ def nearxy(x,y,xi,yi):
         ind[i]=dist.argmin()
     return ind
         
+def replace_pattern_line(filename, pattern, line2replace):
+    """
+    replace the whole line if the pattern found
+    
+    """
+    
+    tmpfile = filename+'.tmp2'
+    os.system(' cp  -f ' + filename + '  ' + tmpfile)
+    tmp  = open(tmpfile,'r')
+    fil  = open(filename,'w')
+    for line in tmp:
+        fil.write(line2replace if pattern in line else line)
+        
+    tmp.close()
+    fil.close()
+    os.system('rm ' + tmpfile  )  
+    
+    
+def str_assing(inp_str,new_part,index_of_start):
+    
+    """
+    replace part of a string
+    
+    """
+    
+    
+    lenn = len(index_of_start)
+    inp_str = inp_str[:index_of_start] + new_part + inp_str[index_of_start + lenn:]
+    return inp_str    

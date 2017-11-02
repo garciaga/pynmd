@@ -6,6 +6,7 @@ import pynmd.plotting.plot_settings as ps
 from   pynmd.tools.compute_statistics import statatistics
 import datetime
 import matplotlib.tri as Tri
+import matplotlib.dates as mdates
 
 
 """
@@ -625,6 +626,8 @@ def TimeSeriesPlot(ax,data,args):
     
     ax.set_ylabel(var['label'])     
  
+    xfmt = mdates.DateFormatter('%Y-%m-%d %H:%M')
+    ax.xaxis.set_major_formatter(xfmt)
     #to add a) , b) and ..  to top of the panels
     if panel_num is not None:
         ytext = var['vmax']+ 0.05 * (var['vmax']-var['vmin'])         
@@ -717,6 +720,10 @@ def plot_scatter(ax,data,model,var=dict(),color='k',marker = None,nn=None, title
     ax.set_xlim(min1,max1)
     ax.set_ylim(min1,max1)
     ax.set_aspect(1)    
+
+    fit    = np.polyfit(model,data,1)
+    fit_fn = np.poly1d(fit) # fit_fn is now a function which takes in x and returns an estimate for y
+    ax.plot(model, fit_fn(model),c=color,lw=1 ,alpha=1.0)
     
     ddt =  max1-min1
     
@@ -788,5 +795,33 @@ def stick_plot(time, u, v, **kw):
     ax.xaxis_date()
     return q
 
+
+
+#def imscatter(x, y, image=None, ax=None, zoom=0.05):
+#    """
+#    Plot image as marker at x and y like scatter plots
+#    """
+#    from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+   
+#    if image is None:
+#        image = '/scratch4/COASTAL/coastal/save/Saeed.Moghimi/models/NEMS/NEMS_inps/01_data/cliparts/hurricane-1085673_960_720_red.png'
+    
+    
+#    if ax is None:
+#        ax = plt.gca()
+#    try:
+#        image = plt.imread(image)
+#    except TypeError:
+#        # Likely already an array...
+#        pass
+#    im = OffsetImage(image, zoom=zoom)
+#    x, y = np.atleast_1d(x, y)
+#    artists = []
+#    for x0, y0 in zip(x, y):
+#        ab = AnnotationBbox(im, (x0, y0), xycoords='data', frameon=False)
+#        artists.append(ax.add_artist(ab))
+#    ax.update_datalim(np.column_stack([x, y]))
+#    ax.autoscale()
+#    return artists
 
 

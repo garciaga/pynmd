@@ -20,9 +20,8 @@ import cartopy.crs as ccrs
 from cartopy.io import shapereader
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
-import cartopy.crs as ccrs
-from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
-                                   LATITUDE_FORMATTER)
+from math import floor
+from matplotlib import patheffects
 
 #import seaborn as sns
 #plt.style.use('seaborn-white')
@@ -278,7 +277,7 @@ def ReadFort80(dir):
                   IMAP_NOD_GL = np.array(IMAP_NOD_GL) )) 
 
 
-def make_map(projection=ccrs.PlateCarree(), bg='m'):
+def make_map(projection=ccrs.PlateCarree(), res='m', xylabels = False):
     
     """
     Generate fig and ax using cartopy
@@ -290,19 +289,83 @@ def make_map(projection=ccrs.PlateCarree(), bg='m'):
     subplot_kw = dict(projection=projection)
     fig, ax = plt.subplots(figsize=(9, 13),
                            subplot_kw=subplot_kw)
-    gl = ax.gridlines(draw_labels=True)
-    gl.xlabels_top = gl.ylabels_right = False
-    gl.xformatter = LONGITUDE_FORMATTER
-    gl.yformatter = LATITUDE_FORMATTER
+    if xylabels:
+        gl = ax.gridlines(draw_labels=True)
+        gl.xlabels_top = gl.ylabels_right = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+    else:
+        gl = ax.gridlines(draw_labels=False)
+        gl.xlines = False
+        gl.ylines = False
+
+
     
-    
-    if bg is not None:
+    if res is not None:
         if res == 'm':
             ax.background_img(name='BM', resolution='high')   # from local hdd you need to > import pynmd.plotting
         else:
             ax.background_img(name='BMH', resolution='high')   # from local hdd you need to > import pynmd.plotting
 
     return fig, ax
+
+
+
+def utm_from_lon(lon):
+    """
+    utm_from_lon - UTM zone for a longitude
+
+    Not right for some polar regions (Norway, Svalbard, Antartica)
+
+    :param float lon: longitude
+    :return: UTM zone number
+    :rtype: int
+    """
+    return floor( ( lon + 180 ) / 6) + 1
+
+def scale_bar(ax, proj, length, location=(0.5, 0.05), linewidth=3,
+              units='km', m_per_unit=1000):
+    """
+
+    http://stackoverflow.com/a/35705477/1072212
+    ax is the axes to draw the scalebar on.
+    proj is the projection the axes are in
+    location is center of the scalebar in axis coordinates ie. 0.5 is the middle of the plot
+    length is the length of the scalebar in km.
+    linewidth is the thickness of the scalebar.
+    units is the name of the unit
+    m_per_unit is the number of meters in a unit
+    """
+    # find lat/lon center to find best UTM zone
+    x0, x1, y0, y1 = ax.get_extent(proj.as_geodetic())
+    # Projection in metres
+    utm = ccrs.UTM(utm_from_lon((x0+x1)/2))
+    # Get the extent of the plotted area in coordinates in metres
+    x0, x1, y0, y1 = ax.get_extent(utm)
+    # Turn the specified scalebar location into coordinates in metres
+    sbcx, sbcy = x0 + (x1 - x0) * location[0], y0 + (y1 - y0) * location[1]
+    # Generate the x coordinate for the ends of the scalebar
+    bar_xs = [sbcx - length * m_per_unit/2, sbcx + length * m_per_unit/2]
+    # buffer for scalebar
+    buffer = [patheffects.withStroke(linewidth=5, foreground="w")]
+    # Plot the scalebar with buffer
+    ax.plot(bar_xs, [sbcy, sbcy], transform=utm, color='k',
+        linewidth=linewidth, path_effects=buffer)
+    # buffer for text
+    buffer = [patheffects.withStroke(linewidth=3, foreground="w")]
+    # Plot the scalebar label
+    t0 = ax.text(sbcx, sbcy, str(length) + ' ' + units, transform=utm,
+        horizontalalignment='center', verticalalignment='bottom',
+        path_effects=buffer, zorder=2)
+    left = x0+(x1-x0)*0.05
+    # Plot the N arrow
+    t1 = ax.text(left, sbcy, u'\u25B2\nN', transform=utm,
+        horizontalalignment='center', verticalalignment='bottom',
+        path_effects=buffer, zorder=2)
+    # Plot the scalebar without buffer, in case covered by text buffer
+    ax.plot(bar_xs, [sbcy, sbcy], transform=utm, color='k',
+        linewidth=linewidth, zorder=3)
+
 
 def maskDryElements(grid):
     dry_masked = np.ma.masked_where(grid['depth']<=0., grid['depth'])
@@ -388,5 +451,93 @@ def plot_track(ax,track,date=None):
         ind = np.array(np.where((dates==date))).squeeze().item()
         ax.scatter(lon[ind],lat[ind],s=50,c='r',alpha=50)
     ax.plot(track['lon'],track['lat'],lw=2,c='r')
+
+
+
+
+def find_hwm(xgrd,ygrd,maxe,xhwm,yhwm,elev_hwm,msl2navd88=None,bias_cor=None ,flag='valid'):
+    from pynmd.tools.compute_statistics import find_nearest1d
+
+    
+    """
+    In: xgrd,ygrd,maxele: model infos
+        xhwm,yhwm,elev_hwm:data infos
+        flag: how to treat data model comparison
+        flag = all :    find nearset grid point
+             = valid:   find nearset grid point with non-nan value
+             = pos:     find nearset grid point with positive value
+             = neg:     find nearset grid point with negative value
+        
+        
+    Retun: model and data vector
+    
+    """
+    if   flag == 'valid':
+        mask = [maxe < -900.0]
+    elif flag == 'pos':
+        mask = [maxe > 0.0]
+    elif flag == 'neg':
+        mask = [maxe < 0.0]
+    elif flag == 'all':
+        mask = np.isnan(xgrd)    
+    else:
+        print 'Choose a valid flag > '
+        print 'flag = all :    find nearset grid point '
+        print '     = valid:   find nearset grid point with non-nan value'
+        print '     = pos:     find nearset grid point with positive value'
+        print '     = neg:     find nearset grid point with negative valueChoose a valid flag > '
+        sys.exit('ERROR') 
+    
+    mask  = np.array(mask).squeeze()
+    
+    xgrd = xgrd[~mask]
+    ygrd = ygrd[~mask]
+    maxe = maxe[~mask]
+    #
+    if msl2navd88 is not None:
+        msl2navd88 = msl2navd88[~mask]
+    #
+    if bias_cor is not None:
+        bias_cor = bias_cor[~mask]
+    else:
+        bias_cor = np.zeros_like(maxe)  
+    
+    data  = []
+    model = [] 
+    prox  = []
+    for ip in range(len(xhwm)):
+        i,pr  = find_nearest1d(xvec = xgrd,yvec = ygrd,xp = xhwm[ip],yp = yhwm[ip])
+        data.append (elev_hwm [ip] + msl2navd88[i])
+        model.append(maxe[i]+bias_cor[i])
+        prox.append(pr)
+    
+    data  = np.array(data).squeeze()
+    model = np.array(model).squeeze()
+    prox  = np.array(prox).squeeze()
+    #
+    maskf = [model < -900.0]
+    maskf  = np.array(maskf).squeeze()
+
+
+    return data[~maskf],model[~maskf],prox[~maskf]
+
+
+
+
+
+if __name__ == '__main__':
+
+    ax = plt.axes(projection=ccrs.Mercator())
+    plt.title('Cyprus')
+    ax.set_extent([31, 35.5, 34, 36], ccrs.Geodetic())
+    ax.stock_img()
+    ax.coastlines(resolution='10m')
+
+    scale_bar(ax, ccrs.Mercator(), 100)  # 100 km scale bar
+    # or to use m instead of km
+    # scale_bar(ax, ccrs.Mercator(), 100000, m_per_unit=1, units='m')
+    # or to use miles instead of km
+    # scale_bar(ax, ccrs.Mercator(), 60, m_per_unit=1609.34, units='miles')
+
   
 ##### end of Funcs

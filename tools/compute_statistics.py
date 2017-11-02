@@ -12,6 +12,8 @@ __email__ = "moghimis@gmail.com"
 
 
 import numpy as np
+import netCDF4 as n4
+
 
 def find_nearest2d(xvec,yvec,xp,yp):
     """
@@ -32,6 +34,20 @@ def find_nearest1d(xvec,yvec,xp,yp):
     dist = np.sqrt((xvec-xp)**2+(yvec-yp)**2)
     i = np.where(dist==dist.min())
     return i[0],dist.min()
+
+def find_nearest_time(dates,date):
+    """
+    Return nearest time indexs
+    Inp: dates: timedate vector
+         date: timedate pint
+    Out: index
+    
+    """
+    dtsec = []
+    for tmp in dates:
+        dtsec.append( np.abs( (tmp-date).total_seconds()  ) )  
+    return np.argmin(dtsec)    
+
     
         
 def statatistics(data,model):
@@ -57,4 +73,11 @@ def statatistics(data,model):
     ia = 1 -  (np.sum((data-model)**2))/(np.sum((np.abs(model-np.mean(data))+np.abs(data-np.mean(data)))**2))
 
     return dict(bias=bias,rmse=rmse,r2=r2,skill=skill,peak=peak,mae=mae,cor=cor,rbias=rbias,ia=ia)
+
     
+def model_on_data(data_dates, model_dates, model_val):
+    print '  >>>>>>>>>>>>>>>   '
+    units     = 'seconds since 2012-04-01 00:00:00'
+    data_sec  = n4.date2num(data_dates , units)
+    model_sec = n4.date2num(model_dates, units)
+    return np.interp(data_sec, model_sec, model_val)
