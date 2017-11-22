@@ -160,6 +160,109 @@ def runup_maxima(x,ot,sten,upcross=False):
     return ind_max
 
 # ==============================================================================
+# Runup maxima and minima
+# ==============================================================================
+def runupMaxMin(x,ot):
+    """
+    This function find runup maxima and minima using a zero upcrossing method.
+       
+    USAGE:
+    ------
+    max_ind,min_ind = runupMaxMin(x,ot)
+              
+    PARAMETERS:
+    -----------
+    x       : Runup time series [m]
+    ot      : Time vector, must have the same length as x and time in seconds.
+    
+    RETURNS:
+    --------
+    max_ind : Vector of indices corresponding to the local maxima of the input
+              time series.
+    min_ind : Vector of indices corresponding to the local minima of the input
+              time series.              
+    
+    NOTES:
+    ------
+    - All inputs should be numpy arrays
+    - x must cross zero. You can for instance remove the setup from the time
+      series.
+    
+    """
+        
+    # Find the upcrossing locations
+    indCross = _gsignal.zero_crossing(x)
+    
+    # Find the index of the maximum runup between upcrossings
+    ind_max = [np.argmax(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+               for aa in range(indCross.shape[0]-1)]
+    ind_min = [np.argmin(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+               for aa in range(indCross.shape[0]-1)]
+    
+    # Convert to arrays
+    ind_max = np.array(ind_max)
+    ind_min = np.array(ind_min)
+    
+    # Clean up (some times you get consecutive maxima and/or consecutive minima)
+    # Remove consecutive minima
+    for aa in range(ind_max.shape[0]-1):
+        
+        bb = np.logical_and(ind_min>ind_max[aa],ind_min<ind_max[aa+1])
+        
+        # One minima between maxima (ok)
+        if np.sum(bb) == 1:
+            continue
+        
+        # Multiple minima between maxima: keep the smallest
+        elif np.sum(bb) > 1:
+            
+            # Convert to indices
+            cc = np.where(bb)[0]
+            
+            # Find the smallest minima (the one to keep)
+            dd = cc[np.argmin(x[ind_min][cc])]
+            
+            # Create array to delete (true values will be deleted)
+            bb[dd] = np.False_
+            
+            # Remove the other minima
+            ind_min = np.delete(ind_min,np.where(bb)[0])
+
+    # Remove consecutive maxima
+    for aa in range(ind_min.shape[0]-1):
+        
+        bb = np.logical_and(ind_max>ind_min[aa],ind_max<ind_min[aa+1])
+        
+        # One minima between maxima (ok)
+        if np.sum(bb) == 1:
+            continue
+        
+        # Multiple minima between maxima: keep the smallest
+        elif np.sum(bb) > 1:
+            
+            # Convert to indices
+            cc = np.where(bb)[0]
+            
+            # Find the smallest minima (the one to keep)
+            dd = cc[np.argmax(x[ind_max][cc])]
+            
+            # Create array to delete (true values will be deleted)
+            bb[dd] = np.False_
+            
+            # Remove the other minima
+            ind_max = np.delete(ind_max,np.where(bb)[0])
+
+    # Start and end with a runup minima
+    if ind_min[0] > ind_max[0]:
+        ind_max = ind_max[1:]
+    
+    if ind_min[-1] < ind_max[-1]:
+        ind_max = ind_max[:-1]
+        
+    return [ind_max,ind_min]
+
+
+# ==============================================================================
 # Runup maxima
 # ==============================================================================
 def runupUprushSpeed(x,ot,interpSetup=False):

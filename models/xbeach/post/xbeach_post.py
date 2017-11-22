@@ -23,6 +23,7 @@ def nc_runup(nc,r_depth=0.01,yind=None):
     -----------
     nc           : NetCDF file handle
     r_depth      : Runup depth [m] (defaults to 0.01m)
+    yind         : Alongshore index where runup is to be computed (2D sims)
     
     Output:
     -------

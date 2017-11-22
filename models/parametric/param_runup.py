@@ -205,7 +205,6 @@ def guza2012(H,L,Fw,Ds=1.0):
     # Make sure parameters are double precision
     H  = np.double(H)
     L  = np.double(L)
-    B  = np.double(B)
     Fw = np.double(Fw)
     Ds = np.double(Ds)
     
