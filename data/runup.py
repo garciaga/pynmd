@@ -305,20 +305,26 @@ def runupUprushSpeed(x,ot,interpSetup=False):
     
     """
         
-    # Find the upcrossing locations
+    # Find the upcrossing locations (Raw output)
     indCross = _gsignal.zero_crossing(x)
     
     # Find the index of the maximum runup between upcrossings
-    ind_max = [np.argmax(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
-               for aa in range(indCross.shape[0]-1)]
-    ind_min = [np.argmin(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
-               for aa in range(indCross.shape[0]-1)]
+    #ind_max = [np.argmax(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+    #           for aa in range(indCross.shape[0]-1)]
+    #ind_min = [np.argmin(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+    #           for aa in range(indCross.shape[0]-1)]
     
-    # Runup uprush speed with respect to previous minima (check me!)
+    # Use the runupMaxMin function which cleans up the data
+    ind_max,ind_min = runupMaxMin(x,ot)
+        
+    # Runup uprush speed with respect to previous minima
+    # Need an offset if the clean up function is not used
+    #  i.e. for aa in range(1,len(ind_max)):
+    #           tmpIndMin = ind_min[aa-1]
     speedMinima  = np.zeros((len(ind_max))) * np.NAN
-    for aa in range(1,len(ind_max)):
+    for aa in range(len(ind_max)):
         tmpIndMax = ind_max[aa]
-        tmpIndMin = ind_min[aa-1]
+        tmpIndMin = ind_min[aa]
         speedMinima[aa] = ((x[tmpIndMax] - x[tmpIndMin]) / 
                            (ot[tmpIndMax] - ot[tmpIndMin]))
     
@@ -329,7 +335,9 @@ def runupUprushSpeed(x,ot,interpSetup=False):
     speedSetup  = np.zeros((len(ind_max))) * np.NAN    
     for aa in range(len(ind_max)):
         tmpIndMax   = ind_max[aa]
-        tmpIndCross = indCross[aa]
+        # This takes care of consecutive zero crossings
+        # due to clean up  in runupMaxMin
+        tmpIndCross = indCross[indCross < ind_max[aa]][-1]
         if interpSetup:
             tmpOt = np.interp(0.0,x[tmpIndCross:tmpIndMax],
                               ot[tmpIndCross:tmpIndMax])            
@@ -374,6 +382,7 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05,hfNoise=None):
     in           : Significant incident swash elevation [m]
     r_max        : Maximum runup [m]
     r_var        : Runup variance [m2]     
+    sig          : Significant runup (mean of 1/3 largest time domain) [m]
                
     Notes:
     ------
@@ -430,11 +439,19 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05,hfNoise=None):
     [xS,prob,_] = _gsignal.ecdf(swash[max_ind])
     r2_cdf_max = np.interp(0.98,prob,xS)
     
+    # Significant runup
+    ztmp = np.sort(swash[max_ind])
+    # Index of sorted time series
+    ind = np.int(np.ceil(2*ztmp.shape[0]/3.0))
+    # Average highest 1/3 of waves (i.e. runups) - significant
+    rSig = np.mean(ztmp[ind:]) 
+        
     # Generate output
     return {'setup':setup, 'ig':swash_ig,'in':swash_in,
             'r2_combined':r2_combined,'r2_cdf':r2_cdf,
             'r1_cdf':r1_cdf,'r_max':runup.max(),'r_var':np.var(runup),
-            'r2_cdf_max':r2_cdf_max+setup}
+            'r2_cdf_max':r2_cdf_max+setup,
+            'sig':rSig}
 
 
 #===============================================================================

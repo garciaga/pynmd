@@ -7,9 +7,9 @@ from . import nhwave
 from . import roms
 from . import swan
 from . import ww3
-from . import parametric
 from . import xbeach
 from . import funwaveC
+from . import parametric
 
 try:
     from . import delft3d

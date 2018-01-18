@@ -493,7 +493,7 @@ def band_averaging(psd,freq,stencil):
 #===============================================================================
 # Very simple implementation of a boxcar function for averaging purposes.
 #===============================================================================
-def boxcar(y,span,nanTreat=False):
+def boxcar(y,span,nanTreat=False,endTreat=True):
     """
 
     Usage:
@@ -553,13 +553,18 @@ def boxcar(y,span,nanTreat=False):
             ybox[aa] = np.sum(y[aa-offset:aa+offset+1],axis=0)/width
 
     # Provide end treatment
-    for aa in range(0,first):
-        ybox[aa] = (np.sum(y[0:aa+offset+1],axis=0) /
-                    (aa + offset + 1.0))
+    if endTreat:
+        for aa in range(0,first):
+            ybox[aa] = (np.sum(y[0:aa+offset+1],axis=0) /
+                        (aa + offset + 1.0))
 
-    for aa in range(last+1,y.shape[0]):
-        ybox[aa] = (np.sum(y[aa-offset::],axis=0) /
-                    (y.shape[0] - aa + offset + 0.0))
+        for aa in range(last+1,y.shape[0]):
+            ybox[aa] = (np.sum(y[aa-offset::],axis=0) /
+                        (y.shape[0] - aa + offset + 0.0))
+    
+    else:
+        ybox[:first] = y[:first]
+        ybox[last:]  = y[last:]
 
     return ybox
 
