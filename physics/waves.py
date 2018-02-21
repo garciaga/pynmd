@@ -1036,8 +1036,8 @@ def whwpts(t,x,d='up'):
 # Iribarrren number
 #===============================================================================
 def iribarren(m,H,wl,verbose=False):
-    '''
-    Function to compute surf similarity parameter (aka Iribarren number) for 
+    """
+    Function to compute the Iribarren number (aka surf similarity parameter) for 
     deep water conditions
     
     USAGE:
@@ -1065,7 +1065,7 @@ def iribarren(m,H,wl,verbose=False):
     - 0.5 < ssp < 3.3 : Intermediate beach (plunging breaker)
     - ssp < 0.5 : Dissipative beach (spilling breaker)
     
-    '''
+    """
     
     # Compute iribarren number
     ssp = np.tan(m) / (H/wl)**0.5

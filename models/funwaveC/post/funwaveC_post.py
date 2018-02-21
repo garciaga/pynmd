@@ -177,7 +177,15 @@ def convert_output(workfld,outfile,time_int=1.0,bathyfile=None,
         
         hdims = h.ndim
         if hdims == 1:
-            x_rho = np.arange(0,h.shape[0],dx)
+        
+            x_rho = np.arange(1,h.shape[0]+dx,dx)
+
+            # Create u grid
+            x_u       = np.zeros((x_rho.shape[0]+1,))
+            x_u[0]    = x_rho[0] - dx/2
+            x_u[-1]   = x_rho[-1] + dx/2
+            x_u[1:-1] = (x_rho[1:] + x_rho[:-1])/2.0
+            
         elif hdims == 2:
             x_rho, y_rho = np.meshgrid(np.arange(0,h.shape[1],dx),
                                        np.arange(0,h.shape[0],dy))           

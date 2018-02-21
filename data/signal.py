@@ -420,7 +420,9 @@ def squared_coherence(x,y,stencil,dt=1,cl=0.95):
     tl = pxy_ba/(2.0 * np.pi * fj_ba)
 
     # End of function
-    return fj_ba,g2.real,g2crit,sxy_conj_ba,sxy_ba,sxx_ba,syy_ba,pxy_ba,pcl,tl
+    return {'freq':fj_ba,'g2':g2.real,'g2crit':g2crit,
+            'sxy_conj':sxy_conj_ba,'sxy':sxy_ba,'sxx':sxx_ba,'syy':syy_ba,
+            'pxy':pxy_ba,'pcl':pcl,'tl':tl}   
 
 
 #===============================================================================
