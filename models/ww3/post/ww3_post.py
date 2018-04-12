@@ -336,6 +336,195 @@ def read_spec(specfile,bulkparam=True):
                 'direction':direction,'frequency':frequency,'spec':spec,
                 'wavetime':wavetime}
         
+# =============================================================================
+# Read source term output
+# =============================================================================
+def read_src_term(specfile):
+    """
+    Reads the source term output from Wavewatch III
+       
+    read_src_term(specfile)
+    
+    Parameters
+    ----------
+    specfile       : Full path to the spectra file to be read (string)                    
+    bulkparam      : Flag to compute some bulk parameters (defaults to True)
+    
+    Returns
+    -------
+    ww3spec: dictionary
+             Contains
+               'fileId'       : spectral ouptut file identifier
+               'name          : station name
+               'latitude'     : decimal latitudes
+               'longitude'    : decimal longitudes
+               'dpt'          : depth time series
+               'wnd'          : 10m wind at the station
+               'wnddir'       : wind direction
+               'cur'          : flow velocity at the station
+               'curdir'       : flow direction
+               'direction'    : spectral directions in radians from true north
+               'frequency'    : spectral frequencies in Hz               
+               'wavetime'     : datetime array
+               'sterms'       : Dictionary containing 4D array of source term
+                                density data. Keys correspond to the source 
+                                term.
+    """
+    
+    # Find the length of the file and get dates
+    # Add open error here and exit the code
+    fobj = open(specfile,'r')    
+    ldates = re.findall(r'\d{8}\s\d{6}',fobj.read())
+    fobj.close()
+        
+    # Get Datetime array
+    wavetime = [datetime.datetime.strptime(x,"%Y%m%d %H%M%S") for x in ldates]
+    # wavetime = np.asarray(wavetime)
+    
+    # Open the file
+    fobj = open(specfile,'r')
+    
+    # Read file information
+    # The header includes
+    # 'File ID', number of frequencies, number of directions, number of points,
+    #   Flags for spectrum, Sin, Snl, Sds, Sbt, Sice, Stot
+    tmpline  = fobj.readline()
+    fileId   = tmpline.split('\'')[1]
+    tmpline  = tmpline.split('\'')[2].split()
+    nfreq    = int(tmpline[0])
+    ndir     = int(tmpline[1])
+    npts     = int(tmpline[2])
+    
+    # All source term keys
+    #stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Sice','Stot']
+    stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Stot']
+    
+    # Activated source term keys only
+    stkeys = []
+    for aa in range(3,len(tmpline)):
+        if tmpline[aa] == 'T':
+            stkeys.append(stkeysAll[aa-3])            
+            
+    # Get the frequencies
+    tmpline = fobj.readline().split()       # Get the first line
+    frequency = [float(x) for x in tmpline] # Allocate the first line
+    
+    # Verify if all the frequencies are in the first line
+    if nfreq > len(tmpline):
+        for aa in range(int(np.ceil(np.double(nfreq)/len(tmpline))-1)):
+            tmpline = fobj.readline().split()
+            tmpfreq = [float(x) for x in tmpline]
+            frequency.extend(tmpfreq)
+            del tmpfreq,tmpline
+    frequency = np.asarray(frequency)
+    
+    # Read the directions (in radians and oceanographic convention)
+    tmpline = fobj.readline().split()       
+    direction = [float(x) for x in tmpline] 
+    
+    # Verify if all the frequencies are in the first line
+    if ndir > len(tmpline):
+        for aa in range(int(np.ceil(np.double(ndir)/len(tmpline))-1)):
+            tmpline = fobj.readline().split()
+            tmpdir = [float(x) for x in tmpline]
+            direction.extend(tmpdir)
+            del tmpdir,tmpline
+    direction = np.asarray(direction)    
+    
+    # Sort directions
+    sortind = np.argsort(direction)
+    direction = direction[sortind]
+    
+    # Direction vector in degrees
+    # dir_degree = direction * 180.0/pi
+    
+    # Preallocate/Initialize variables
+    station_name = [None]*npts
+    latitude     = np.zeros(npts)
+    longitude    = np.zeros(npts)
+    dpt          = np.zeros((npts,len(wavetime)))
+    wnd          = np.zeros((npts,len(wavetime)))
+    wnddir       = np.zeros((npts,len(wavetime)))
+    cur          = np.zeros((npts,len(wavetime)))
+    curdir       = np.zeros((npts,len(wavetime)))
+    
+    # The source term dictionary
+    sterms = {}
+    for aa in stkeys:
+        sterms[aa] = np.zeros((npts,len(wavetime),ndir,nfreq))
+    
+    # Loop over the file to get source terms
+    # The looping order works as follows
+    # - Time -> aa
+    #   - Points -> bb
+    #     - Source terms -> dd
+    
+    for aa in range(len(wavetime)):
+        
+        # Read date line
+        tmpline = fobj.readline()
+        
+        # End of file reached
+        if tmpline == '':
+            break                 
+        
+        # Loop over data points
+        for bb in range(npts):
+            
+            # Read point information
+            tmpline = fobj.readline()
+            
+            # Store Point information
+            tmpstr = tmpline.split()
+            
+            # Station Information
+            # Note: Wavewatch III does not provide a space between the latitude
+            #       and the longitude if the longitude is a negative number
+            #       and has 5 digits (i.e. longitude <= -100.00)
+            station_name[bb] = tmpstr[0][1::]
+            if len(tmpstr) == 8:
+                latitude[bb]    = float(tmpstr[2].rsplit('-')[0])
+                longitude[bb]   = -1.0*float(tmpstr[2].rsplit('-')[1])
+                dpt[bb,aa]      = float(tmpstr[3])
+                wnd[bb,aa]      = float(tmpstr[4])
+                wnddir[bb,aa]   = float(tmpstr[5])
+                cur[bb,aa]      = float(tmpstr[6])
+                curdir[bb,aa]   = float(tmpstr[7])
+            else:
+                latitude[bb]    = float(tmpstr[2])
+                longitude[bb]   = float(tmpstr[3])
+                dpt[bb,aa]      = float(tmpstr[4])
+                wnd[bb,aa]      = float(tmpstr[5])
+                wnddir[bb,aa]   = float(tmpstr[6])
+                cur[bb,aa]      = float(tmpstr[7])
+                curdir[bb,aa]   = float(tmpstr[8])
+                                               
+            # Read and allocate the source term parameters
+            for dd in range(len(stkeys)):
+                           
+                tmpline = fobj.readline().split() 
+                tmpspec = [float(x) for x in tmpline]                      
+                if nfreq*ndir > len(tmpline):
+                    for cc in range(int(np.floor(np.double(nfreq)*np.double(ndir)
+                                             /len(tmpline)))):
+                        tmpline = fobj.readline().split()
+                        tmpflt  = [float(x) for x in tmpline]
+                        tmpspec.extend(tmpflt)
+                        del tmpflt,tmpline
+                tmpspec = np.asarray(tmpspec)
+                tmpspec = tmpspec.reshape((ndir,nfreq))
+                
+                # Sort directions
+                sterms[stkeys[dd]][bb,aa,...] = tmpspec[sortind,:]
+                          
+    # Close file
+    fobj.close()    
+    
+    # Return values
+    return {'name': station_name, 'latitude':latitude, 'longitude':longitude ,
+            'dpt':dpt,'wnd':wnd, 'wnddir':wnddir,'cur':cur, 'curdir':curdir,
+            'direction':direction,'frequency':frequency,'sterms':sterms,
+            'wavetime':wavetime,'fileId':fileId}
        
 #===============================================================================
 # Write spectral data in WW3 Format        
