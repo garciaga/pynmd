@@ -108,14 +108,9 @@ def read_spec(specfile,bulkparam=True):
     ldates = re.findall(r'\d{8}\s\d{6}',fobj.read())
     fobj.close()
     
-    # Number of dates
-    numdates = len(ldates)
-    
     # Get Datetime array
     wavetime = [datetime.datetime.strptime(x,"%Y%m%d %H%M%S") for x in ldates]
     # wavetime = np.asarray(wavetime)
-    
-    
     
     # Open the file
     fobj = open(specfile,'r')
@@ -348,7 +343,6 @@ def read_src_term(specfile):
     Parameters
     ----------
     specfile       : Full path to the spectra file to be read (string)                    
-    bulkparam      : Flag to compute some bulk parameters (defaults to True)
     
     Returns
     -------
@@ -369,6 +363,11 @@ def read_src_term(specfile):
                'sterms'       : Dictionary containing 4D array of source term
                                 density data. Keys correspond to the source 
                                 term.
+
+    NOTES
+    -----
+    1. There are issues with the source term formatting in WW3 v5.16
+
     """
     
     # Find the length of the file and get dates
@@ -397,7 +396,7 @@ def read_src_term(specfile):
     
     # All source term keys
     #stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Sice','Stot']
-    stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Stot']
+    stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Stot'] # WW3 v4.18
     
     # Activated source term keys only
     stkeys = []
@@ -519,6 +518,13 @@ def read_src_term(specfile):
                           
     # Close file
     fobj.close()    
+    
+    # Convert spectrum and direction to oceanographic convention 
+    direction = gangles.wrapto2pi(np.pi + direction)
+    sortind = np.argsort(direction)
+    direction = direction[sortind]
+    for aa in sterms.keys():
+        sterms[aa] = sterms[aa][:,:,sortind,:]      
     
     # Return values
     return {'name': station_name, 'latitude':latitude, 'longitude':longitude ,

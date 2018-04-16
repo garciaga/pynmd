@@ -817,7 +817,7 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False,IGBand=[0.005,0.05]):
 #===============================================================================
 # Function to compute bulk wave parameters from frequency spectrum
 #===============================================================================
-def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
+def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05],zeroth=True):
     """
     Function to compute bulk wave parameters from frequency spectrum
 
@@ -827,6 +827,7 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
     spec    : Frequency spectrum [m2/Hz]
     IGBand  : Infragravity wave frequency cutoff 
               defaults to 0.005-0.05 Hz
+    zeroth  : If true will remove the first frequency from the analysis
 
     Returns:
     --------
@@ -847,14 +848,13 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
     Notes:
     ------
     - mn are the different spectral moments
-    - First frequency will be discarded from the analysis. It is assumed to be
-      the zeroth-frequency.
 
     """
 
     # Remove zeroth frequencies ------------------------------------------------
-    spec = spec[1:]
-    freq = freq[1:]
+    if zeroth:
+        spec = spec[1:]
+        freq = freq[1:]
 
     # Compute spectral moments
     moment0 = np.trapz(spec,freq,axis=-1)
@@ -912,7 +912,7 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
 #===============================================================================
 # Bulk parameters from a directional spectrum
 #===============================================================================
-def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05]):
+def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05],zeroth=True):
     """
     Function to compute bulk wave parameters from frequency-direction spectrum
 
@@ -924,6 +924,7 @@ def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05]):
               The shape must be [freq,dirs]
     IGBand  : Infragravity wave frequency cutoff 
               defaults to 0.005-0.05 Hz
+    zeroth  : If true will remove the first frequency from the analysis
 
     Returns:
     --------
@@ -973,7 +974,7 @@ def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05]):
     
     # Get the parameter from the frequency spectrum
     freqSpec = np.trapz(spec,dirs,axis=-1)
-    bp = fspec_bulk_params(freq,freqSpec,IGBand)
+    bp = fspec_bulk_params(freq,freqSpec,IGBand,zeroth=zeroth)
     bp.update(dirDict)
     
     return bp
