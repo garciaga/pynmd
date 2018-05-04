@@ -1260,3 +1260,116 @@ def shoal(H1,h1,period,h0):
     k0 = dispersion(period,h0)
     
     return H0,k0
+
+
+#===============================================================================
+# Compute IEC Bulk Parameters from Spectrum
+#===============================================================================
+def iec_params(freq,dirs,spec,dpt):
+    """
+    Function to compute IEC recommended wave energy parameters from 
+    frequency-direction spectrum
+
+    Parameters:
+    -----------
+    freq    : Vector of spectral frequencies [Hz]
+    dirs    : Vector of directions (nautical convention) [Deg or Rad]
+    spec    : Wave spectrum [m2/Hz/Deg or m2/Hz/Rad]
+              The shape must be [time,npts,freq,dirs]
+    dpt     : Water depth of shape [npts]
+    
+    Returns:
+    --------
+    Dictionary containing bulk wave parameters
+    Hs         : Significant wave height [m]
+    OWP        : Omnidirectional wave power [W/m]
+    Jth        : Maximum directionally resolved wave power [W/m]
+    Th         : Direction of maximum directionally resolved wave power [deg]
+    d          : Directionality coefficient (Jth/OWP)
+    Te         : Energy period [s]
+    Sw         : Spectral width (m0*m-2/m-1/m-1 - 1)**2
+    
+    Notes:
+    ------
+    - mn are the different spectral moments
+
+    REFERENCES:
+    -----------
+    Marine energy - Wave, tidal and other water current converters - 
+        Part 101: Wave energy resoure assessment and characterization. 
+        IEC TS 62600-101
+    """
+    
+    # Figure out the size of the array and adjust if necessary
+    _,npts,nfreq,ndirs = np.shape(spec)
+
+    # Directions must be sorted
+    sortInd = np.argsort(dirs)
+    spec = spec[...,sortInd]
+    dirs = dirs[sortInd]
+
+    # Non directional parameters -----------------------------------------------    
+    freqSpec = np.trapz(spec,dirs,axis=-1)
+
+    # Compute omnidirectional wave power
+    moment0 = np.trapz(freqSpec,freq,axis=-1)
+    momentn1 = np.trapz(freqSpec*(freq)**-1,freq,axis=-1)
+    momentn2 = np.trapz(freqSpec*(freq)**-2,freq,axis=-1)
+
+    # Significant wave height
+    bp = {}
+    bp['Hs'] = 4.0 * (moment0**0.5)
+
+    # Energy Period
+    bp['Te'] = momentn1/moment0
+    
+    # Spectral width
+    bp['Sw'] = (moment0*momentn2/momentn1/momentn1 - 1.0)**0.5
+
+    # Get directional properties -----------------------------------------------
+
+    # Compute the group velocity for each point
+    cg = np.zeros((npts,nfreq)) * np.NAN
+    for aa in range(cg.shape[0]):
+        for bb in range(cg.shape[1]):
+            _,_,cg[aa,bb] = celerity(1/freq[bb],dpt[aa])
+
+    # Omnidirectional wave power (loop extravaganza here)    
+    owp = np.zeros_like(bp['Hs']) * np.NAN
+    # Time loop
+    for aa in range(spec.shape[0]):
+        # Point loop
+        for bb in range(spec.shape[1]):
+            # Omnidirectional wave power
+            owp[aa,bb] = np.trapz(freqSpec[aa,bb,:]*cg[bb,:],freq)
+
+    # Omidirectional wave power through a plane
+    cg  = np.repeat(np.expand_dims(cg,axis=-1),ndirs,axis=-1)
+    jth = np.zeros_like(owp)
+    th  = np.zeros_like(owp) * np.NAN
+    for aa in range(spec.shape[0]):
+        # Point loop
+        for bb in range(spec.shape[1]):
+            # Omnidirectional wave power
+            tmpJth = 0.0
+            dirSpec = np.trapz(spec[aa,bb,...]*cg[bb,...],freq,axis=-2)
+            # Direction loop
+            for cc in range(ndirs):
+                fac = np.cos(np.pi/180.0 * (dirs - dirs[cc]))
+                fac[fac<0] = 0.0
+                tmpJth = np.trapz(dirSpec*fac,dirs)
+                if tmpJth > jth[aa,bb]:
+                    jth[aa,bb] = tmpJth
+                    th[aa,bb]  = dirs[cc]
+
+    # Take care of units here
+    owp *= 9.81 * 1025.0
+    jth *= 9.81 * 1025
+
+    # Allocate in arrays
+    bp['Th'] = th
+    bp['OWP'] = owp
+    bp['Jth'] = jth
+    bp['d'] = jth/owp      # Directionality coefficient
+    
+    return bp

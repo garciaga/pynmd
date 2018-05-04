@@ -334,7 +334,7 @@ def read_spec(specfile,bulkparam=True):
 # =============================================================================
 # Read source term output
 # =============================================================================
-def read_src_term(specfile):
+def read_src_term(specfile,version='5.16'):
     """
     Reads the source term output from Wavewatch III
        
@@ -395,15 +395,23 @@ def read_src_term(specfile):
     npts     = int(tmpline[2])
     
     # All source term keys
-    #stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Sice','Stot']
-    stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Stot'] # WW3 v4.18
+    if version == '5.16':
+        stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Sice','Stot']
+        #stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Stot'] # WW3 v4.18
+        fobj.readline().split() # There is a weird line in v5.16
+    else:
+        stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Stot'] # WW3 v4.18
     
     # Activated source term keys only
     stkeys = []
     for aa in range(3,len(tmpline)):
         if tmpline[aa] == 'T':
             stkeys.append(stkeysAll[aa-3])            
-            
+    
+    # The total source term flag is not being written in v5.16. Assume true
+    if version == '5.16':
+        stkeys.append(stkeysAll[-1])
+
     # Get the frequencies
     tmpline = fobj.readline().split()       # Get the first line
     frequency = [float(x) for x in tmpline] # Allocate the first line
@@ -472,6 +480,9 @@ def read_src_term(specfile):
             
             # Read point information
             tmpline = fobj.readline()
+
+            # Remove string markers
+            tmpline = tmpline.translate(None,'\'')
             
             # Store Point information
             tmpstr = tmpline.split()
@@ -480,23 +491,23 @@ def read_src_term(specfile):
             # Note: Wavewatch III does not provide a space between the latitude
             #       and the longitude if the longitude is a negative number
             #       and has 5 digits (i.e. longitude <= -100.00)
-            station_name[bb] = tmpstr[0][1::]
-            if len(tmpstr) == 8:
-                latitude[bb]    = float(tmpstr[2].rsplit('-')[0])
-                longitude[bb]   = -1.0*float(tmpstr[2].rsplit('-')[1])
+            station_name[bb] = tmpstr[0][:]            
+            if len(tmpstr) == 7:
+                latitude[bb]    = float(tmpstr[1].rsplit('-')[0])
+                longitude[bb]   = -1.0*float(tmpstr[1].rsplit('-')[1])
+                dpt[bb,aa]      = float(tmpstr[2])
+                wnd[bb,aa]      = float(tmpstr[3])
+                wnddir[bb,aa]   = float(tmpstr[4])
+                cur[bb,aa]      = float(tmpstr[5])
+                curdir[bb,aa]   = float(tmpstr[6])
+            else:
+                latitude[bb]    = float(tmpstr[1])
+                longitude[bb]   = float(tmpstr[2])
                 dpt[bb,aa]      = float(tmpstr[3])
                 wnd[bb,aa]      = float(tmpstr[4])
                 wnddir[bb,aa]   = float(tmpstr[5])
                 cur[bb,aa]      = float(tmpstr[6])
                 curdir[bb,aa]   = float(tmpstr[7])
-            else:
-                latitude[bb]    = float(tmpstr[2])
-                longitude[bb]   = float(tmpstr[3])
-                dpt[bb,aa]      = float(tmpstr[4])
-                wnd[bb,aa]      = float(tmpstr[5])
-                wnddir[bb,aa]   = float(tmpstr[6])
-                cur[bb,aa]      = float(tmpstr[7])
-                curdir[bb,aa]   = float(tmpstr[8])
                                                
             # Read and allocate the source term parameters
             for dd in range(len(stkeys)):
