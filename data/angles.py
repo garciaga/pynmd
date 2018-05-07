@@ -70,5 +70,12 @@ def wraptopi(x):
     
     return(x)
             
-         
-# End of module
+def cartToNautDeg(x):
+    """
+    Converts from cartesian to nautical convention and wraps to 360
+    """
+
+    x = 90.0 - np.double(x)
+
+    return wrapto360(x)
+    

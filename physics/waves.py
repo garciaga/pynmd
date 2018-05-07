@@ -1292,6 +1292,7 @@ def iec_params(freq,dirs,spec,dpt):
     Notes:
     ------
     - mn are the different spectral moments
+    - Nautical convention assumed
 
     REFERENCES:
     -----------
@@ -1354,8 +1355,8 @@ def iec_params(freq,dirs,spec,dpt):
             tmpJth = 0.0
             dirSpec = np.trapz(spec[aa,bb,...]*cg[bb,...],freq,axis=-2)
             # Direction loop
-            for cc in range(ndirs):
-                fac = np.cos(np.pi/180.0 * (dirs - dirs[cc]))
+            for cc in range(ndirs):                
+                fac = np.cos(np.pi/180.0 * (270.0 - (dirs[cc] - dirs)))
                 fac[fac<0] = 0.0
                 tmpJth = np.trapz(dirSpec*fac,dirs)
                 if tmpJth > jth[aa,bb]:
@@ -1364,7 +1365,7 @@ def iec_params(freq,dirs,spec,dpt):
 
     # Take care of units here
     owp *= 9.81 * 1025.0
-    jth *= 9.81 * 1025
+    jth *= 9.81 * 1025.0
 
     # Allocate in arrays
     bp['Th'] = th

@@ -93,7 +93,15 @@ def read_spec(specfile,bulkparam=True):
     Kuik, A. J., G. P. van Vledder, and L. H. Holthuijsen, 1988: A method for
     the routine analysis of pitch-and-roll buoy wave data. Journal of Physical
     Oceanography, 18, 1020 - 1034.
-         
+
+    Notes
+    -----
+    1. WW3 provides the directions in a modified natical convention where the 
+       direction waves are going to (measured from true north) is given. 
+       a. To convert WW3 to Cartesian (degrees)
+          cart = 450 - WW3
+       b. To convert WW3 to traditional nautical convention
+          naut = 180 + WW3 
     '''
     
     # For code development only -----------------------------------------------
