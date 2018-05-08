@@ -316,7 +316,6 @@ def read_spec(specfile,bulkparam=True):
         direction = direction[sortind]
         spec = spec[:,:,sortind,:]
 
-
         # Return values
         return {'name': station_name, 'latitude':latitude, 'longitude':longitude ,
                 'dpt':dpt,'wnd':wnd, 'wnddir':wnddir,'cur':cur, 'curdir':curdir,

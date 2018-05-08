@@ -1319,7 +1319,7 @@ def iec_params(freq,dirs,spec,dpt):
 
     # Significant wave height
     bp = {}
-    bp['Hs'] = 4.0 * (moment0**0.5)
+    bp['Hs'] = 4.005 * (moment0**0.5)
 
     # Energy Period
     bp['Te'] = momentn1/moment0
@@ -1356,7 +1356,8 @@ def iec_params(freq,dirs,spec,dpt):
             dirSpec = np.trapz(spec[aa,bb,...]*cg[bb,...],freq,axis=-2)
             # Direction loop
             for cc in range(ndirs):                
-                fac = np.cos(np.pi/180.0 * (270.0 - (dirs[cc] - dirs)))
+                #fac = np.cos(np.pi/180.0 * (270.0 - (dirs[cc] - dirs)))
+                fac = np.cos(np.pi/180.0 * (dirs[cc] - dirs))
                 fac[fac<0] = 0.0
                 tmpJth = np.trapz(dirSpec*fac,dirs)
                 if tmpJth > jth[aa,bb]:
@@ -1364,8 +1365,8 @@ def iec_params(freq,dirs,spec,dpt):
                     th[aa,bb]  = dirs[cc]
 
     # Take care of units here
-    owp *= 9.81 * 1025.0
-    jth *= 9.81 * 1025.0
+    owp *= 9.81 * 1000.0
+    jth *= 9.81 * 1000.0
 
     # Allocate in arrays
     bp['Th'] = th
