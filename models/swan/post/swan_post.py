@@ -88,7 +88,7 @@ def read_spec(specfile):
 
     # Get number of locations
     tmpline = fobj.readline().split()
-    num_loc = float(tmpline[0])
+    num_loc = int(tmpline[0])
     
     # Get coordinates
     coords = np.zeros((num_loc,2))
@@ -102,7 +102,7 @@ def read_spec(specfile):
     tmpline = fobj.readline().split()
     info['freq_type'] = tmpline[0]
     tmpline = fobj.readline().split()        
-    num_freq = float(tmpline[0])
+    num_freq = int(tmpline[0])
     freq = np.zeros((num_freq,))
     for aa in range(int(num_freq)):
         freq[aa] = float(fobj.readline())
@@ -113,7 +113,7 @@ def read_spec(specfile):
     info['angle_convention'] = tmpstr.join(tmpline[1:])
        
     tmpline = fobj.readline().split()
-    num_dir = float(tmpline[0])
+    num_dir = int(tmpline[0])
     dirs = []
     for aa in range(int(num_dir)):        
         dirs.extend([float(fobj.readline())])

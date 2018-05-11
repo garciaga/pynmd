@@ -73,6 +73,10 @@ def wraptopi(x):
 def cartToNautDeg(x):
     """
     Converts from cartesian to nautical convention and wraps to 360
+
+    If the direction that waves are travelling to is given it will return
+    the nautical equivalent of that. In other words the output would be
+    direction waves are traveling to in nautical coordinates.
     """
 
     x = 90.0 - np.double(x)

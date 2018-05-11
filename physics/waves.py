@@ -1265,7 +1265,7 @@ def shoal(H1,h1,period,h0):
 #===============================================================================
 # Compute IEC Bulk Parameters from Spectrum
 #===============================================================================
-def iec_params(freq,dirs,spec,dpt):
+def iec_params(freq,dirs,spec,dpt,rho=1025.0):
     """
     Function to compute IEC recommended wave energy parameters from 
     frequency-direction spectrum
@@ -1273,10 +1273,11 @@ def iec_params(freq,dirs,spec,dpt):
     Parameters:
     -----------
     freq    : Vector of spectral frequencies [Hz]
-    dirs    : Vector of directions (nautical convention) [Deg or Rad]
-    spec    : Wave spectrum [m2/Hz/Deg or m2/Hz/Rad]
+    dirs    : Vector of directions (nautical convention) [Deg]
+    spec    : Wave spectrum [m2/Hz/Deg]
               The shape must be [time,npts,freq,dirs]
     dpt     : Water depth of shape [npts]
+    rho     : (Optional) Density of water
     
     Returns:
     --------
@@ -1292,7 +1293,8 @@ def iec_params(freq,dirs,spec,dpt):
     Notes:
     ------
     - mn are the different spectral moments
-    - Nautical convention assumed
+    - Directional grid is assumed to be regular 
+      need to implement a trapz for when this is not true.
 
     REFERENCES:
     -----------
@@ -1310,7 +1312,9 @@ def iec_params(freq,dirs,spec,dpt):
     dirs = dirs[sortInd]
 
     # Non directional parameters -----------------------------------------------    
-    freqSpec = np.trapz(spec,dirs,axis=-1)
+    #freqSpec = np.trapz(spec,dirs,axis=-1)
+    dth = dirs[2] - dirs[1]
+    freqSpec = np.sum(spec,axis=-1)*dth
 
     # Compute omnidirectional wave power
     moment0 = np.trapz(freqSpec,freq,axis=-1)
@@ -1319,7 +1323,7 @@ def iec_params(freq,dirs,spec,dpt):
 
     # Significant wave height
     bp = {}
-    bp['Hs'] = 4.005 * (moment0**0.5)
+    bp['Hs'] = 4.004 * (moment0**0.5)
 
     # Energy Period
     bp['Te'] = momentn1/moment0
@@ -1356,17 +1360,17 @@ def iec_params(freq,dirs,spec,dpt):
             dirSpec = np.trapz(spec[aa,bb,...]*cg[bb,...],freq,axis=-2)
             # Direction loop
             for cc in range(ndirs):                
-                #fac = np.cos(np.pi/180.0 * (270.0 - (dirs[cc] - dirs)))
                 fac = np.cos(np.pi/180.0 * (dirs[cc] - dirs))
                 fac[fac<0] = 0.0
-                tmpJth = np.trapz(dirSpec*fac,dirs)
+                #tmpJth = np.trapz(dirSpec*fac,dirs)
+                tmpJth = np.sum(dirSpec*fac,axis=-1) * dth
                 if tmpJth > jth[aa,bb]:
                     jth[aa,bb] = tmpJth
                     th[aa,bb]  = dirs[cc]
 
     # Take care of units here
-    owp *= 9.81 * 1000.0
-    jth *= 9.81 * 1000.0
+    owp *= 9.81 * rho
+    jth *= 9.81 * rho
 
     # Allocate in arrays
     bp['Th'] = th
