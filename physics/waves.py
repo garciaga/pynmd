@@ -1352,17 +1352,17 @@ def iec_params(freq,dirs,spec,dpt,rho=1025.0):
     cg  = np.repeat(np.expand_dims(cg,axis=-1),ndirs,axis=-1)
     jth = np.zeros_like(owp)
     th  = np.zeros_like(owp) * np.NAN
+    # Time loop
     for aa in range(spec.shape[0]):
         # Point loop
         for bb in range(spec.shape[1]):
-            # Omnidirectional wave power
+            # Directional wave power
             tmpJth = 0.0
             dirSpec = np.trapz(spec[aa,bb,...]*cg[bb,...],freq,axis=-2)
             # Direction loop
             for cc in range(ndirs):                
                 fac = np.cos(np.pi/180.0 * (dirs[cc] - dirs))
                 fac[fac<0] = 0.0
-                #tmpJth = np.trapz(dirSpec*fac,dirs)
                 tmpJth = np.sum(dirSpec*fac,axis=-1) * dth
                 if tmpJth > jth[aa,bb]:
                     jth[aa,bb] = tmpJth
@@ -1373,9 +1373,9 @@ def iec_params(freq,dirs,spec,dpt,rho=1025.0):
     jth *= 9.81 * rho
 
     # Allocate in arrays
-    bp['Th'] = th
+    bp['Th']  = th
     bp['OWP'] = owp
     bp['Jth'] = jth
-    bp['d'] = jth/owp      # Directionality coefficient
+    bp['d']   = jth/owp      # Directionality coefficient
     
     return bp

@@ -46,7 +46,7 @@ import glob
 #===============================================================================
 # Bulk parameter code
 #===============================================================================
-def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
+def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True,suffix='.txt'):
     '''
     Code to convert bulk parameter text files into netcdf file
     
@@ -93,7 +93,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
     # Loop over files
     for tmpFile in archivos:
         
-        if tmpFile.endswith('.txt'):
+        if tmpFile.endswith(suffix):
             
             if verbose:
                 print(tmpFile)
