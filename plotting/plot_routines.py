@@ -570,6 +570,12 @@ def TimeSeriesPlot(ax,data,args):
     else:
         ms = 2        
     
+    if 'alpha' in args.keys():
+        alpha = args['alpha']
+    else:
+        alpha = 0.75    
+    
+    
     if 'label' in args.keys():
         label = args['label']
         
@@ -591,7 +597,7 @@ def TimeSeriesPlot(ax,data,args):
             sys.exit('ERROR !')
     
     ax.plot(data['xx'],data['val'],color=color,label=label,
-            linestyle=linestyle0,marker=marker0,ms=ms,lw = lw)
+            linestyle=linestyle0,marker=marker0,ms=ms,lw = lw,alpha=alpha)
     
 
     ax.set_xlim(xmin,xmax)
@@ -630,14 +636,14 @@ def TimeSeriesPlot(ax,data,args):
     ax.xaxis.set_major_formatter(xfmt)
     #to add a) , b) and ..  to top of the panels
     if panel_num is not None:
-        ytext = var['vmax']+ 0.05 * (var['vmax']-var['vmin'])         
-        if type(xmax) is datetime.date:
+        ytext = var['vmax'] + 0.05 * (var['vmax']-var['vmin'])         
+        if type(xmax) is datetime.date or type(xmax) is datetime.datetime:
             ddt =  (xmax - xmin).total_seconds()
             xtext = xmax - datetime.timedelta(0.05 * ddt/86400.0)
         else:
-            xtext = xmax - 0.05 (xmax-xmin)
+            xtext = xmax - 0.05 * (xmax-xmin)
         
-        ax.text (xtext, ytext, ps.ordinal[panel_num])
+        ax.text (xtext, ytext, '('+ps.ordinal[panel_num])
 
     print var['label']
     ax.set_ylabel(var['label'])
@@ -735,12 +741,13 @@ def plot_scatter(ax,data,model,var=dict(),color='k',marker = None,nn=None, title
         ax.text (max1 - 0.95 * ddt ,var['vmax']+ 0.05 * (var['vmax']-var['vmin']) , txt, fontsize=9)
 
     stat = statatistics(data,model)
-    txt = 'RMSE='+"%3.3f" % stat['rmse'] +\
-          '\nbias='+"%3.3f" % stat['bias'] +\
-          '\nR2='+"%3.3f" % stat['r2']+\
+    txt = 'RMSE='+"%3.3f"    % stat['rmse'] +\
+          '\nbias='+"%3.3f"  % stat['bias'] +\
+          '\nR2='+"%3.3f"    % stat['r2']+\
           '\nskill='+"%3.3f" % stat['skill'] +\
-          '\nRB='+"%3.3f" % stat['rbias'] +\
-            '\nIA='+"%3.3f" % stat['ia']
+          '\nRB='+"%3.3f"    % stat['rbias'] +\
+          '\nIA='+"%3.3f"    % stat['ia'] +\
+          '\nN='+"%3i"       % len(model)
 
     ax.text (min1 + 0.05 * ddt ,var['vmax'] - 0.35 * (var['vmax']-var['vmin']) , txt , fontsize=7)
     print var['label']    

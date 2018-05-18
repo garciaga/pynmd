@@ -454,8 +454,7 @@ def plot_track(ax,track,date=None):
 
 
 
-
-def find_hwm(xgrd,ygrd,maxe,xhwm,yhwm,elev_hwm,msl2navd88=None,bias_cor=None ,flag='valid'):
+def find_hwm(xgrd,ygrd,maxe,xhwm,yhwm,elev_hwm,convert2msl=None,bias_cor=None ,flag='pos'):
     from pynmd.tools.compute_statistics import find_nearest1d
 
     
@@ -471,15 +470,24 @@ def find_hwm(xgrd,ygrd,maxe,xhwm,yhwm,elev_hwm,msl2navd88=None,bias_cor=None ,fl
         
     Retun: model and data vector
     
+    
+    #  Delta or convert2msl is always for going from vertical datum to msl by an addition to that datum
+    # MSL = Vert_datam + convert2msl 
+
+    
     """
     if   flag == 'valid':
-        mask = [maxe < -900.0]
+        maxe = np.ma.masked_where(maxe==elev_max.fill_value, maxe)
+        mask =  maxe.mask   
     elif flag == 'pos':
-        mask = [maxe > 0.0]
+        mask = [maxe  < 0.0]
     elif flag == 'neg':
-        mask = [maxe < 0.0]
+        mask = [maxe  > 0.0]
     elif flag == 'all':
-        mask = np.isnan(xgrd)    
+        mask = np.isnan(xgrd) 
+
+        #mask = [maxe < -900.0]
+
     else:
         print 'Choose a valid flag > '
         print 'flag = all :    find nearset grid point '
@@ -489,38 +497,48 @@ def find_hwm(xgrd,ygrd,maxe,xhwm,yhwm,elev_hwm,msl2navd88=None,bias_cor=None ,fl
         sys.exit('ERROR') 
     
     mask  = np.array(mask).squeeze()
-    
+
     xgrd = xgrd[~mask]
     ygrd = ygrd[~mask]
     maxe = maxe[~mask]
     #
-    if msl2navd88 is not None:
-        msl2navd88 = msl2navd88[~mask]
+    if convert2msl is not None:
+        convert2msl = convert2msl[~mask]
+    else:
+        convert2msl = np.zeros_like(xgrd)
     #
     if bias_cor is not None:
         bias_cor = bias_cor[~mask]
     else:
-        bias_cor = np.zeros_like(maxe)  
-    
+        bias_cor = np.zeros_like(xgrd)  
+
     data  = []
     model = [] 
     prox  = []
+    xmodel = []
+    ymodel = []
+    
     for ip in range(len(xhwm)):
         i,pr  = find_nearest1d(xvec = xgrd,yvec = ygrd,xp = xhwm[ip],yp = yhwm[ip])
-        data.append (elev_hwm [ip] + msl2navd88[i])
+        data.append (elev_hwm [ip] + convert2msl[i])
         model.append(maxe[i]+bias_cor[i])
+        xmodel.append(xgrd[i].item())
+        ymodel.append(ygrd[i].item())
+        
         prox.append(pr)
     
-    data  = np.array(data).squeeze()
-    model = np.array(model).squeeze()
-    prox  = np.array(prox).squeeze()
+    data   = np.array(data ).squeeze()
+    model  = np.array(model).squeeze()
+    prox   = np.array(prox ).squeeze()
+    xmodel = np.array(xmodel).squeeze()
+    ymodel = np.array(ymodel).squeeze()
+    
+    
     #
-    maskf = [model < -900.0]
-    maskf  = np.array(maskf).squeeze()
-
-
-    return data[~maskf],model[~maskf],prox[~maskf]
-
+    #maskf = [model < 0.0]
+    #maskf  = np.array(maskf).squeeze()
+    #return data[~maskf],model[~maskf],prox[~maskf],xhwm[~maskf],yhwm[~maskf]
+    return data,xhwm,yhwm,model,xmodel,ymodel,prox
 
 
 

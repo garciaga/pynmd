@@ -417,7 +417,7 @@ defs['salt_vflux']['vmin']  =  -0.001
 defs['salt_vflux']['vmax']  =   0.001
 defs['salt_vflux']['label'] ='Salt vertical flux [s$^ \mathrm{-1}$] '   
 defs['salt_vflux']['format']= '%.2g'
-defs['salt_vflux']['cmap']  = ps.jetWoGn()
+defs['salt_vflux']['cmap']  = maps.jetWoGn()
 
 
 defs['salt_rate']={}
@@ -474,7 +474,7 @@ defs['dye_vflux']['vmin']  =  -0.0001
 defs['dye_vflux']['vmax']  =   0.0001
 defs['dye_vflux']['label'] ='Dye vertical diffusion [kg m$^ \mathrm{-3}$ s$^ \mathrm{-1}$]  '   
 defs['dye_vflux']['format']= '%.2g'
-defs['dye_vflux']['cmap']  = ps.jetWoGn()
+defs['dye_vflux']['cmap']  = maps.jetWoGn()
 
 defs['dye_rate']={}
 defs['dye_rate']['var']   = 'dye_rate'
