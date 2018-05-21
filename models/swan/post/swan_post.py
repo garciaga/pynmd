@@ -247,10 +247,7 @@ def unSWANCompToNetcdf(swanFile,swanGrid):
     2. Implement ability to read from Triangle
     
     """
-    #import os
-    #swanFile = os.path.abspath(r"W:\sourceTerms\swan\WS-ns-201601\Stations_CG_buoy_201601.tab")
-    #swanGrid = os.path.abspath(r"W:\sourceTerms\swan\WS-ns-201601\fort.14")
-    
+   
     # Read grid file -----------------------------------------------------------
 
     fobj = open(swanGrid)
@@ -437,7 +434,7 @@ def unSWANCompToNetcdf(swanFile,swanGrid):
             # Time management
             timePython = datetime.datetime.strptime(line.split()[0],
                                                     "%Y%m%d.%H%M%S")
-            nc.variables['matlab_time'][tstep] = gmat.datetime_to_datenum(timePython)
+            nc.variables['matlab_time'][tstep] = _gmat.datetime_to_datenum(timePython)
             ocean_time = timePython - datetime.datetime(1900,1,1)
             nc.variables['ocean_time'][tstep] = ocean_time.total_seconds()
 
