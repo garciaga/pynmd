@@ -913,6 +913,13 @@ def bulk2ncCanada(buoyFld,buoyId,verbose=True):
         create_nc_var('WTMP','wave_time','Celsius',
                       'Sea surface temperature')
 
+    if 'ATMS1' in varkeys:
+        create_nc_var('ATMS1','wave_time','mbar',
+                      'Atmospheric pressure at sea level')    
+    if 'WSPD1' in varkeys:
+        create_nc_var('WSPD1', 'wave_time', 'meter second-1',
+                     'Horizontal wind speed')
+
     # Load wave data ----------------------------------------------
     cnt = -1 # Counter variable for storing to file
     # Read line by line
