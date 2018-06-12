@@ -341,7 +341,7 @@ def read_spec(specfile,bulkparam=True):
 # =============================================================================
 # Read source term output
 # =============================================================================
-def read_src_term(specfile,version='5.16'):
+def read_src_term(specfile,version='5.16',stot=True):
     """
     Reads the source term output from Wavewatch III
        
@@ -415,8 +415,8 @@ def read_src_term(specfile,version='5.16'):
         if tmpline[aa] == 'T':
             stkeys.append(stkeysAll[aa-3])            
     
-    # The total source term flag is not being written in v5.16. Assume true
-    if version == '5.16':
+    # The total source term flag is not being written in v5.16.
+    if version == '5.16' and stot:
         stkeys.append(stkeysAll[-1])
 
     # Get the frequencies

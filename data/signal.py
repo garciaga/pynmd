@@ -852,6 +852,9 @@ def basic_stats(x,y):
     # Normalized root mean squared error
     nrmse = 100.0*(np.sum(((x - y)/x)**2)/N)**0.5
 
+    # Percent error
+    pe = 100 / N * np.sum((y - x)/x)
+
     # Bias
     bias = np.sum(y - x)/N
 
@@ -867,7 +870,7 @@ def basic_stats(x,y):
     
     # Function output
     return {'N':N, 'rmse':rmse,'nrmse':nrmse,
-            'bias':bias,'si':si,'r2':r2[0]}
+            'bias':bias,'si':si,'r2':r2[0],'pe':pe}
 
 
 
