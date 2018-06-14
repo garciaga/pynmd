@@ -34,7 +34,7 @@ import netCDF4 as _netCDF4
 import time as _time
 import sys as _sys
 import getpass as _getpass
-import pynmd.matlab as _gmat
+import pynmd.tools.gtime as _gtime
 
 import numpy as np
 import datetime
@@ -434,7 +434,7 @@ def unSWANCompToNetcdf(swanFile,swanGrid):
             # Time management
             timePython = datetime.datetime.strptime(line.split()[0],
                                                     "%Y%m%d.%H%M%S")
-            nc.variables['matlab_time'][tstep] = _gmat.datetime_to_datenum(timePython)
+            nc.variables['matlab_time'][tstep] = _gtime.datetime_to_datenum(timePython)
             ocean_time = timePython - datetime.datetime(1900,1,1)
             nc.variables['ocean_time'][tstep] = ocean_time.total_seconds()
 

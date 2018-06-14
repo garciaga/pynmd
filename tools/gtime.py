@@ -20,18 +20,138 @@ from __future__ import division,print_function
 import datetime as _datetime
 import numpy as _np
 
-# Import internal modules ------------------------------------------------------
+#==============================================================================
+# Tool to convert from epoch to datetime
+#==============================================================================
+def epoch_to_datetime(epoch):
+    '''
+    Tool to convert from UNIX Epoch time as used inn the Argus system into
+    python's datetime.
+    
+    PARAMETERS
+    ----------
+    ma_datenum    : array with epoch times
+    
+    RETURNS
+    -------
+    py_datetime   : numpy array with ma_datenum in python's datetime format
+    
+    '''
+    
+    # Convert to double
+    epoch = _np.double(epoch)
+    
+    if epoch.size == 1:
+        py_datetime = (_datetime.timedelta(seconds=epoch) + 
+                       _datetime.datetime(1970,1,1,0,0,0))
+    else:
+        py_datetime = _np.array([_datetime.timedelta(seconds=epoch[aa]) +                             
+                                 _datetime.datetime(1970,1,1,0,0,0)
+                                 for aa in range(epoch.shape[0])])
 
-# Datetime and epoch tools
-import pynmd.argus as _gargus
-datetime_to_epoch = _gargus.datetime_to_epoch
-epoch_to_datetime = _gargus.epoch_to_datetime
+    return py_datetime
+
+#==============================================================================
+# Tool to convert from datetime to epoch
+#==============================================================================
+def datetime_to_epoch(py_datetime):
+    '''
+    Tool to convert from UNIX Epoch time as used inn the Argus system into
+    python's datetime.
+    
+    PARAMETERS
+    ----------
+    py_datetime   : numpy array with ma_datenum in python's datetime format   
+    
+    RETURNS
+    -------
+    epoch         : numpy array with epoch times
+    
+    '''
+           
+    # Convert to epoch time
+    # Check if it is just one value
+    if _np.size(py_datetime) == 1:
+        epoch = (py_datetime - 
+                 _datetime.datetime(1970,1,1,0,0,0)).total_seconds()
+        epoch = _np.array([epoch])
+                         
+    else:
+        epoch = _np.array([(aa - _datetime.datetime(1970,1,1,0,0,0)).total_seconds()
+                           for aa in py_datetime])
+
+    return epoch
 
 
-# Matlab to datetime tools
-import pynmd.matlab as _gmat
-datenum_to_datetime = _gmat.datenum_to_datetime
-datetime_to_datenum = _gmat.datetime_to_datenum
+# ==============================================================================
+# Tools to convert from datenum (matlab) to datetime (python)
+# ==============================================================================
+def datenum_to_datetime(ma_datenum):
+    '''
+    Tool to convert from Matlab's datenum to python's datetime
+    
+    PARAMETERS
+    ----------
+    ma_datenum    : matlab datetime numpy array
+    
+    RETURNS
+    -------
+    py_datetime   : numpy array with ma_datenum in python's datetime format
+    
+    '''
+
+    # Convert to double
+    ma_datenum = _np.double(ma_datenum)
+       
+    if ma_datenum.size == 1:
+        py_datetime = (_datetime.datetime.fromordinal(int(ma_datenum)) + 
+                       _datetime.timedelta(days=ma_datenum%1) - 
+                       _datetime.timedelta(days=366))
+    else:   
+        py_datetime = _np.array([_datetime.datetime.fromordinal(int(ma_datenum[aa])) +
+                                 _datetime.timedelta(days=ma_datenum[aa]%1) -
+                                 _datetime.timedelta(days=366)
+                                 for aa in range(ma_datenum.shape[0])])
+
+    return py_datetime
+    
+
+# ==============================================================================
+# Convert from datetime (python) to datenum (matlab)
+# ==============================================================================
+def datetime_to_datenum(py_datetime):
+    '''
+    Tool to convert from Matlab's datenum to python's datetime
+    
+    PARAMETERS
+    ----------
+    py_datetime   : numpy array with ma_datenum in python's datetime format
+    
+    RETURNS
+    -------
+    ma_datenum    : matlab datetime numpy array
+    
+    NOTES:
+    -------
+    Matlab datenum is a fractional number that represents dates as days from
+    0 January 0000.
+    
+    '''
+   
+    # Define constants
+    datetimeBase = _datetime.datetime(1,1,1)     # Lowest possible datetime
+    matlabOffset = _datetime.timedelta(days=367) # Matlab starts at year 0
+    
+    if _np.size(py_datetime) == 1:
+        ma_datetime = (py_datetime - datetimeBase + 
+                       matlabOffset).total_seconds()/(3600.0 * 24.0)
+    else:
+        ma_datetime = _np.array([(py_datetime[aa] - datetimeBase + 
+                                  matlabOffset).total_seconds()/(3600.0 * 24.0)
+                                for aa in range(py_datetime.shape[0])])
+                       
+    return ma_datetime
+    
 
 # Wrappers to link pynmd.argus and pynmd.matlab time tools ---------------------
 def datenum_to_epoch(ma_datenum):
