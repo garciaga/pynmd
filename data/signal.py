@@ -61,7 +61,7 @@ def cross_corr(x,y,lags,norma=1.0):
 
     Results
     -------
-       - rho   : cross(auto)-correlation coefficient
+       - rho   : cross(auto)-correlation coefficient (aka R)
        - stats : lag, cross(auto)-covariance, x standard deviation,
                  y standard deviation, number of observations
 

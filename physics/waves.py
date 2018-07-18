@@ -973,7 +973,9 @@ def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05],zeroth=True):
     dirDict.update(Dm=Dm)
     
     # Get the parameter from the frequency spectrum
-    freqSpec = np.trapz(spec,dirs,axis=-1)
+    #freqSpec = np.trapz(spec,dirs,axis=-1)
+    dth = np.abs(dirs[2] - dirs[1])
+    freqSpec = np.sum(spec,axis=-1) * dth
     bp = fspec_bulk_params(freq,freqSpec,IGBand,zeroth=zeroth)
     bp.update(dirDict)
     
