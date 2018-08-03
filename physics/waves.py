@@ -685,31 +685,34 @@ def directional_spreading(spec,peak_dir,m,dirs=None):
     Nautical convention refers to the direction the waves (wind) are coming
       (is blowing) from with respect to the true north measured clockwise.
     To recover the significant wave height
-       4.004 * np.trapz(np.trapz(dir_spec,dirs,axis=-1),freq)**0.5
+       4.004 * np.trapz(np.sum(dir_spec,axis=-1)*(dirs[2]-dirs[1]),freq)**0.5
     """
 
     # If direction vector is not passed as argument the directional distribution
     # will be computed every five degrees.
-    if dirs == None:
-        dirs = np.arange(0,360,5)
+    try:
+        if dirs == None:
+            dirs = np.arange(0,360,5)
+    except:
+        pass
 
     # Change directions to radians for internal computations
-    peak_dir = np.pi / 180.0 * peak_dir
-    dirs = np.pi / 180.0 * dirs
+    peak_dir_r = np.pi / 180.0 * peak_dir
+    dirs_r = np.pi / 180.0 * dirs
 
     # Compute directional spread
-    g = np.cos(0.5*(dirs - peak_dir))**(2*m)
-    g = g / np.trapz(g,dirs)
+    g = np.cos(0.5*(dirs_r - peak_dir_r))**(2*m)
+
+    # Normalize the directional spread so that no energy is added
+    # Scaling is done in direction space to account for the units
+    # In other workds dir_spec will be of [m2/Hz-deg]
+    dth = dirs[2] - dirs[1]
+    g /= (np.sum(g)*dth)
 
     # Generate the directionally spread spectrum
     dir_spec = np.zeros((spec.shape[0],dirs.shape[0]))
     for aa in range(spec.shape[0]):
         dir_spec[aa,:] = spec[aa] * g
-
-    # Rescale the spectrum for dimensions of [m2/Hz-deg] if the input spectrum
-    # has units of [m2/Hz].
-    dir_spec = dir_spec * 180.0 / np.pi
-    dirs = dirs * 180.0 / np.pi
 
     # Return directional spectrum
     return dir_spec,dirs

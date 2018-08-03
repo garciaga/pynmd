@@ -347,3 +347,91 @@ def write_wind_nc(outfld,timeVec,lon,lat,uwnd,vwnd,temp=False):
     # Close NetCDF file
     nc.close()
     
+# ==============================================================================
+# Function to write spectrum in WW3 format
+# ==============================================================================
+def createWW3AcsiiSpec(outFile,specDict):
+    """
+    Document me
+    """
+
+    # Degree to radian
+    deg2rad = _np.pi / 180.0
+    specDict['spec'] *= (deg2rad**-1)
+    dirs = _gangles.wrapto2pi(specDict['dirs']*deg2rad + _np.pi)
+
+    # Create the output file
+    fid = open(outFile,'w')
+    
+    # Write header
+    fid.write('\'' + specDict['fileId'] + '\'' + 
+              '{:7.0f}'.format(specDict['freq'].shape[0]) + 
+              '{:7.0f}'.format(specDict['dirs'].shape[0]) + 
+              '{:7.0f}'.format(specDict['lat'].shape[0]) + 
+              ' \'' + specDict['gridName'] + '\'' + '\n')
+
+    # Write the frequencies
+    filas = _np.int(_np.floor(specDict['freq'].shape[0]/8.0))
+    if _np.mod(specDict['freq'].shape[0],8.0) > 0:
+        filas += 1
+    cnt = -1
+    for aa in range(filas):
+        for bb in range(8):
+            cnt += 1
+            if cnt == specDict['freq'].shape[0]:
+                break
+            else:
+                fid.write('{:9.3e}'.format(specDict['freq'][cnt]) + ' ')
+        fid.write('\n')
+    
+    # Write the directions
+    filas = _np.int(_np.floor(specDict['dirs'].shape[0]/7.0))
+    if _np.mod(specDict['dirs'].shape[0],7.0) > 0:
+        filas += 1
+    cnt = -1
+    for aa in range(filas):
+        for bb in range(7):
+            cnt += 1
+            if cnt == specDict['dirs'].shape[0]:
+                break
+            else:
+                fid.write('{:9.3e}'.format(dirs[cnt]))
+                fid.write('  ')
+
+        fid.write('\n')
+    
+    # Write the spectrum
+    specPnt = specDict['dirs'].shape[0] * specDict['freq'].shape[0]
+    filas = _np.int(_np.floor(specPnt/7.0))
+    if _np.mod(specPnt,7.0) > 0:
+        filas += 1    
+    for aa in range(specDict['time'].shape[0]):
+        # Write time
+        fid.write(specDict['time'][aa].strftime('%Y%m%d %H%M%S') + '\n')
+
+        # Loop over points
+        for bb in range(specDict['lat'].shape[0]):
+            fid.write('\'' + '{:10s}'.format(specDict['name'][bb]) + '\'  ' + 
+                      '{:6.2f}'.format(specDict['lat'][bb]) + 
+                      '{:7.2f}'.format(specDict['lon'][bb]) + 
+                      '{:10.2f}'.format(1000.0) + 
+                      '{:7.2f}'.format(0) + 
+                      '{:7.2f}'.format(270) +
+                      '{:7.2f}'.format(0) + 
+                      '{:7.2f}'.format(270) + '\n')
+
+            # Loop over spectrum
+            tmpSpec = specDict['spec'][aa,bb,...].flatten('F')
+            cnt = -1            
+            for cc in range(filas):
+                for dd in range(7):
+                    cnt += 1
+                    if cnt == specPnt:
+                        break
+                    else:                        
+                        fid.write('{:9.3e}'.format(tmpSpec[cnt]))
+                        fid.write('  ')
+                fid.write('\n')
+
+    # Close the file
+    fid.close()
