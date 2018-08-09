@@ -4,7 +4,10 @@ General plotting tools meant for interacting with matplotlib
 
 from __future__ import division,print_function
 
-# import numpy as _np
+import numpy as _np
+import matplotlib.pyplot as _plt
+from matplotlib.dates import date2num as _date2num
+
 
 def align_yticks(ax1,ax2,color1=True,color2=True):
     """
@@ -69,3 +72,69 @@ def align_yticks(ax1,ax2,color1=True,color2=True):
         
     return ax1,ax2
     
+
+def stick_plot(time, u, v, **kw):
+    """
+    Create a stick plot
+
+    PARAMETERS:
+    -----------
+    time  - Datetime vector
+    u     - zonal component of wind or whatever you are plotting as numpy array
+    v     - same as u but for meridional component
+    
+    Keyword arguments:
+    ------------------
+    'width'          - vector width (Default = 0.002)
+    'headwidth'      - (Default = 0)
+    'headlength'     - (Default = 0)
+    'headaxislength' - (Default = 0)
+    'ax'             - Axis to plot otherwise a new one will be created
+    'ref'            - Reference vector length for the legend (Default = 1)
+    'units'          - Label text (Default = r"$m s^{-1}$")
+
+    RETURNS:
+    --------
+    q     - quiver handle
+    qk    - quiver label handle
+    ax    - axis handle
+    
+    Notes:
+    ------
+    1. The original script was developed by Filipe Fernandes and can be found:
+       https://ocefpaf.github.io/python4oceanographers/blog/2014/09/15/stick_plot/
+    
+    """
+
+    # Read keyword arguments
+    width = kw.pop('width', 0.002)
+    headwidth = kw.pop('headwidth', 0)
+    headlength = kw.pop('headlength', 0)
+    headaxislength = kw.pop('headaxislength', 0)
+    angles = kw.pop('angles', 'uv')
+    ax = kw.pop('ax', None)
+    ref = kw.pop('ref',1)
+    units = kw.pop('units',r"$m s^{-1}$")
+    
+    if angles != 'uv':
+        raise AssertionError("Stickplot angles must be 'uv' so that"
+                             "if *U*==*V* the angle of the arrow on"
+                             "the plot is 45 degrees CCW from the *x*-axis.")
+
+    time, u, v = map(_np.asanyarray, (time, u, v))
+    if not ax:
+        fig, ax = _plt.subplots()
+    
+    q = ax.quiver(_date2num(time), [[0]*len(time)], u, v,
+                  angles='uv', width=width, headwidth=headwidth,
+                  headlength=headlength, headaxislength=headaxislength,
+                  **kw)
+
+    ax.axes.get_yaxis().set_visible(False)
+    ax.xaxis_date()
+
+    qk = ax.quiverkey(q, 0.1, 0.85, ref,
+                      _np.str(ref) + ' ' + units,
+                    labelpos='N', coordinates='axes')    
+    
+    return q,qk,ax
