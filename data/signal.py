@@ -163,7 +163,9 @@ def psdraw(ts,dt=1,demean=False):
         ts -= ts.mean()
 
     # Compute record length
-    N = ts.shape[0]
+    N = np.int(ts.shape[0])
+    N2 = np.int(N/2)
+    N12 = np.int((N+1)/2)
 
     # Another way that is equivalent for reference
     """
@@ -192,13 +194,13 @@ def psdraw(ts,dt=1,demean=False):
 
     # One sided psd from dft
     if np.mod(N,2) == 0:
-       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N/2],
-                            np.array([psd[N/2]])))
-       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N/2],
-                                         np.array([fj[N/2]]))))
+       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N2],
+                            np.array([psd[N2]])))
+       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N2],
+                                         np.array([fj[N2]]))))
     else:
-       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:(N+1)/2]))
-       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:(N+1)/2])))
+       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N12]))
+       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N12])))
 
 
     # End of function
