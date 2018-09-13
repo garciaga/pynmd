@@ -10,6 +10,7 @@ from . import ww3
 from . import xbeach
 from . import funwaveC
 from . import parametric
+from . import fvcom
 
 try:
     from . import delft3d
