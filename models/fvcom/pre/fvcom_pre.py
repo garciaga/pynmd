@@ -190,7 +190,7 @@ def write_river(rivFile,rivData):
     fobj = open(rivFile,'w')
 
     # Write the header line
-    fobj.write('node specified\n')
+    fobj.write('node  specified\n')
 
     # Number of nodes with river input
     try:
