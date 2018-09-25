@@ -219,9 +219,15 @@ def read_spec(specfile,bulkparam=True):
             # Read and allocate spectral data
             tmpline = fobj.readline().split() 
             tmpspec = [float(x) for x in tmpline]                      
-            if nfreq*ndir > len(tmpline):
-                for cc in range(int(np.floor(np.double(nfreq)*np.double(ndir)
-                                         /len(tmpline)))):
+            if nfreq*ndir > len(tmpline):                
+
+                if len(tmpline) == nfreq:
+                    tmpRange = range(ndir-1)                
+                else:
+                    tmpSize = np.double(nfreq)*np.double(ndir)
+                    tmpRange = range(int(np.floor(tmpSize/len(tmpline))))
+
+                for cc in tmpRange:
                     tmpline = fobj.readline().split()
                     tmpflt  = [float(x) for x in tmpline]
                     tmpspec.extend(tmpflt)
@@ -243,7 +249,9 @@ def read_spec(specfile,bulkparam=True):
     if bulkparam:
         
         # Frequency spectra
-        freq_spec = np.trapz(spec,direction,axis=-2)
+        # freq_spec = np.trapz(spec,direction,axis=-2) # Incorrect
+        dth = np.abs(direction[2] - direction[1])
+        freq_spec = np.sum(spec,axis=-2) * dth
         
         # Moments of spectra
         moment0 = np.trapz(freq_spec,frequency,axis=-1)
