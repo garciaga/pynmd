@@ -11,6 +11,7 @@ from . import xbeach
 from . import funwaveC
 from . import parametric
 from . import fvcom
+from . import tools
 
 try:
     from . import delft3d
