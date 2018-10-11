@@ -129,7 +129,8 @@ def read_river(rivFile):
     # Read the vertical distribution of the river output
     rivSig = []
     for aa in range(nRiv):
-        tmpLine = fobj.readline().rstrip().split('\t')
+        # Check if there are tabs in the file
+        tmpLine = fobj.readline().rstrip().split()
         tmpLine = [float(aa) for aa in tmpLine[1:]]
         rivSig.append(tmpLine)
     rivSig = _np.array(rivSig)

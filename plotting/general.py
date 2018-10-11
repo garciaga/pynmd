@@ -138,3 +138,33 @@ def stick_plot(time, u, v, **kw):
                     labelpos='N', coordinates='axes')    
     
     return q,qk,ax
+
+
+def matchSubplotWidth(ax1,ax2):
+    """
+    Function to match the width of two subplots
+
+    PARAMETERS:
+    -----------
+    ax1: Main axis
+    ax2: Axis to be scaled
+    """
+
+    pos1 = ax1.get_position()
+    pos2 = ax2.get_position()
+    ax2.set_position([pos1.x0,pos2.y0,pos1.width,pos2.height])
+
+def matchSubplotHeight(ax1,ax2):
+    """
+    Function to match the height of two subplots
+
+    PARAMETERS:
+    -----------
+    ax1: Main axis
+    ax2: Axis to be scaled
+    """
+
+    pos1 = ax1.get_position()
+    pos2 = ax2.get_position()
+    ax2.set_position([pos2.x0,pos1.y0,pos2.width,pos1.height])
+    
