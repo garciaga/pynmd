@@ -242,3 +242,81 @@ def write_river(rivFile,rivData):
     # All done here
     fobj.close()
 
+# ==============================================================================
+# Read meteorological forcing
+# ==============================================================================
+def read_mc(meteoFile):
+    """
+    Reads Casename_mc.dat file
+
+    PARAMETERS:
+    -----------
+    meteoFile: Full path to the file
+
+    RETURNS:
+    --------
+    Dictionary containing
+    time   = Time in hours measured relative to start time of model
+    qprec  = Amount of precipitation (m/year)
+    qevap  = Amount of evaopration (m/year)
+    wds    = Wind speed (m/s)
+    wdd    = Wind direction from which wind blows clockwise from north (deg)
+    hflux  = Net surface heat flux (W/m2)
+    hshort = Shortwave radiation flux at the surface (W/m2)
+
+    """
+
+    # Find out how long the file is
+    nLine = 0
+    fobj = open(meteoFile,'r')
+    line = fobj.readline()
+    while line:
+        nLine += 1
+        line = fobj.readline()        
+    fobj.close()
+
+    # Number of entries in the file
+    nEnt = _np.int((nLine-1)/2)
+
+    # Open the grid file
+    fobj = open(meteoFile,'r')
+
+    # Ignore the first line for now
+    fobj.readline()
+
+    # Preallocate variables
+    ot     = _np.zeros((nEnt,)) # Time in hours measured relative to start time
+    qprec  = _np.zeros_like(ot) # Amount of precipitation m/year
+    qevap  = _np.zeros_like(ot) # Amount of evaopration m/year
+    wds    = _np.zeros_like(ot) # Wind speed (m/s)
+    wdd    = _np.zeros_like(ot) # Wind directio in degrees from which wind blows
+                                # Clockwise from north
+    hflux  = _np.zeros_like(ot) # Net surface heat flux (W/m2)
+    hshort = _np.zeros_like(ot) # Shortwave radiation flux at the surface (W/m2)
+
+    for aa in range(nEnt):
+        # Read time
+        tmpLine = fobj.readline()
+        if tmpLine == '':
+            break
+        ot[aa] = _np.float(tmpLine.rstrip())
+
+        # Read variables
+        tmpLine = fobj.readline()
+        if tmpLine == '':
+            break
+        tmpLine    = tmpLine.rstrip().split()
+        qprec[aa]  = _np.float(tmpLine[0])
+        qevap[aa]  = _np.float(tmpLine[1])
+        wds[aa]    = _np.float(tmpLine[2])
+        wdd[aa]    = _np.float(tmpLine[3])
+        hflux[aa]  = _np.float(tmpLine[4])
+        hshort[aa] = _np.float(tmpLine[5])
+
+    # Close the file
+    fobj.close()
+
+    # Give back
+    return {'time':ot,'qprec':qprec,'qevap':qevap,'wds':wds,'wdd':wdd,
+            'hflux':hflux,'hshort':hshort}
+
