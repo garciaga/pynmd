@@ -734,4 +734,77 @@ def write_nc_spec(latitude,longitude,spectrum,frequency,direction,time1,station,
     nc.variables['efth'][:] = spectrum
 
     nc.close()
+
+# ==============================================================================
+# Read Wind Files 
+# ==============================================================================
+def readWind(windFile,atDiff=False):
+    """
+    Read wind files in WW3 format
+    """
+
+    # Find the length of the file and get dates
+    print('Finding time steps')
+    fobj = open(windFile,'r')    
+    ldates = re.findall(r'\d{8}\s\d{6}',fobj.read())
+    fobj.close()
     
+    # Set as wavetime
+    windTime = [datetime.datetime.strptime(x,"%Y%m%d %H%M%S") for x in ldates]
+    windTime = np.array(windTime)
+
+    # Read wind data
+    print('Reading wind data')
+    uwnd = []      # Zonal Wind
+    vwnd = []      # Meridional Wind
+    astemp = []    # Air-sea temperature differences
+    tmpData = []   # Tmp data container
+
+    # Open the file
+    fobj = open(windFile,'r')
+    
+    # Discard the first line (it contains time information)
+    fobj.readline()
+    dataFlag = True
+    while dataFlag:
+        
+        # Read line
+        tmpline = fobj.readline().rstrip().split(' ')
+
+        # Did we reach end of file
+        if len(tmpline[0]) < 1:
+            dataFlag = False
+            break
+
+        # Did we find another date
+        if len(tmpline) <= 2:
+            # Allocate the wind data
+            tmpData = np.array(tmpData)
+            lats = tmpData.shape[0]
+            
+            if atDiff:
+                ind = np.int(lats/3)
+                ind2=ind*2 + 1
+                uwnd.append(tmpData[:ind,:])                
+                vwnd.append(tmpData[ind:ind2,:])
+                astemp.append(tmpData[ind2:,:])
+            else:
+                ind = np.int(lats/2)
+                uwnd.append(tmpData[:ind,:])
+                vwnd.append(tmpData[ind:,:])
+            
+            # Reset the container
+            tmpData = []
+
+        else:
+            # Store wind in temporary array
+            tmpData.append([np.float(bb) for bb in tmpline])
+    
+    fobj.close()
+
+    # Generate arrays    
+    ww3 = {'ot':windTime,'uwnd':np.array(uwnd),'vwnd':np.array(vwnd)}
+    if atDiff:
+        ww3['tDiff'] = astemp
+
+    return ww3
