@@ -68,6 +68,11 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
     now = _datetime.datetime.utcnow()
     fid.write('$   ' + now.strftime('%d-%b-%Y %H:%M:%S')+' UTC\n')
     
+    # Time options
+    if waveTime is not None:
+        fid.write('TIME\n')
+        fid.write('1\n')
+
     # File locations
     fid.write('LOCATIONS\n')
     fid.write('%12.0f' % locations.shape[0] + '\n')
@@ -98,19 +103,29 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
     
     # Exception value
     fid.write('-99\n')
+       
+    # Print the spectrum -------------------------------------------------------
     
-    # Scale factor
-    fid.write('FACTOR\n')
-    fid.write('1\n')
-    
-    # Print the spectrum -----------------------
-    # Frequency loop
-    for aa in range(spec.shape[-2]):
-        # Direction loop
-        for bb in range(spec.shape[-1]):
-            fid.write('%16.10f' % spec[aa,bb])
-        # One row per frequency with all directions
-        fid.write('\n')
+    # Time Loop 
+    for aa in range(spec.shape[0]):
+
+        # Time stamp
+        fid.write(waveTime[aa].strftime('%Y%m%d.%H%M%S') + '\n')
+
+        # Loop over points
+        for bb in range(spec.shape[1]):
+
+            # Scale factor
+            fid.write('FACTOR\n')
+            fid.write('1\n')
+
+            # Frequency loop
+            for cc in range(spec.shape[-2]):
+                # Direction loop
+                for dd in range(spec.shape[-1]):
+                    fid.write('%16.10f' % spec[aa,bb,cc,dd])
+                # One row per frequency with all directions
+                fid.write('\n')
 
     # Close the file
     fid.close()
