@@ -139,5 +139,6 @@ def read_fort14(fort14):
     fobj.close()
 
     # Return the results
-    return {'x':x,'y':y,'z':z,'triang':triang,'nbdv':nbdv,'neta':neta,
+    return {'x':x,'y':y,'z':z,'triang':triang,
+            'nbdv':nbdv,'neta':neta,'nope':nope,
             'nbvv':nbvv,'nvel':nvel}
