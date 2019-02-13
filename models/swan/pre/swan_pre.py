@@ -74,11 +74,12 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
         fid.write('1\n')
 
     # File locations
-    fid.write('LOCATIONS\n')
+    #fid.write('LOCATIONS\n')
+    fid.write('LONLAT\n')
     fid.write('%12.0f' % locations.shape[0] + '\n')
     for aa in range(locations.shape[0]):
-        fid.write('%16.4f' % locations[aa,0] + ' ' + 
-                  '%16.4f' % locations[aa,1] + '\n')
+        fid.write('%16.6f' % locations[aa,0] + ' ' + 
+                  '%16.6f' % locations[aa,1] + '\n')
     
     # Frequencies
     fid.write('RFREQ\n')
