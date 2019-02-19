@@ -180,7 +180,10 @@ def read_spec(specfile):
             if tmpline == 'NODATA':
                 spec[aa,...] *= np.NAN
                 continue
-            
+            elif tmpline == 'ZERO':
+                spec[aa,...] *= 0.0
+                continue
+                
             # Get the scale factor (multiplier)
             tmpfactor = float(fobj.readline())
             
