@@ -222,7 +222,6 @@ def read_spec(specfile):
 # ==============================================================================
 # Convert UnSWAN stations to netCDF4
 # ==============================================================================
-
 def unSWANCompToNetcdf(swanFile,swanGrid):
     """
 
@@ -252,8 +251,7 @@ def unSWANCompToNetcdf(swanFile,swanGrid):
     """
    
     # Read grid file -----------------------------------------------------------
-
-    fobj = open(swanGrid)
+    fobj = open(swanGrid,'r')
     fobj.readline()
     tmpline = fobj.readline().split()
     nele = np.int(tmpline[0])
@@ -283,7 +281,7 @@ def unSWANCompToNetcdf(swanFile,swanGrid):
     triang -= 1
 
     # Read the computational grid output ---------------------------------------
-    fobj = open(swanFile)
+    fobj = open(swanFile,'r')
 
     # Discard the first two lines
     fobj.readline()
@@ -455,3 +453,124 @@ def unSWANCompToNetcdf(swanFile,swanGrid):
     # All done here
     fobj.close()
     nc.close()
+
+
+# ==============================================================================
+# Convert UnSWAN stations to netCDF4
+# ==============================================================================
+def readTable(tableFile):
+    """
+    Read SWAN point output in the form of table
+
+    PARAMETERS:
+    -----------
+    tableFile - Ascii file with bulk parameter output over requested points
+    
+    RETURNS:
+    --------
+    Dictionary with the variables in the file
+
+    """
+    
+    # Read the computational grid output ---------------------------------------
+    print('Reading and processing header lines')
+    fobj = open(tableFile,'r')
+
+    # Discard the first two lines
+    fobj.readline()
+    fobj.readline()
+
+    # Get the model information
+    modInfo = fobj.readline().split(':')
+    swanOut = {'Run':modInfo[1].split(' ')[0],
+               'Table':modInfo[2].split(' ')[0],
+               'SWAN':modInfo[3][:-1]}
+
+    # Empty line
+    fobj.readline()
+
+    # Variables
+    varkeys = fobj.readline()[1:].split()
+
+    # Find if the grid information is in the file
+    gridFlag = 'Xp' in varkeys and 'Yp' in varkeys
+
+    # Units
+    units = fobj.readline()[1:].split()[1:]
+    units[0] = '[UTC]' # Manually overwrite
+
+    # Take care of empty units
+    aa = -1
+    while aa < len(units):
+        # Counter variable increase
+        aa += 1
+        if len(units[aa]) == 1:
+            units[aa] = '[]'
+            aa += 1
+            units.pop(aa)
+
+
+    # Empty line
+    fobj.readline()
+
+    # Find all stations in file and store the coordinates if they are present    
+    tmpLine = fobj.readline().split()
+    date0 = tmpLine[0]
+    if gridFlag:
+        xp = []
+        yp = []
+        xInd = varkeys.index('Xp')
+        yInd = varkeys.index('Yp')
+        xp.append(np.float64(tmpLine[xInd]))
+        yp.append(np.float64(tmpLine[yInd]))
+    outpnt = 1
+    for line in fobj:
+        if line.split()[0] == date0:
+            if gridFlag:
+                xp.append(np.float64(line.split()[xInd]))
+                yp.append(np.float64(line.split()[yInd]))      
+            outpnt += 1
+        else:
+            break
+
+    if gridFlag:
+        xp = np.asarray(xp)
+        yp = np.asarray(yp)
+
+    # Close the file
+    fobj.close()
+
+
+    # ==============================================================================
+    # Read and write variables to netCDF file
+    # ==============================================================================
+
+    print("  Reading the file contents ...")
+    
+    # Read the file
+    swanVar = np.genfromtxt(tableFile,comments='%')
+
+    # Reshape the file
+    numTimes = np.int(swanVar.shape[0]/outpnt)
+    swanVar = np.reshape(swanVar,(numTimes,outpnt,swanVar.shape[1]))
+
+    # time variables
+    ot = []
+    for aa in range(swanVar.shape[0]):
+        line = '{:15.6f}'.format(swanVar[aa,0,0])
+        ot.append(datetime.datetime.strptime(line,"%Y%m%d.%H%M%S"))
+    swanOut['Time'] = np.array(ot)
+
+    # Store the coordinates
+    if gridFlag:
+        swanOut['Xp'] = xp
+        swanOut['Yp'] = yp
+
+    # Allocate the other variables
+    for aa in varkeys:
+        if aa == 'Time' or aa == 'Xp' or aa == 'Yp':
+            continue
+        ind = varkeys.index(aa)
+        swanOut[aa] = swanVar[:,:,ind]
+
+    return swanOut
