@@ -574,3 +574,156 @@ def readTable(tableFile):
         swanOut[aa] = swanVar[:,:,ind]
 
     return swanOut
+
+
+# ==============================================================================
+# Read UNSWAN computational grid
+# ==============================================================================
+def readUnSWANComp(swanFile,verbose=False):
+    """
+
+    Read UnSWAN computational grids
+
+    WARNING: read only what you can afford
+
+    PARAMETERS:
+    -----------
+    swanFile - Ascii file with bulk parameter output over all computational
+               grid
+    
+    RETURNS:
+    --------
+    dictionary with variables in the computational grid
+    
+    NOTES:
+    ------
+    This script assumes that the first variables in the computational grid
+    output file are [time,xp,yp], in that order.
+    """
+   
+    # Read the computational grid output ---------------------------------------
+    fobj = open(swanFile,'r')
+
+    # Discard the first two lines
+    fobj.readline()
+    fobj.readline()
+
+    # Get the model information
+    modInfo = fobj.readline().split(':')
+    modInfo = {'Run':modInfo[1].split(' ')[0],
+               'Table':modInfo[2].split(' ')[0],
+               'SWAN':modInfo[3][:-1]}
+
+    # Empty line
+    fobj.readline()
+
+    # Variables
+    varkeys = fobj.readline()[1:].split()
+
+    # Find if the grid information is in the file
+    gridFlag = 'Xp' in varkeys and 'Yp' in varkeys
+
+    # Units
+    units = fobj.readline()[1:].split()[1:]
+    units[0] = '[UTC]' # Manually overwrite
+
+    # Empty line
+    fobj.readline()
+
+    # Find all nodes in file
+    tmpLine = fobj.readline().split()
+    date0 = tmpLine[0]
+    if gridFlag:
+        xp = []
+        yp = []
+        xp.append(np.float64(tmpLine[1]))
+        yp.append(np.float64(tmpLine[2]))
+    npt = 1
+    for line in fobj:
+        if line.split()[0] == date0:
+            if gridFlag:
+                xp.append(np.float64(line.split()[1]))
+                yp.append(np.float64(line.split()[2]))      
+            npt += 1
+        else:
+            break
+
+    if gridFlag:
+        xp = np.asarray(xp)
+        yp = np.asarray(yp)
+
+    # Close the file
+    fobj.close()
+
+    # ==========================================================================
+    # Read and write variables to netCDF file
+    # ==========================================================================
+
+    # First three variables are already considered
+    if gridFlag:
+        varkeys = varkeys[3:]
+    else:
+        # Still assuming the first entry is time
+        varkeys = varkeys[1:]
+
+    # Initialize dictionary
+    swan = dict.fromkeys(varkeys)
+    for aa in varkeys:
+        swan[aa] = []
+    swan['ocean_time'] = []
+    if gridFlag:
+        swan['Xp'] = xp
+        swan['Yp'] = yp
+
+    # Load the swan file again
+    fobj = open(swanFile,'r')
+
+    # Ignore the first seven lines
+    for aa in range(7):
+        fobj.readline()
+
+    # Preallocate variable container
+    #   If the grid is not crazy large this should be ok    
+    tmpvars = np.zeros((len(varkeys),npt))
+    cnt = 0
+    
+    # Loop until the end of the file
+    for line in fobj:
+        
+        # Increase counter variable
+        cnt += 1
+        
+        # Temporarily allocate variables
+        aa = np.asarray([np.float64(aa) for aa in line.split()])
+        tmpvars[:,cnt-1] = aa[3:]
+
+        # Write variables if all nodes have been read for the current time
+        if cnt == npt:
+            
+            # Quick update
+            if verbose:
+                print('  Reading ' + line.split()[0])
+
+            # Time management
+            timePython = datetime.datetime.strptime(line.split()[0],
+                                                    "%Y%m%d.%H%M%S")
+            swan['ocean_time'].append(timePython)
+
+            # Store variables in array
+            for aa in range(len(varkeys)):
+                swan[varkeys[aa]].append(tmpvars[aa,:])
+
+            # Reset counter variable
+            cnt = 0
+
+            # Reset variable container
+            tmpvars = np.zeros((len(varkeys),npt))
+            
+    # File read
+    fobj.close()
+
+    # Make arrays
+    for aa in swan.keys():
+        swan[aa] = np.array(swan[aa])
+
+    return swan
