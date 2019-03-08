@@ -771,12 +771,7 @@ def readWind(windFile,atDiff=False):
         # Read line
         tmpline = fobj.readline().rstrip().split(' ')
 
-        # Did we reach end of file
-        if len(tmpline[0]) < 1:
-            dataFlag = False
-            break
-
-        # Did we find another date
+        # Another date stamp or file ended
         if len(tmpline) <= 2:
             # Allocate the wind data
             tmpData = np.array(tmpData)
@@ -792,6 +787,11 @@ def readWind(windFile,atDiff=False):
                 ind = np.int(lats/2)
                 uwnd.append(tmpData[:ind,:])
                 vwnd.append(tmpData[ind:,:])
+
+            # Did we reach end of file
+            if len(tmpline[0]) < 1:
+                dataFlag = False
+                break
             
             # Reset the container
             tmpData = []
