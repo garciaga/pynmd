@@ -478,8 +478,8 @@ def band_averaging(psd,freq,stencil):
     for aa in range(1,Nout-1):
 
         # Find averaging limits
-        ind_low = (aa - 1.0)*stencil + 1.0
-        ind_high = ind_low + stencil
+        ind_low = np.int((aa - 1.0)*stencil + 1.0)
+        ind_high = np.int(ind_low + stencil)
 
         # Band averaging
         psd_ba[aa] = np.mean(psd[ind_low:ind_high])
