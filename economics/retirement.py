@@ -25,7 +25,7 @@ import locale
 import time as _time
 
 # Internal modules
-import investments as _invest
+from .investments import compoundInterest as _compoundInterest
 
 #===============================================================================
 # Estimates for retirement accounts
@@ -84,9 +84,9 @@ def lifecycle(N,c,p=0.0,r=0.07,ir=0.025,ar=0.0,rR=0.0,
     for aa in range(tC.shape[0]):
         
         if aa == 0:
-            aP.append(_invest.compoundInterest(1.0,p=p,r=r,c=c[aa]))
+            aP.append(_compoundInterest(1.0,p=p,r=r,c=c[aa]))
         else:
-            aP.append(_invest.compoundInterest(1.0,p=aP[aa-1],r=r,c=c[aa]))
+            aP.append(_compoundInterest(1.0,p=aP[aa-1],r=r,c=c[aa]))
 
     # Allocate contributions matrix
     c = _np.cumsum(c)
@@ -128,7 +128,7 @@ def lifecycle(N,c,p=0.0,r=0.07,ir=0.025,ar=0.0,rR=0.0,
             break
         else:
             # Principal keeps getting interest
-            aP.append(_invest.compoundInterest(1.0,p=tmpAP,r=rR,c=0.0))
+            aP.append(_compoundInterest(1.0,p=tmpAP,r=rR,c=0.0))
         
         if aP[-1] > aP[-2]:
             print('Money supply will not run out')
