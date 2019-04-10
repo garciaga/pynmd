@@ -180,9 +180,9 @@ def convert_output(workfld,outfile,time_int,bathyfile=None,inpfile=None):
                 inpinfo['sponge_west_width'] = tmpline.split()[2]
             elif "Sponge_east_width" == tmpline.split()[0] and sponge == 'T':
                 inpinfo['sponge_east_width'] = tmpline.split()[2]
-            elif "Sponge_wouth_width" == tmpline.split()[0] and sponge == 'T':
+            elif "Sponge_south_width" == tmpline.split()[0] and sponge == 'T':
                 inpinfo['sponge_south_width'] = tmpline.split()[2]
-            elif "Sponge_worth_width" == tmpline.split()[0] and sponge == 'T':
+            elif "Sponge_north_width" == tmpline.split()[0] and sponge == 'T':
                 inpinfo['sponge_north_width'] = tmpline.split()[2]
             elif "R_sponge" == tmpline.split()[0] and sponge == 'T':
                 inpinfo['r_sponge'] = tmpline.split()[2]
