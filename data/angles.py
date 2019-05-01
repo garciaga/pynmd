@@ -83,3 +83,26 @@ def cartToNautDeg(x):
 
     return wrapto360(x)
     
+def decimalDegreesToDMS(x,nDec=0):
+    """
+    Converts decimal degrees to Degree, Minute, Seconds
+
+    PARAMETERS:
+    -----------
+    x:    Decimal degrees
+    nDEC: Number of decimals in the seconds
+
+    RETURNS:
+    --------
+    d: Degrees (integer)
+    m: Minutes (integer)
+    s: Seconds (Float rounded at nDec)
+    """
+    
+    d = np.int(x)
+    m = (x - d)*60
+    s = np.round((m - np.int(m))*60,decimals=nDec)
+    m = np.int(m)
+
+    return d,m,s
+    
