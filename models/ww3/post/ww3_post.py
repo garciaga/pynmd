@@ -173,8 +173,6 @@ def read_spec(specfile,bulkparam=True):
     cur          = np.zeros((npts,len(wavetime)))
     curdir       = np.zeros((npts,len(wavetime)))
     
-    
-    
     # Loop over the file to get spectral data
     for aa in range(len(wavetime)):
         
@@ -198,23 +196,23 @@ def read_spec(specfile,bulkparam=True):
             # Note: Wavewatch III does not provide a space between the latitude
             #       and the longitude if the longitude is a negative number
             #       and has 5 digits (i.e. longitude <= -100.00)
-            station_name[bb] = tmpstr[0][1::]           
-            if len(tmpstr) == 8:
-                latitude[bb]    = float(tmpstr[2].rsplit('-')[0])
-                longitude[bb]   = -1.0*float(tmpstr[2].rsplit('-')[1])
+            station_name[bb] = tmpstr[0][1:-1]
+            if len(tmpstr) == 7:
+                latitude[bb]    = float(tmpstr[1].rsplit('-')[0])
+                longitude[bb]   = -1.0*float(tmpstr[1].rsplit('-')[1])
+                dpt[bb,aa]      = float(tmpstr[2])
+                wnd[bb,aa]      = float(tmpstr[3])
+                wnddir[bb,aa]   = float(tmpstr[4])
+                cur[bb,aa]      = float(tmpstr[5])
+                curdir[bb,aa]   = float(tmpstr[6])
+            else:
+                latitude[bb]    = float(tmpstr[1])
+                longitude[bb]   = float(tmpstr[2])
                 dpt[bb,aa]      = float(tmpstr[3])
                 wnd[bb,aa]      = float(tmpstr[4])
                 wnddir[bb,aa]   = float(tmpstr[5])
                 cur[bb,aa]      = float(tmpstr[6])
                 curdir[bb,aa]   = float(tmpstr[7])
-            else:
-                latitude[bb]    = float(tmpstr[2])
-                longitude[bb]   = float(tmpstr[3])
-                dpt[bb,aa]      = float(tmpstr[4])
-                wnd[bb,aa]      = float(tmpstr[5])
-                wnddir[bb,aa]   = float(tmpstr[6])
-                cur[bb,aa]      = float(tmpstr[7])
-                curdir[bb,aa]   = float(tmpstr[8])
                                                
             # Read and allocate spectral data
             tmpline = fobj.readline().split() 

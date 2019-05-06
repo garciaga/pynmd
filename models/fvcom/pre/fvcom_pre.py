@@ -101,7 +101,7 @@ def read_river(rivFile):
     --------
     Dictionary containing
     nRiv    : Number of rivers
-    nodeId  : Node ID of the rivers
+    nodeId  : Node ID of the rivers (you'll need to subtract 1 for python)
     rivSig  : Vertical distribution of river outflow
     nTime   : Number of time steps at which river output is prescribed
     time    : Time vector of length nTime

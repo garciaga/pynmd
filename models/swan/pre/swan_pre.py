@@ -24,7 +24,7 @@ import getpass as _getpass
 # Write SWAN input spectrum
 #===============================================================================
 def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
-                        sdir=None):
+                        sdir=None,sepHead=False):
     """
     
     PARAMETERS:
@@ -38,6 +38,9 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
     outfile   : output file
     waveTime  : Time vector, if needed
     sdir      : 1D direction vector, if needed
+    sepHead   : Write separate files for the header and spectra. This is useful
+                if you want to concatenate many files but not want to load all
+                to memory
        
     OUTPUT:
     -------
@@ -60,7 +63,10 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
     """
     
     # Open the output file
-    fid = open(outfile,'w')
+    if sepHead:
+        fid = open(outfile + '.head','w')
+    else:
+        fid = open(outfile,'w')
     
     # Write file header
     fid.write('SWAN 1\n')
@@ -104,7 +110,13 @@ def write_boundary_spec(freq,spec,locations,outfile,waveTime=None,
     
     # Exception value
     fid.write('-99\n')
-       
+    
+    # If the user asked for separate header and energy files then close the 
+    # header file and open a new one
+    if sepHead:
+        fid.close()
+        fid = open(outfile,'w')
+        
     # Print the spectrum -------------------------------------------------------
     
     # Time Loop 
