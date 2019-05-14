@@ -508,7 +508,11 @@ def readTable(tableFile):
             units[aa] = '[]'
             aa += 1
             units.pop(aa)
-
+    
+    tmpOut = {}
+    for aa in range(len(units)):
+        tmpOut[varkeys[aa]] = units[aa]
+    swanOut['units'] = tmpOut
 
     # Empty line
     fobj.readline()
