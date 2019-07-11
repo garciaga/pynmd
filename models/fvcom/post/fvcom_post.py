@@ -78,3 +78,41 @@ def restart_its(resFile,ncFile,outFld):
 
     # Close the file
     fid.close()
+
+def computeVorticity(u,v,a1u,a2u,ele):
+    """
+    Compute vorticity
+    
+    Parameters:
+    -----------
+    u:   Eastward directed velocity (nele,)
+    v:   Northward directed velocity (nele,)
+    a1u, a2u: Shape parameters from FVCOM
+    ele: Elements
+
+    Returns:
+    --------
+    q = dvdx - dudy
+
+    Notes:
+    ------
+    Right now this is meant only for a snapshot of u and v. It should be trivial
+    to extend to time and depth dependent arrays. 
+
+    Under development! Wrong answers given at the moment
+    """
+
+    # Get neighboring elements
+    nbe = np.zeros_like(ele)
+
+
+    # Preallocate vertical vorticity variable
+    dvdx = (a1u[0,:] * v + 
+            a1u[1,:] * v[ele[:,0]] + 
+            a1u[2,:] * v[ele[:,1]] + 
+            a1u[3,:] * v[ele[:,2]])
+    dudy = (a2u[0,:] * u + 
+            a2u[1,:] * u[ele[:,0]] + 
+            a2u[2,:] * u[ele[:,1]] + 
+            a2u[3,:] * u[ele[:,2]])
+    return dvdx - dudy

@@ -34,7 +34,7 @@ import pynmd.data.angles as _gangles
 # ==============================================================================
 # Subroutine to write bathymetry file ------------------------------------------
 # ==============================================================================
-def write_bathy(outfld,lon,lat,depth,spherical=True):
+def write_bathy(outfld,lon,lat,depth,spherical=True,mapsta=None):
     '''
     Function to generate bathymetry files to be used as input for WW3 v4.18
     
@@ -44,7 +44,10 @@ def write_bathy(outfld,lon,lat,depth,spherical=True):
     lon           : longitudes (or x for cartesian) at every grid point 
                     (I assume they have been meshgridded)
     lat           : latitudes (or y for cartesian) at every grid point
-    spherical     : True for spherical grids and False for cartesian grids    
+    spherical     : True for spherical grids and False for cartesian grids
+    mapsta        : Status map (optional)
+                    0 = Land Point, 1 = Regular sea point
+                    2 = Active boundary point, 3 = point excluded from grid
     
     OUTPUT:
     -------
@@ -54,7 +57,8 @@ def write_bathy(outfld,lon,lat,depth,spherical=True):
     ww3_grid.nc   : NetCDF file containing the grid information
     ww3_grid.inp  : Input file template to be used for the grid preprocessor. 
                     You will need to fix many things it will probably not
-                    work out of the box. 
+                    work out of the box.
+    ww3_grid.mask : ASCII file containing the maps status if requested
     
     NOTES:   
     ------
@@ -94,6 +98,16 @@ def write_bathy(outfld,lon,lat,depth,spherical=True):
         fid.write('\n')
     fid.close()
 
+    # Map status
+    if mapsta is not None:
+
+        fid = open(outfld + '/ww3_grid.mask','w')
+        for aa in range(mapsta.shape[0]):
+            for bb in range(mapsta.shape[1]):
+                fid.write('{:3.0f}'.format(depth[aa,bb]))
+            fid.write('\n')
+        fid.close()
+    
     # Write netcdf file --------------------------------------------------------
     
     # Global attributes  
@@ -138,7 +152,14 @@ def write_bathy(outfld,lon,lat,depth,spherical=True):
     nc.createVariable('h','f8',('eta_rho','xi_rho'))
     nc.variables['h'].units = 'meter'
     nc.variables['h'].long_name = 'bathymetry at RHO-points'
-    nc.variables['h'][:] = depth          
+    nc.variables['h'][:] = depth
+
+    # Map status
+    if mapsta:
+        nc.createVariable('MAPSTA','f8',('eta_rho','xi_rho'))
+        nc.variables['MAPSTA'].units = '1'
+        nc.variables['MAPSTA'].long_name = 'status map'
+        nc.variables['MAPSTA'][:] = mapsta
 
     # Close NetCDF file
     nc.close()
@@ -229,13 +250,18 @@ def write_bathy(outfld,lon,lat,depth,spherical=True):
     fid.write('$ Subgrid Information\n')
     fid.write('           10        1 1 \'(....)\'  \'PART\'  \'dummy\'\n')
     
-    # Subgrid information
-    fid.write('$\n')
-    fid.write('  0   0   F\n')
-    fid.write('$\n')
-    fid.write('  0   0   F\n')
-    fid.write('  0   0\n')
-    fid.write('$\n')
+    # Input boundary points
+    fid.write('$ Input boundary points\n')
+    if mapsta:
+        fid.write('           15        1 1 \'(....)\'  \'NAME\'  \'ww3_grid.mask\'\n')
+    else:        
+        fid.write('  0   0   F\n')
+        fid.write('$\n')
+        fid.write('  0   0   F\n')
+        fid.write('  0   0\n')    
+
+    # Output boundary points
+    fid.write('$Output boundary points\n')
     fid.write('  0.  0.  0.  0.  0\n')
     fid.write('$ ----------------------------------------------------------$\n')
     fid.write('$ End of input file                                         $\n')
@@ -243,7 +269,6 @@ def write_bathy(outfld,lon,lat,depth,spherical=True):
 
     # Close input file
     fid.close()
-
 
 # ==============================================================================
 # Subroutine to write bathymetry file ------------------------------------------
