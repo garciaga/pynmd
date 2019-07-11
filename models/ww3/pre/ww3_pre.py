@@ -104,7 +104,7 @@ def write_bathy(outfld,lon,lat,depth,spherical=True,mapsta=None):
         fid = open(outfld + '/ww3_grid.mask','w')
         for aa in range(mapsta.shape[0]):
             for bb in range(mapsta.shape[1]):
-                fid.write('{:3.0f}'.format(depth[aa,bb]))
+                fid.write('{:3.0f}'.format(mapsta[aa,bb]))
             fid.write('\n')
         fid.close()
     
