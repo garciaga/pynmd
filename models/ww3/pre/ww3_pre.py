@@ -155,7 +155,7 @@ def write_bathy(outfld,lon,lat,depth,spherical=True,mapsta=None):
     nc.variables['h'][:] = depth
 
     # Map status
-    if mapsta:
+    if mapsta is not None:
         nc.createVariable('MAPSTA','f8',('eta_rho','xi_rho'))
         nc.variables['MAPSTA'].units = '1'
         nc.variables['MAPSTA'].long_name = 'status map'
