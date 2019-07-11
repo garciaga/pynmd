@@ -252,7 +252,7 @@ def write_bathy(outfld,lon,lat,depth,spherical=True,mapsta=None):
     
     # Input boundary points
     fid.write('$ Input boundary points\n')
-    if mapsta:
+    if mapsta is not None:
         fid.write('           15        1 1 \'(....)\'  \'NAME\'  \'ww3_grid.mask\'\n')
     else:        
         fid.write('  0   0   F\n')
