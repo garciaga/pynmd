@@ -504,10 +504,13 @@ def readTable(tableFile):
     while aa < len(units):
         # Counter variable increase
         aa += 1
-        if len(units[aa]) == 1:
-            units[aa] = '[]'
-            aa += 1
-            units.pop(aa)
+        try:
+            if len(units[aa]) == 1:
+                units[aa] = '[]'
+                aa += 1
+                units.pop(aa)
+        except:
+            continue
     
     tmpOut = {}
     for aa in range(len(units)):
