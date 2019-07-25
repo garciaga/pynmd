@@ -7,7 +7,9 @@ from __future__ import division,print_function
 import numpy as _np
 import matplotlib.pyplot as _plt
 from matplotlib.dates import date2num as _date2num
+import cartopy.crs as _ccrs
 
+import pynmd.data.angles as _gangles
 
 def align_yticks(ax1,ax2,color1=True,color2=True):
     """
@@ -188,72 +190,69 @@ def ticksNonRectangularProj(ax,parallels,meridians,proj,minLon=120,maxLon=240):
     --------
     ax       : axes handle
     """
-
-    parallels = [45,50,55,60,65]
-    meridians = [160,170,180,190,200,210,220,230]
-
+    
+    dataProj = _ccrs.PlateCarree()
 
     projYticks = []
     for ii,aa in enumerate(parallels):
-        tmpX = np.arange(minLon,maxLon,0.001) # Need to find a way to automate
-        tmpY = np.ones_like(tmpX) * aa
+        tmpX = _np.arange(minLon,maxLon,0.001) # Need to find a way to automate
+        tmpY = _np.ones_like(tmpX) * aa
         parTrans = proj.transform_points(dataProj,tmpX,tmpY)
         ax.plot(parTrans[:,0],parTrans[:,1],color='gray',linewidth=0.25)
 
         # Find if the line intersects the bounding box
         [x1,x2] = ax.get_xlim()
         [y1,y2] = ax.get_ylim()
-        ind = np.argmin(np.abs(parTrans[:,0] - x1))
-        if np.logical_and(parTrans[ind,1]>y1,parTrans[ind,1]<y2):
+        ind = _np.argmin(_np.abs(parTrans[:,0] - x1))
+        if _np.logical_and(parTrans[ind,1]>y1,parTrans[ind,1]<y2):
             # Interpolate to axes position
-            yInt = np.interp(x1,parTrans[:,0],parTrans[:,1])
+            yInt = _np.interp(x1,parTrans[:,0],parTrans[:,1])
             projYticks.append([aa,yInt])
 
     if len(projYticks) > 0:
-        projYticks = np.array(projYticks)
+        projYticks = _np.array(projYticks)
         ax.set_yticks(projYticks[:,1])
         labelStr = []
         for aa in projYticks[:,0]:
-            if np.isclose(aa,0):
+            if _np.isclose(aa,0):
                 hem = ''
             elif aa > 0:
                 hem = 'N'
             else:
                 hem = 'S'
-            labelStr.append('{:2.0f}'.format(np.abs(aa)) + r'$^{\circ}$' + hem)
+            labelStr.append('{:2.0f}'.format(_np.abs(aa)) + r'$^{\circ}$' + hem)
         ax.set_yticklabels(labelStr)
 
     # Deal with meridians    
     projXticks = []
     for ii,aa in enumerate(meridians):
-        tmpY = np.arange(-90,90,0.001)
-        tmpX = np.ones_like(tmpY) * aa
+        tmpY = _np.arange(-90,90,0.001)
+        tmpX = _np.ones_like(tmpY) * aa
         parTrans = proj.transform_points(dataProj,tmpX,tmpY)
         ax.plot(parTrans[:,0],parTrans[:,1],color='gray',linewidth=0.25)
 
         # Find if the line intersects the bounding box
         [x1,x2] = ax.get_xlim()
         [y1,y2] = ax.get_ylim()
-        ind = np.argmin(np.abs(parTrans[:,1] - y1))
-        if np.logical_and(parTrans[ind,0]>x1,parTrans[ind,0]<x2):
+        ind = _np.argmin(_np.abs(parTrans[:,1] - y1))
+        if _np.logical_and(parTrans[ind,0]>x1,parTrans[ind,0]<x2):
             # Interpolate to axes position
-            xInt = np.interp(y1,parTrans[:,1],parTrans[:,0])
+            xInt = _np.interp(y1,parTrans[:,1],parTrans[:,0])
             projXticks.append([aa,xInt])
 
     if len(projXticks) > 0:
-        projXticks = np.array(projXticks)
+        projXticks = _np.array(projXticks)
         ax.set_xticks(projXticks[:,1])
         labelStr = []
         for aa in projXticks[:,0]:
-            if np.isclose(aa,180.0):
+            if _np.isclose(aa,180.0):
                 hem = ''
             elif aa < 180.0:
                 hem = 'E'
             else:
                 hem = 'W'
-            aa = np.abs(gangles.wrapto180(aa))
+            aa = _np.abs(_gangles.wrapto180(aa))
             labelStr.append('{:3.0f}'.format(aa) + r'$^{\circ}$' + hem)
         ax.set_xticklabels(labelStr)
 
     return ax
-    
