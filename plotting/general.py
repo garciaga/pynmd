@@ -168,3 +168,92 @@ def matchSubplotHeight(ax1,ax2):
     pos2 = ax2.get_position()
     ax2.set_position([pos2.x0,pos1.y0,pos2.width,pos1.height])
     
+
+def ticksNonRectangularProj(ax,parallels,meridians,proj,minLon=120,maxLon=240):
+    """
+    Function to draw ticklines and grid for non-rectangular projections 
+    generated from Cartopy
+
+    This function is under development, there are some things that need to be
+    automated
+
+    PARAMETERS:
+    -----------
+    ax        : axes handle
+    parallels : Parallels to plot [list]
+    meridians : Meridians to plot [list]
+    proj      : Plot projection
+
+    RETURNS:
+    --------
+    ax       : axes handle
+    """
+
+    parallels = [45,50,55,60,65]
+    meridians = [160,170,180,190,200,210,220,230]
+
+
+    projYticks = []
+    for ii,aa in enumerate(parallels):
+        tmpX = np.arange(minLon,maxLon,0.001) # Need to find a way to automate
+        tmpY = np.ones_like(tmpX) * aa
+        parTrans = proj.transform_points(dataProj,tmpX,tmpY)
+        ax.plot(parTrans[:,0],parTrans[:,1],color='gray',linewidth=0.25)
+
+        # Find if the line intersects the bounding box
+        [x1,x2] = ax.get_xlim()
+        [y1,y2] = ax.get_ylim()
+        ind = np.argmin(np.abs(parTrans[:,0] - x1))
+        if np.logical_and(parTrans[ind,1]>y1,parTrans[ind,1]<y2):
+            # Interpolate to axes position
+            yInt = np.interp(x1,parTrans[:,0],parTrans[:,1])
+            projYticks.append([aa,yInt])
+
+    if len(projYticks) > 0:
+        projYticks = np.array(projYticks)
+        ax.set_yticks(projYticks[:,1])
+        labelStr = []
+        for aa in projYticks[:,0]:
+            if np.isclose(aa,0):
+                hem = ''
+            elif aa > 0:
+                hem = 'N'
+            else:
+                hem = 'S'
+            labelStr.append('{:2.0f}'.format(np.abs(aa)) + r'$^{\circ}$' + hem)
+        ax.set_yticklabels(labelStr)
+
+    # Deal with meridians    
+    projXticks = []
+    for ii,aa in enumerate(meridians):
+        tmpY = np.arange(-90,90,0.001)
+        tmpX = np.ones_like(tmpY) * aa
+        parTrans = proj.transform_points(dataProj,tmpX,tmpY)
+        ax.plot(parTrans[:,0],parTrans[:,1],color='gray',linewidth=0.25)
+
+        # Find if the line intersects the bounding box
+        [x1,x2] = ax.get_xlim()
+        [y1,y2] = ax.get_ylim()
+        ind = np.argmin(np.abs(parTrans[:,1] - y1))
+        if np.logical_and(parTrans[ind,0]>x1,parTrans[ind,0]<x2):
+            # Interpolate to axes position
+            xInt = np.interp(y1,parTrans[:,1],parTrans[:,0])
+            projXticks.append([aa,xInt])
+
+    if len(projXticks) > 0:
+        projXticks = np.array(projXticks)
+        ax.set_xticks(projXticks[:,1])
+        labelStr = []
+        for aa in projXticks[:,0]:
+            if np.isclose(aa,180.0):
+                hem = ''
+            elif aa < 180.0:
+                hem = 'E'
+            else:
+                hem = 'W'
+            aa = np.abs(gangles.wrapto180(aa))
+            labelStr.append('{:3.0f}'.format(aa) + r'$^{\circ}$' + hem)
+        ax.set_xticklabels(labelStr)
+
+    return ax
+    

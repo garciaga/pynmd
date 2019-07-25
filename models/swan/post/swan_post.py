@@ -552,7 +552,7 @@ def readTable(tableFile):
     # Read and write variables to netCDF file
     # ==============================================================================
 
-    print("  Reading the file contents ...")
+    print("Reading the file contents ...")
     
     # Read the file
     swanVar = np.genfromtxt(tableFile,comments='%')
