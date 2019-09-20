@@ -967,7 +967,7 @@ def synthetic_ts(freq,spec,rseed=None):
 
     USAGE:
     ------
-    [t,syntTs] = synthetic_ts(freq,spec)
+    [t,syntTs] = synthetic_ts(freq,spec[,rseed])
 
     PARAMETERS:
     -----------
@@ -1035,6 +1035,58 @@ def synthetic_ts(freq,spec,rseed=None):
     t = np.arange(0,N*dt,dt)
 
     return t,syntTs
+
+
+
+	
+#==============================================================================
+# Directional spread function
+#==============================================================================
+def dir_spread(thetad,S,ind_f):
+    '''
+    Calculates directional spread (as a function of frequency)
+
+    USAGE:
+    ------
+    thetad, G_theta = wrapped_sf(thetad_peak,sigma_thetad[,mtheta,N,eq_bins])
+
+    PARAMETERS:
+    -----------
+    thetad   : Spectral directions in degrees
+    S        : Frequency-direction sprectrum, S(f,theta) [m**2/Hz/rad]
+    ind_f    : Frequency indices (give peak frequency index for a single directional spread value)
+
+    RETURNS:
+    --------
+    sigd    : Directional spread in degrees
+
+    METHOD:
+    -------
+    1. tan[2*theta_mean(f)] = int{-pi,pi}[(sin(2theta) * S(f,theta)) * dtheta] / 
+							  int{-pi,pi}[(cos(2theta) * S(f,theta)) * dtheta]
+    2. sigma**2(f)= int{-pi,pi}[(sin**2[theta-theta_mean(f)] * S(f,theta)) * dtheta] / E(f)
+	3. sigma(f) = (sigma**2(f)) **.5
+
+    NOTES:
+    -----
+
+    '''
+    # Convert to radians
+    theta = np.deg2rad(thetad)
+    
+    # Calculate mean direction
+    tan2thetam = np.trapz( np.squeeze(np.sin(2*theta)*S[ind_f,:]),x=theta) / np.trapz( np.squeeze(np.cos(2*theta)*S[ind_f,:]),x=theta)
+    theta_m = np.arctan(tan2thetam * .5)
+    
+    # Calculate frequency spectrum
+    ef = np.trapz(S,x=theta,axis=1)
+    
+    # Calculate the directional spread
+    sig2 = np.trapz( np.squeeze(np.sin(theta*theta_m)**2 *S[ind_f,:]),x=theta) / ef[ind_f]
+    sigd = np.rad2deg(sig2 ** .5) 
+    
+    return sigd
+
 
 
 #===============================================================================
