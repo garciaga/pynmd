@@ -1300,6 +1300,8 @@ def iec_params(freq,dirs,spec,dpt,rho=1025.0):
     - mn are the different spectral moments
     - Directional grid is assumed to be regular 
       need to implement a trapz for when this is not true.
+    - Pass everything as arrays:
+      >>> dpt = np.array([100.0]) # If you only have one point
 
     REFERENCES:
     -----------
@@ -1311,16 +1313,26 @@ def iec_params(freq,dirs,spec,dpt,rho=1025.0):
     # Figure out the size of the array and adjust if necessary
     _,npts,nfreq,ndirs = np.shape(spec)
 
-    # Directions must be sorted
-    sortInd = np.argsort(dirs)
-    spec = spec[...,sortInd]
-    dirs = dirs[sortInd]
+    # Directions must be sorted (if they exist)
+    if ndirs > 1:
+        sortInd = np.argsort(dirs)
+        spec = spec[...,sortInd]
+        dirs = dirs[sortInd]
+
+    # Compute the group velocity for each point
+    cg = np.zeros((npts,nfreq)) * np.NAN
+    for aa in range(cg.shape[0]):
+        for bb in range(cg.shape[1]):
+            _,_,cg[aa,bb] = celerity(1/freq[bb],dpt[aa])
 
     # Non directional parameters -----------------------------------------------    
-    #freqSpec = np.trapz(spec,dirs,axis=-1)
-    dth = dirs[2] - dirs[1]
-    freqSpec = np.sum(spec,axis=-1)*dth
-
+    if ndirs > 1:
+        #freqSpec = np.trapz(spec,dirs,axis=-1)
+        dth = dirs[1] - dirs[0]
+        freqSpec = np.sum(spec,axis=-1)*dth
+    else:
+        freqSpec = spec[...,0]
+    
     # Compute omnidirectional wave power
     moment0 = np.trapz(freqSpec,freq,axis=-1)
     momentn1 = np.trapz(freqSpec*(freq)**-1,freq,axis=-1)
@@ -1336,14 +1348,6 @@ def iec_params(freq,dirs,spec,dpt,rho=1025.0):
     # Spectral width
     bp['Sw'] = (moment0*momentn2/momentn1/momentn1 - 1.0)**0.5
 
-    # Get directional properties -----------------------------------------------
-
-    # Compute the group velocity for each point
-    cg = np.zeros((npts,nfreq)) * np.NAN
-    for aa in range(cg.shape[0]):
-        for bb in range(cg.shape[1]):
-            _,_,cg[aa,bb] = celerity(1/freq[bb],dpt[aa])
-
     # Omnidirectional wave power (loop extravaganza here)    
     owp = np.zeros_like(bp['Hs']) * np.NAN
     # Time loop
@@ -1353,25 +1357,32 @@ def iec_params(freq,dirs,spec,dpt,rho=1025.0):
             # Omnidirectional wave power
             owp[aa,bb] = np.trapz(freqSpec[aa,bb,:]*cg[bb,:],freq)
 
-    # Omidirectional wave power through a plane
-    cg  = np.repeat(np.expand_dims(cg,axis=-1),ndirs,axis=-1)
-    jth = np.zeros_like(owp)
-    th  = np.zeros_like(owp) * np.NAN
-    # Time loop
-    for aa in range(spec.shape[0]):
-        # Point loop
-        for bb in range(spec.shape[1]):
-            # Directional wave power
-            tmpJth = 0.0
-            dirSpec = np.trapz(spec[aa,bb,...]*cg[bb,...],freq,axis=-2)
-            # Direction loop
-            for cc in range(ndirs):                
-                fac = np.cos(np.pi/180.0 * (dirs[cc] - dirs))
-                fac[fac<0] = 0.0
-                tmpJth = np.sum(dirSpec*fac,axis=-1) * dth
-                if tmpJth > jth[aa,bb]:
-                    jth[aa,bb] = tmpJth
-                    th[aa,bb]  = dirs[cc]
+    # Get directional properties -----------------------------------------------
+
+    if ndirs > 1:
+        # Omidirectional wave power through a plane
+        cg  = np.repeat(np.expand_dims(cg,axis=-1),ndirs,axis=-1)
+        jth = np.zeros_like(owp)
+        th  = np.zeros_like(owp) * np.NAN
+        # Time loop
+        for aa in range(spec.shape[0]):
+            # Point loop
+            for bb in range(spec.shape[1]):
+                # Directional wave power
+                tmpJth = 0.0
+                dirSpec = np.trapz(spec[aa,bb,...]*cg[bb,...],freq,axis=-2)
+                # Direction loop
+                for cc in range(ndirs):                
+                    fac = np.cos(np.pi/180.0 * (dirs[cc] - dirs))
+                    fac[fac<0] = 0.0
+                    tmpJth = np.sum(dirSpec*fac,axis=-1) * dth
+                    if tmpJth > jth[aa,bb]:
+                        jth[aa,bb] = tmpJth
+                        th[aa,bb]  = dirs[cc]
+
+    else:
+        th  = np.zeros_like(owp) * np.NAN
+        jth = np.zeros_like(owp) * np.NAN
 
     # Take care of units here
     owp *= 9.81 * rho

@@ -840,6 +840,7 @@ def basic_stats(x,y):
     rmse   : Root-mean squared error [input units squared]
     nrmse  : Normalized root-mean squared error [percentage]
     bias   : Bias [input units]
+    pbias  : Percent bias
     si     : Scatter index
     r2     : Linear correlation coefficient    
 
@@ -860,6 +861,9 @@ def basic_stats(x,y):
     # Bias
     bias = np.sum(y - x)/N
 
+    # Percent bias
+    pbias = np.sum((y - x) / x) * 100.0
+
     # Scatter index
     si = rmse/np.mean(x)
 
@@ -871,7 +875,7 @@ def basic_stats(x,y):
     #Nstar = essize(x,y)[0]
     
     # Function output
-    return {'N':N, 'rmse':rmse,'nrmse':nrmse,
+    return {'N':N, 'rmse':rmse,'nrmse':nrmse,'pbias':pbias,
             'bias':bias,'si':si,'r2':r2[0],'pe':pe}
 
 
