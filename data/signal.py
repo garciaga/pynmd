@@ -862,7 +862,7 @@ def basic_stats(x,y):
     bias = np.sum(y - x)/N
 
     # Percent bias
-    pbias = np.sum((y - x) / x) * 100.0
+    pbias = (np.sum(y) - np.sum(x)) / np.sum(x) * 100.0
 
     # Scatter index
     si = rmse/np.mean(x)
