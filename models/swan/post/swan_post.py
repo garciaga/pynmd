@@ -84,7 +84,7 @@ def read_spec(specfile):
     
     # Find if time dependent data is present
     tmpline = fobj.readline().split(' ')[0]
-    if tmpline == 'TIME':
+    if tmpline.startswith('TIME'):
         timeDep = True
         # Do not need the extra two lines
         fobj.readline() # Time coding option (may need later)
@@ -161,7 +161,7 @@ def read_spec(specfile):
         if timeDep:
             
             # Read line            
-            tmpline = fobj.readline().split(' ')[0]
+            tmpline = fobj.readline().rstrip().split(' ')[0]
             if len(tmpline) < 1:
                 dataFlag = False
                 break

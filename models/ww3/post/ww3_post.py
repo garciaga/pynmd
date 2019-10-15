@@ -764,11 +764,12 @@ def readWind(windFile,atDiff=False):
     # Discard the first line (it contains time information)
     fobj.readline()
     dataFlag = True
+    cnt = 0
     while dataFlag:
         
         # Read line
-        tmpline = fobj.readline().rstrip().split(' ')
-
+        tmpline = fobj.readline().rstrip().split()
+        cnt += 1
         # Another date stamp or file ended
         if len(tmpline) <= 2:
             # Allocate the wind data
