@@ -218,7 +218,183 @@ def read_spec(specfile):
     return {'spec':allSpec, 'freq':freq, 'dirs':dirs,
             'coords':coords,'info':info,'ot':ot}
     
+    
+#===============================================================================
+# Read wave frequency spectrum 
+#===============================================================================
+def read_fspec(specfile):
+    '''
+    Read wave spectrum from a text file produced
+    by SWAN and returns the spectral density and axes. Usage:
+    
+    read_fspec(specfile)
+    
+    Parameters
+    ----------
+    specfile: string
+              Full path to the spectra file to be read.
+    
+    Returns
+    -------
+    dictionary with contents
+               'coords'       : x,y coordiate of spectra points
+               'freq'         : spectral frequencies
+               'dirs'         : wave directions of unidirectional spectrum
+               'dir_sspreads' : directional spread about dirs
+               'ef'         : 3D array of spectral density data
+                                (time,locations,frequencies)
+               'ot'           : Array of time stamps
+               'info'         : General information
+               
+    Notes:
+        Tested on SWAN 41.10 only
 
+    '''
+
+    # Find the length of the file and get dates
+    fobj = open(specfile,'r')    
+
+    # Read header
+    fobj.readline()
+    info = {}    
+    tmpline = fobj.readline().split()
+    info['version'] = tmpline[-1]
+    tmpline = fobj.readline().split()
+    info['Project'] = tmpline[2]   
+
+    
+    # Find if time dependent data is present
+    tmpline = fobj.readline().split(' ')[0]
+    if tmpline == 'TIME':
+        timeDep = True
+        # Do not need the extra two lines
+        fobj.readline() # Time coding option (may need later)
+        fobj.readline() # Locations header
+    else:
+        timeDep = False
+
+    # Get number of locations
+    tmpline = fobj.readline().split()
+    num_loc = int(tmpline[0])
+    
+    # Get coordinates
+    coords = np.zeros((num_loc,2))
+    for aa in range(int(num_loc)):
+        tmpline = fobj.readline().split()
+        tmpcoord = [float(x) for x in tmpline]
+        coords[aa,:] = tmpcoord[:]
+
+        
+    # Frequencies
+    tmpline = fobj.readline().split()
+    info['freq_type'] = tmpline[0]
+    tmpline = fobj.readline().split()        
+    num_freq = int(tmpline[0])
+    freq = np.zeros((num_freq,))
+    for aa in range(int(num_freq)):
+        freq[aa] = float(fobj.readline())
+           
+    # Number of quantities
+    fobj.readline()
+    fobj.readline()
+    
+    # Energy information
+    fobj.readline()
+    tmpline = fobj.readline().split()
+    info['spec_units'] = tmpline[0]
+    exception_spc = float(fobj.readline().split()[0])
+    
+    # Scale the spectrum depending on the output units
+    #if info['spec_units'] == 'J/m2/Hz/degr':
+    #    facun = 1.0/1025.0/9.81;
+    #else:
+    #    # No scaling necessary if units are m2/Hz/degr
+    #    facun = 1.0;
+    
+    # Direction information
+    tmpline = fobj.readline().split()  
+    tmpstr = ' '
+    info['angle_convention'] = tmpstr.join(tmpline[1:])    
+    fobj.readline()
+    exception_dir = float(fobj.readline().split()[0])
+    
+    # Directional spread information
+    fobj.readline()  
+    fobj.readline()
+    exception_sig = float(fobj.readline().split()[0])
+    
+    # Preallocate variables    
+    ot = []
+    allSpec = []
+    allDir = []
+    allSig = []
+    dataFlag = True
+    while dataFlag:
+        
+        # Time dependent lines
+        if timeDep:
+            
+            # Read line            
+            tmpline = fobj.readline().split(' ')[0]
+            if len(tmpline) < 1:
+                dataFlag = False
+                break
+    
+            # Get date and time information
+            ot.append(datetime.datetime.strptime(tmpline,'%Y%m%d.%H%M%S'))
+
+        # Loop over points
+        spec = np.zeros((num_loc,num_freq))    
+        dirs = np.zeros((num_loc,num_freq))   
+        sig = np.zeros((num_loc,num_freq))   
+        
+        for aa in range(int(num_loc)):
+                        
+            # Read spectral data
+            fobj.readline()
+            tmpspec = np.zeros((num_freq))
+            tmpdir = np.zeros((num_freq))  
+            tmpsig = np.zeros((num_freq))  
+            
+            for bb in range(int(num_freq)):
+                tmpline = fobj.readline().split()
+                tmpline = [float(x) for x in tmpline]
+                tmpspec[bb] = tmpline[0]
+                tmpdir[bb] = tmpline[1]
+                tmpsig[bb] = tmpline[2]
+    
+            # Remove missing data
+            tmpspec[tmpspec==exception_spc] = 0.0
+            tmpdir[tmpspec==exception_dir] = float('nan')
+            tmpsig[tmpspec==exception_sig] = float('nan')
+            
+            # Allocate spectral data
+            spec[aa,:] = tmpspec
+            dirs[aa,:] = tmpdir
+            sig[aa,:] = tmpsig
+                 
+        # Allocate in array
+        allSpec.append(spec)
+        allDir.append(dirs)
+        allSig.append(sig)
+
+        if not timeDep:
+            dataFlag = False              
+    
+    # Close the text file
+    fobj.close() 
+    
+    # Manage vectors
+    ot = np.asarray(ot)
+    allSpec = np.asarray(allSpec)
+    allDir = np.asarray(allDir)
+    allSig = np.asarray(allSig)
+
+    # Return values
+    return {'ef':allSpec, 'freq':freq, 'dirs':allDir, 'dir_spreads':allSig,
+            'coords':coords,'info':info,'ot':ot}
+    
+    
 # ==============================================================================
 # Convert UnSWAN stations to netCDF4
 # ==============================================================================
