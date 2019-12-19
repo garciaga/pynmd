@@ -65,8 +65,8 @@ def fort14_to_nc(fort14,**kwargs):
     
     # Get record lengths
     node = grid['x'].size
-    nele = grid['triang'].size
-    nvertex = 3
+    nele = grid['triang'].shape[0]
+    nvertex = grid['triang'].shape[1]
 #    nope = grid['nope']
     neta = grid['neta']    
 #    nbou = grid['nbou']
@@ -95,7 +95,8 @@ def fort14_to_nc(fort14,**kwargs):
     nc.createVariable('element','i4',('nele','nvertex'))
     nc.variables['element'].long_name = 'element'
     nc.variables['element'].units = 'nondimensional'
-    nc.variables['element'][:,:] = np.int32(grid['triang'])
+    # Add 1 back to node indexing to match standard adcirc files convention
+    nc.variables['element'][:,:] = np.int32(grid['triang']+1)
     
     nc.createVariable('nbdv','i4','neta')
     nc.variables['nbdv'].long_name = 'node numbers on each elevation specified boundary segment'
