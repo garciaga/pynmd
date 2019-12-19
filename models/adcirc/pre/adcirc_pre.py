@@ -27,22 +27,26 @@ import netCDF4
 import pynmd.models.tools.unstructured as ustr
 
 # ==============================================================================
-# Read Fort 63 ASCII Files
+# Read Fort 14 ASCII files and save as nc file
 # ==============================================================================
 def fort14_to_nc(fort14,**kwargs):
     """ 
-    Script to read fort.63-type files and store in a netcdf4 file
+    Script to read an unstructured grid in fort.14 format and store it in a 
+    netcdf4 file
 
     PARAMETERS:
     -----------
     fort14: Path to fort14 file
+    savename(optional)
 
     RETURNS:
     --------
     Netcdf containing
-    var   : variable recorded at the nodes of an unstructured grid. Defaults as 
-            'zeta'. Size: [time,nodes]
-
+    x,y:     node coordinates
+    element: triangular elements
+    nbdv:    node numbers on each elevation specified boundary segment
+    nbvv:    node numbers on normal flow boundary segment
+    depth:   depth at each node
     """
     grid = ustr.read_fort14(fort14)
     
@@ -107,8 +111,6 @@ def fort14_to_nc(fort14,**kwargs):
     nc.variables['depth'].long_name = 'distance below geoid'
     nc.variables['depth'].units = 'm'
     nc.variables['depth'][:] = np.float64(grid['z'])
-    
-    
-    
+        
     # All done here
     nc.close()

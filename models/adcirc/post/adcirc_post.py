@@ -24,7 +24,7 @@ import numpy as np
 import netCDF4
 
 # ==============================================================================
-# Read Fort 63 ASCII Files and save as nc file
+# Read Fort 63 ASCII files and save as nc file
 # ==============================================================================
 def fort63_to_nc(fort63,varname='zeta',longname='water surface elevation above geoid',
                 varunits='m',**kwargs):
