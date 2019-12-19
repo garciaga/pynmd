@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Dec 13 16:13:02 2019
+A series of tools to process and analyze adcirc output
 
-@author: tico327
+Authors:
+-------
+Fadia Ticona Rollano
+    PNNL Marine Sciences Laboratory
+
+Log of edits:
+-------------
+December 2019 - Created module
+    Fadia Ticona Rollano
+
 """
 
 from __future__ import division,print_function
@@ -15,40 +24,34 @@ import numpy as np
 import netCDF4
 
 # ==============================================================================
-# Read Fort 63 ASCII Files
+# Read Fort 63 ASCII Files and save as nc file
 # ==============================================================================
-def read_fort63(fort63,varname='zeta',
-                longvarname='water surface elevation above geoid',varunits='m'):
+def fort63_to_nc(fort63,varname='zeta',longname='water surface elevation above geoid',
+                varunits='m',**kwargs):
     """ 
-    Script to read fort14 files
+    Script to read fort.63-type files and store in a netcdf4 file
 
     PARAMETERS:
     -----------
-    fort14: Path to fort14 file
+    fort63: Path to fort63 file
 
     RETURNS:
     --------
-    Dictionary containing
-    x     : x coordinates of nodes (ordered)
-    y     : y coordinates of nodes (ordered)
-    z     : Elevation at nodes
-    triang: Triangulation 
-    nbdv  : Indices for open boundary nodes
-    neta  : number of open boundary nodes
-    nvel  : Indices for land boundaries
-    nvel  : number of land boundary nodes
-
-    NOTES:
-    ------
-    1. Zero counting convention used.
-    2. Nodes are returned in order so that you can combine with triangulation
+    Netcdf containing
+    time  : seconds since beginning of run 
+    var   : temporal variable (called 'varname') recorded at the nodes of
+            an unstructured grid. Size: [time,nodes]
 
     """
     
     fobj = open(fort63,'r')
     
     # Create the file and add global attributes
-    nc = netCDF4.Dataset(fort63 + '.nc', 'w', format='NETCDF4')
+    if 'savename' in kwargs:
+        ncfile = kwargs['savename']
+    else:
+        ncfile = fort63 + '.nc'
+    nc = netCDF4.Dataset(ncfile, 'w', format='NETCDF4')
     
     # Global attributes 
     nc.Author = getpass.getuser()
@@ -61,6 +64,7 @@ def read_fort63(fort63,varname='zeta',
     nc.Software = 'Created with Python ' + sys.version
     nc.NetCDF_Lib = str(netCDF4.getlibversion())
     
+    # Record number of time steps and nodes
     tmpline = fobj.readline().split()
     ntsteps = np.int(tmpline[0])
     nodes = np.int(tmpline[1])
@@ -77,7 +81,7 @@ def read_fort63(fort63,varname='zeta',
     
     # Create the rest of the variables
     nc.createVariable(varname,'f8',('time','node'))
-    nc.variables[varname].long_name = longvarname
+    nc.variables[varname].long_name = longname
     nc.variables[varname].units = varunits
         
     for tt in range(ntsteps):
@@ -89,3 +93,5 @@ def read_fort63(fort63,varname='zeta',
 
     # All done here
     fobj.close()
+    nc.close()
+    
