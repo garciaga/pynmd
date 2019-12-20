@@ -16,12 +16,15 @@ December 2019 - Created module
 
 from __future__ import division,print_function
 
-#import glob,os
+import os#,glob
 import sys,time
 #sys.path.append(os.getcwd())
 import getpass
 import numpy as np
 import netCDF4
+
+# Custom paths
+import pynmd.models.adcirc.pre as adcpre
 
 # ==============================================================================
 # Read Fort 63 ASCII files and save as nc file
@@ -172,4 +175,82 @@ def fort64_to_nc(fort64,varname_xy=['u-vel','v-vel'],
     # All done here
     fobj.close()
     nc.close()
-     
+
+
+# ==============================================================================
+# Read all ASCII files and save as nc file
+# ==============================================================================
+def all_ascii2nc(runFld,ncFld):
+    """ 
+    Reads (most*) ADCIRC ASCII files and stores them in netcdf4 files
+
+    Input:
+    ------
+    runFld: folder containing all ascii files
+    ncFld:  folder where to save all nc files
+    
+    Notes:
+    ------        
+    *Still working on converting some adcirc files
+    """
+    # Unstructured grid + bathy ------------------------------------------------
+    if os.path.exists(runFld+'fort.14'):
+        if not os.path.exists(ncFld+'fort.14.nc'):
+            print('Creating fort.14.nc')
+            adcpre.fort14_to_nc(runFld + 'fort.14',savename=ncFld+'fort.14.nc')
+    
+    # fort.63-type files (scalars) ---------------------------------------------
+    # Water surface elevation
+    if os.path.exists(runFld+'fort.63'):
+        if not os.path.exists(ncFld+'fort.63.nc'):
+            print('Creating fort.63.nc')
+            fort63_to_nc(runFld + 'fort.63',savename=ncFld+'fort.63.nc')
+    # Atmospherec pressure
+    if os.path.exists(runFld+'fort.73'):
+        if not os.path.exists(ncFld+'fort.73.nc'):
+            print('Creating fort.73.nc')
+            fort63_to_nc(runFld + 'fort.73',varname='pressure',
+                         longname='air pressure at sea level',
+                         varunits='meters of waver',savename=ncFld+'fort.73.nc')
+    # Significant wave height
+    if os.path.exists(runFld+'swan_HS.63'):
+        if not os.path.exists(ncFld+'swan_HS.63.nc'):
+            print('Creating swan_HS.63.nc')
+            fort63_to_nc(runFld + 'swan_HS.63',varname='swan_HS',
+                         longname='significant wave height',
+                         varunits='m',savename=ncFld+'swan_HS.63.nc')
+    # Mean wave direction
+    if os.path.exists(runFld+'swan_DIR.63'):
+        if not os.path.exists(ncFld+'swan_DIR.63.nc'):
+            print('Creating swan_DIR.63.nc')
+            fort63_to_nc(runFld + 'swan_DIR.63',varname='swan_DIR',
+                         longname='mean wave direction',
+                         varunits='degrees',savename=ncFld+'swan_DIR.63.nc')
+    # Mean absolute wave period
+    if os.path.exists(runFld+'swan_TMM10.63'):
+        if not os.path.exists(ncFld+'swan_TMM10.63.nc'):
+            print('Creating swan_TMM10.63.nc')
+            fort63_to_nc(runFld + 'swan_TMM10.63',varname='swan_TMM10',
+                         longname='mean absolute wave period',
+                         varunits='s',savename=ncFld+'swan_TMM10.63.nc')
+    # Smoothed peak period
+    if os.path.exists(runFld+'swan_TPS.63'):
+        if not os.path.exists(ncFld+'swan_TPS.63.nc'):
+            print('Creating swan_TPS.63.nc')
+            fort63_to_nc(runFld + 'swan_TPS.63',varname='swan_TPS',
+                         longname='smoothed peak period',
+                         varunits='s',savename=ncFld+'swan_TPS.63.nc')
+    
+    # fort.64-type files (vectors) ---------------------------------------------
+    # Depth average velocity 
+    if os.path.exists(runFld+'fort.64'):
+        if not os.path.exists(ncFld+'fort.64.nc'):
+            print('Creating fort.64.nc')
+            fort64_to_nc(runFld + 'fort.64',savename=ncFld+'fort.64.nc')
+    # Wind stress or velocity 
+    if os.path.exists(runFld+'fort.74'):
+        if not os.path.exists(ncFld+'fort.74.nc'):
+            print('Creating fort.74.nc')
+            fort64_to_nc(runFld + 'fort.74',varname_xy=['windx','windy'],
+                         longname='wind',savename=ncFld+'fort.74.nc')
+    
