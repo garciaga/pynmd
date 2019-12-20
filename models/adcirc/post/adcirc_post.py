@@ -38,10 +38,9 @@ def fort63_to_nc(fort63,varname='zeta',longname='water surface elevation above g
     RETURNS:
     --------
     Netcdf containing
-    time  : seconds since beginning of run 
-    var   : temporal variable (called 'varname') recorded at the nodes of
-            an unstructured grid. Size: [time,nodes]
-
+    time     : seconds since beginning of run 
+    variable : temporal variable (called 'varname') recorded at the nodes of
+               an unstructured grid. Size: [time,nodes]
     """
     
     fobj = open(fort63,'r')
@@ -94,4 +93,83 @@ def fort63_to_nc(fort63,varname='zeta',longname='water surface elevation above g
     # All done here
     fobj.close()
     nc.close()
+
+
+# ==============================================================================
+# Read Fort 64 ASCII files and save as nc file
+# ==============================================================================
+def fort64_to_nc(fort64,varname_xy=['u-vel','v-vel'],
+                 longname='water column vertically averaged',
+                 varunits='m s-1',**kwargs):
+    """ 
+    Script to read fort.64-type files and store in a netcdf4 file
+
+    PARAMETERS:
+    -----------
+    fort64: Path to fort64 file
+
+    RETURNS:
+    --------
+    Netcdf containing
+    time         : seconds since beginning of run 
+    x,y variable : temporal variables (name provided in 'xy_varname') recorded
+                   at the nodes of an unstructured grid. Size: [time,nodes]
+    """
     
+    fobj = open(fort64,'r')
+    
+    # Create the file and add global attributes
+    if 'savename' in kwargs:
+        ncfile = kwargs['savename']
+    else:
+        ncfile = fort64 + '.nc'
+    nc = netCDF4.Dataset(ncfile, 'w', format='NETCDF4')
+    
+    # Global attributes 
+    nc.Author = getpass.getuser()
+    nc.Created = time.ctime()
+    tmpline = fobj.readline()
+    nc.description = tmpline[:32]
+    nc.rundes = tmpline[:32]
+    nc.runid = tmpline[32:56]
+    nc.model = 'ADCIRC'    
+    nc.Software = 'Created with Python ' + sys.version
+    nc.NetCDF_Lib = str(netCDF4.getlibversion())
+    
+    # Record number of time steps and nodes
+    tmpline = fobj.readline().split()
+    ntsteps = np.int(tmpline[0])
+    nodes = np.int(tmpline[1])
+    
+    # Create dimensions
+    nc.createDimension('node',nodes)       # Number of nodes
+    nc.createDimension('time',0)           # The unlimited dimension
+    
+    # Create time vector
+    nc.createVariable('time','f8',('time'))
+    nc.variables['time'].long_name = 'model time'
+    nc.variables['time'].standard_name = 'time'
+    nc.variables['time'].units = 'seconds since beginning of run'
+    
+    # Create the rest of the variables
+    nc.createVariable(varname_xy[0],'f8',('time','node'))
+    nc.variables[varname_xy[0]].long_name = longname + ' e/w velocity'
+    nc.variables[varname_xy[0]].units = varunits
+    
+    nc.createVariable(varname_xy[1],'f8',('time','node'))
+    nc.variables[varname_xy[1]].long_name = longname + ' n/s velocity'
+    nc.variables[varname_xy[1]].units = varunits
+        
+    for tt in range(ntsteps):
+        # Store variables
+        nc.variables['time'][tt] = np.float64(fobj.readline().split()[0])
+
+        for aa in range(nodes):
+            tmpline = fobj.readline().split()
+            nc.variables[varname_xy[0]][tt,aa] = np.float64(tmpline[1])
+            nc.variables[varname_xy[1]][tt,aa] = np.float64(tmpline[2])
+
+    # All done here
+    fobj.close()
+    nc.close()
+     
