@@ -16,7 +16,7 @@ December 2019 - Created module
 
 from __future__ import division,print_function
 
-#import glob,os
+import os#,glob
 import sys,time
 #sys.path.append(os.getcwd())
 import getpass
@@ -27,7 +27,7 @@ import netCDF4
 import pynmd.models.tools.unstructured as ustr
 
 # ==============================================================================
-# Read Fort 14 ASCII files and save as nc file
+# Read fort.14 ASCII file and save as nc file
 # ==============================================================================
 def fort14_to_nc(fort14,**kwargs):
     """ 
@@ -115,3 +115,141 @@ def fort14_to_nc(fort14,**kwargs):
         
     # All done here
     nc.close()
+
+# ==============================================================================
+# Read station information from fort.15 ASCII files
+# ==============================================================================
+def readsta_fort15(fort15):
+    """ 
+    Script to read fort.15 input file and store station information
+
+    PARAMETERS:
+    -----------
+    fort15: Path to fort15 file
+
+    RETURNS:
+    --------
+    Dictionary containing the number, coordinates, and name of stations 
+    as follows:
+        
+    nstae,xel,yel,nameel:  water surface elevation 
+    nstav,xev,yev,nameev:  velocity 
+    nstac,xec,yec,nameec:  concentrations
+    nstam,xem,yem,nameem:  meterology
+    
+    """
+    
+    grid = ustr.read_fort14(os.path.dirname(fort15)+'/fort.14')    
+    NETA = grid['neta']  
+    
+    fobj = open(fort15,'r')
+    
+    # Skip lines (checks are needed because the number of lines varies)
+    for ii in range(7):
+        fobj.readline() #RUENDES -- ICS
+    IM = np.int(fobj.readline().split()[0])
+    if IM==21:
+        fobj.readline() #IDEN
+    for ii in range(4):
+        fobj.readline() #NOLIBF -- NOLICAT
+    tmpline = np.int(fobj.readline().split()[0]) #NWP
+    for ii in range(tmpline+2):
+        fobj.readline() #AttrName -- NTIP
+    NWS = np.int(fobj.readline().split()[0])
+    fobj.readline() #NRAMP
+    fobj.readline() #G
+    tmpline = np.float64(fobj.readline().split()[0]) #TAU0
+    if tmpline==-5.:
+        fobj.readline() #Tau0FullDomainMin, Tau0FullDomainMax
+    for ii in range(3):
+        fobj.readline() #DTDP -- REFTIM
+    if NWS != 0 or NWS != 1 or NWS != 9 or NWS != 11:
+        fobj.readline() #WTIMINC
+    for ii in range(6):
+        fobj.readline() #RNDAY -- TAU/CD/CF...FGMMA
+    if IM==0 or IM==1 or IM==2 or IM==10:
+        fobj.readline() #ESLM/ESLM,ESLC
+    fobj.readline() #CORI
+    NTIF = np.int(fobj.readline().split()[0])
+    for ii in range(NTIF*2):
+        fobj.readline() #-TIPOTAG -- ...,FACET(k)
+    NBFR = np.int(fobj.readline().split()[0])
+    for ii in range(NBFR*3 + NBFR*NETA):
+        fobj.readline() #BOUNTAG -- ...,EFA(k,j)
+    fobj.readline() #ANGINN
+    # Our runs don't consider river or ocean inflow (IBTYPE 2,12,22,32,52)
+    # so I skip trying to read those lines (NFFR--...,ENPH(k,j)) here
+    
+    # Elevation recording stations (fort.61 output)
+    fobj.readline() #NOUTE, TOUTSE, TOUTFE, NSPOOLE
+    NSTAE = np.int(fobj.readline().split()[0])
+    xel = np.zeros(NSTAE,)
+    yel = np.zeros(NSTAE,)
+    nameel = ['' for x in range(NSTAE)]
+    for ii in range(NSTAE):
+        tmpline = fobj.readline().split()
+        xel[ii] = np.float64(tmpline[0])
+        yel[ii] = np.float64(tmpline[1])
+        n = ''
+        for s in tmpline[2:]:
+            n = n+s
+        nameel[ii] = n[:50].ljust(50)
+    dic_el = {'nstae':NSTAE,'xel':xel,'yel':yel,'nameel':nameel}
+    
+    # Velocity recording stations (fort.62 output)
+    fobj.readline() #NOUTV, TOUTSV,TOUTFV, NSPOOLV
+    NSTAV = np.int(fobj.readline().split()[0])
+    xev = np.zeros(NSTAV,)
+    yev = np.zeros(NSTAV,)
+    nameev = ['' for x in range(NSTAV)]
+    for ii in range(NSTAV):
+        tmpline = fobj.readline().split()
+        xev[ii] = np.float64(tmpline[0])
+        yev[ii] = np.float64(tmpline[1])
+        n = ''
+        for s in tmpline[2:]:
+            n = n+s
+        nameev[ii] = n[:50].ljust(50)
+    dic_ev = {'nstav':NSTAV,'xev':xev,'yev':yev,'nameev':nameev}
+    
+    # Concentration recording stations (fort.91 output)
+    dic_ec ={} #dummy
+    if IM==10:
+        fobj.readline() #NOUTC, TOUTSC, TOUTFC, NSPOOLC
+        NSTAC = np.int(fobj.readline().split()[0])
+        xec = np.zeros(NSTAC,)
+        yec = np.zeros(NSTAC,)
+        nameec = ['' for x in range(NSTAC)]
+        for ii in range(NSTAC):
+            tmpline = fobj.readline().split()
+            xec[ii] = np.float64(tmpline[0])
+            yec[ii] = np.float64(tmpline[1])
+            n = ''
+            for s in tmpline[2:]:
+                n = n+s
+            nameec[ii] = n[:50].ljust(50)
+        dic_ec = {'nstac':NSTAC,'xev':xec,'yev':yec,'nameec':nameec}
+        
+    # Meterology recording stations (units 71&72 output)
+    dic_em ={} #dummy
+    if NWS != 0:
+        fobj.readline() #NOUTM, TOUTSM, TOUTFM, NSPOOLM
+        NSTAM = np.int(fobj.readline().split()[0])
+        xem = np.zeros(NSTAM,)
+        yem = np.zeros(NSTAM,)
+        nameem = ['' for x in range(NSTAM)]
+        for ii in range(NSTAM):
+            tmpline = fobj.readline().split()
+            xem[ii] = np.float64(tmpline[0])
+            yem[ii] = np.float64(tmpline[1])
+            n = ''
+            for s in tmpline[2:]:
+                n = n+s
+            nameem[ii] = n[:50].ljust(50)
+        dic_em = {'nstam':NSTAM,'xem':xem,'yem':yem,'nameem':nameem}
+    
+    # Close ASCII file
+    fobj.close()
+    
+    # Generate output
+    return {**dic_el,**dic_ev,**dic_ec,**dic_em}

@@ -27,7 +27,95 @@ import netCDF4
 import pynmd.models.adcirc.pre as adcpre
 
 # ==============================================================================
-# Read Fort 63 ASCII files and save as nc file
+# Read fort.61-type ASCII files and save as nc file
+# ==============================================================================
+def fort61_to_nc(fort61,staname,x,y,varname='zeta',
+                 longname='water surface elevation above geoid',
+                 varunits='m',**kwargs):
+    """ 
+    Script to read fort.61-type (scalar) files and store in a netcdf4 file
+
+    PARAMETERS:
+    -----------
+    fort61: Path to fort61-type file
+
+    RETURNS:
+    --------
+    Netcdf containing
+    time     : seconds since beginning of run 
+    variable : temporal variable (called 'varname') recorded at stations. 
+               Size: [time,station]
+    """
+        
+    fobj = open(fort61,'r')
+    
+    # Create the file and add global attributes
+    if 'savename' in kwargs:
+        ncfile = kwargs['savename']
+    else:
+        ncfile = fort61 + '.nc'
+    nc = netCDF4.Dataset(ncfile, 'w', format='NETCDF4')
+    
+    # Global attributes 
+    nc.Author = getpass.getuser()
+    nc.Created = time.ctime()
+    tmpline = fobj.readline()
+    nc.description = tmpline[2:34]
+    nc.rundes = tmpline[2:34]
+    nc.runid = tmpline[36:60]
+    nc.model = 'ADCIRC'    
+    nc.Software = 'Created with Python ' + sys.version
+    nc.NetCDF_Lib = str(netCDF4.getlibversion())
+    
+    # Record number of time steps and station
+    tmpline = fobj.readline().split()
+    ntsteps = np.int(tmpline[0])
+    sta = np.int(tmpline[1])
+    
+    # Create dimensions
+    nc.createDimension('time',0)           # The unlimited dimension
+    nc.createDimension('station',sta)      # Number of stations
+    nc.createDimension('namelen',50)       # Length of station names
+    
+    # Create time vector
+    nc.createVariable('time','f8',('time'))
+    nc.variables['time'].long_name = 'model time'
+    nc.variables['time'].standard_name = 'time'
+    nc.variables['time'].units = 'seconds since beginning of run'
+    
+    # Create and store spatial variables
+    nc.createVariable('station_name','S1',('station','namelen'))
+    nc.variables['station_name'].long_name = 'station name'
+    nc.variables['station_name'][:] = netCDF4.stringtochar(np.array(staname,dtype='S50'))
+    nc.createVariable('x','f8','station')
+    nc.variables['x'].long_name = 'longitude'
+    nc.variables['x'].units = 'degrees east'
+    nc.variables['x'].positive = 'east'
+    nc.variables['x'][:] = x
+    nc.createVariable('y','f8','station')
+    nc.variables['y'].long_name = 'latitude'
+    nc.variables['y'].units = 'degrees north'
+    nc.variables['y'].positive = 'north'
+    nc.variables['y'][:] = y
+    
+    # Create station variable
+    nc.createVariable(varname,'f8',('time','station'))
+    nc.variables[varname].long_name = longname
+    nc.variables[varname].units = varunits
+        
+    # Store time-series variables
+    for tt in range(ntsteps):
+        nc.variables['time'][tt] = np.float64(fobj.readline().split()[0])
+        for aa in range(sta):
+            nc.variables[varname][tt,aa] = np.float64(fobj.readline().split()[1])
+
+    # All done here
+    fobj.close()
+    nc.close()
+
+
+# ==============================================================================
+# Read fort.63-type ASCII files and save as nc file
 # ==============================================================================
 def fort63_to_nc(fort63,varname='zeta',
                  longname='water surface elevation above geoid',
@@ -60,9 +148,9 @@ def fort63_to_nc(fort63,varname='zeta',
     nc.Author = getpass.getuser()
     nc.Created = time.ctime()
     tmpline = fobj.readline()
-    nc.description = tmpline[:32]
-    nc.rundes = tmpline[:32]
-    nc.runid = tmpline[32:56]
+    nc.description = tmpline[2:34]
+    nc.rundes = tmpline[2:34]
+    nc.runid = tmpline[36:60]
     nc.model = 'ADCIRC'    
     nc.Software = 'Created with Python ' + sys.version
     nc.NetCDF_Lib = str(netCDF4.getlibversion())
@@ -100,7 +188,7 @@ def fort63_to_nc(fort63,varname='zeta',
 
 
 # ==============================================================================
-# Read Fort 64 ASCII files and save as nc file
+# Read fort.64-type ASCII files and save as nc file
 # ==============================================================================
 def fort64_to_nc(fort64,varname_xy=['u-vel','v-vel'],
                  longname='water column vertically averaged',
@@ -133,9 +221,9 @@ def fort64_to_nc(fort64,varname_xy=['u-vel','v-vel'],
     nc.Author = getpass.getuser()
     nc.Created = time.ctime()
     tmpline = fobj.readline()
-    nc.description = tmpline[:32]
-    nc.rundes = tmpline[:32]
-    nc.runid = tmpline[32:56]
+    nc.description = tmpline[2:34]
+    nc.rundes = tmpline[2:34]
+    nc.runid = tmpline[36:60]
     nc.model = 'ADCIRC'    
     nc.Software = 'Created with Python ' + sys.version
     nc.NetCDF_Lib = str(netCDF4.getlibversion())
@@ -146,8 +234,8 @@ def fort64_to_nc(fort64,varname_xy=['u-vel','v-vel'],
     nodes = np.int(tmpline[1])
     
     # Create dimensions
-    nc.createDimension('node',nodes)       # Number of nodes
     nc.createDimension('time',0)           # The unlimited dimension
+    nc.createDimension('node',nodes)       # Number of nodes
     
     # Create time vector
     nc.createVariable('time','f8',('time'))
@@ -212,9 +300,9 @@ def max63_to_nc(max63,varname='zeta',
     nc.Author = getpass.getuser()
     nc.Created = time.ctime()
     tmpline = fobj.readline()
-    nc.description = tmpline[:32]
-    nc.rundes = tmpline[:32]
-    nc.runid = tmpline[32:56]
+    nc.description = tmpline[2:34]
+    nc.rundes = tmpline[2:34]
+    nc.runid = tmpline[36:60]
     nc.model = 'ADCIRC'    
     nc.Software = 'Created with Python ' + sys.version
     nc.NetCDF_Lib = str(netCDF4.getlibversion())
@@ -223,6 +311,7 @@ def max63_to_nc(max63,varname='zeta',
     nodes = np.int(fobj.readline().split()[1])
     
     # Create dimensions
+    nc.createDimension('time',0)           # The unlimited dimension
     nc.createDimension('node',nodes)       # Number of nodes
     
     # Create time vector
@@ -274,12 +363,23 @@ def all_ascii2nc(runFld,ncFld):
     ------        
     *Still working on converting some adcirc files
     """
+    # Read input file to retrieve station information
+    fort15 = adcpre.readsta_fort15(runFld +'fort.15')
+    
     # Unstructured grid + bathy ------------------------------------------------
     if os.path.exists(runFld+'fort.14'):
         if not os.path.exists(ncFld+'fort.14.nc'):
             print('Creating fort.14.nc')
             adcpre.fort14_to_nc(runFld + 'fort.14',savename=ncFld+'fort.14.nc')
     
+    # fort.61-type files (scalars) ---------------------------------------------
+    # Water surface elevation
+    if os.path.exists(runFld+'fort.61'):
+        if not os.path.exists(ncFld+'fort.61.nc'):
+            print('Creating fort.61.nc')
+            fort61_to_nc(runFld + 'fort.61',fort15['nameel'],fort15['xel'],
+                         fort15['yel'],savename=ncFld+'fort.61.nc')
+            
     # fort.63-type files (scalars) ---------------------------------------------
     # Water surface elevation
     if os.path.exists(runFld+'fort.63'):
@@ -300,6 +400,12 @@ def all_ascii2nc(runFld,ncFld):
             fort63_to_nc(runFld + 'swan_HS.63',varname='swan_HS',
                          longname='significant wave height',
                          varunits='m',savename=ncFld+'swan_HS.63.nc')
+    if os.path.exists(runFld+'swan_HS_max.63'):
+        if not os.path.exists(ncFld+'swan_HS_max.63.nc'):
+            print('Creating swan_HS_max.63.nc')
+            fort63_to_nc(runFld + 'swan_HS_max.63',varname='swan_HS_max',
+                        longname='maximum significant wave height',
+                        varunits='m',savename=ncFld+'swan_HS_max.63.nc')
     # Mean wave direction
     if os.path.exists(runFld+'swan_DIR.63'):
         if not os.path.exists(ncFld+'swan_DIR.63.nc'):
@@ -307,6 +413,12 @@ def all_ascii2nc(runFld,ncFld):
             fort63_to_nc(runFld + 'swan_DIR.63',varname='swan_DIR',
                          longname='mean wave direction',
                          varunits='degrees',savename=ncFld+'swan_DIR.63.nc')
+    if os.path.exists(runFld+'swan_DIR_max.63'):
+        if not os.path.exists(ncFld+'swan_DIR_max.63.nc'):
+            print('Creating swan_DIR_max.63.nc')
+            fort63_to_nc(runFld + 'swan_DIR_max.63',varname='swan_DIR_max',
+                         longname='maximum mean wave direction',
+                         varunits='degrees',savename=ncFld+'swan_DIR_max.63.nc')
     # Mean absolute wave period
     if os.path.exists(runFld+'swan_TMM10.63'):
         if not os.path.exists(ncFld+'swan_TMM10.63.nc'):
@@ -314,6 +426,12 @@ def all_ascii2nc(runFld,ncFld):
             fort63_to_nc(runFld + 'swan_TMM10.63',varname='swan_TMM10',
                          longname='mean absolute wave period',
                          varunits='s',savename=ncFld+'swan_TMM10.63.nc')
+    if os.path.exists(runFld+'swan_TMM10_max.63'):
+        if not os.path.exists(ncFld+'swan_TMM10_max.63.nc'):
+            print('Creating swan_TMM10_max.63.nc')
+            fort63_to_nc(runFld + 'swan_TMM10_max.63',varname='swan_TMM10_max',
+                         longname='maximum TMM10 mean wave period',
+                         varunits='s',savename=ncFld+'swan_TMM10_max.63.nc')
     # Smoothed peak period
     if os.path.exists(runFld+'swan_TPS.63'):
         if not os.path.exists(ncFld+'swan_TPS.63.nc'):
@@ -321,6 +439,12 @@ def all_ascii2nc(runFld,ncFld):
             fort63_to_nc(runFld + 'swan_TPS.63',varname='swan_TPS',
                          longname='smoothed peak period',
                          varunits='s',savename=ncFld+'swan_TPS.63.nc')
+    if os.path.exists(runFld+'swan_TPS_max.63'):
+        if not os.path.exists(ncFld+'swan_TPS_max.63.nc'):
+            print('Creating swan_TPS_max.63.nc')
+            fort63_to_nc(runFld + 'swan_TPS_max.63',varname='swan_TPS_max',
+                         longname='maximum smoothed peak period',
+                         varunits='s',savename=ncFld+'swan_TPS_max.63.nc')
     
     # fort.64-type files (vectors) ---------------------------------------------
     # Depth average velocity 
