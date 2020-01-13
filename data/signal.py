@@ -127,20 +127,21 @@ def cross_corr(x,y,lags,norma=1.0):
 
 
 #===============================================================================
-# Variance spectrum
+# Variance spectrum (1-sided PSD)
 #===============================================================================
-def psdraw(ts,dt=1,demean=False):
+def psdraw(ts,dt=1,demean=False,window=False):
     """
 
     [freq,Sf] = psdraw(ts,dt,demean)
 
-    Compute the variance spectrum
+    Compute the variance spectrum (1-sided in the range [f_0,f_N])
 
     PARAMETERS:
     -----------
-    ts    : time series
-    dt    : sampling rate (in time domain)
-    demean: Remove mean
+    ts     : time series
+    dt     : sampling rate (in time domain)
+    demean : remove mean
+    window : flag to apply a hann window to the data
 
     RETURNS:
     --------
@@ -184,6 +185,11 @@ def psdraw(ts,dt=1,demean=False):
 
 
     """
+	
+    # Window data if requested
+    if window:
+        hannWind = spi.signal.hanning(ts.shape[0])
+        ts *= hannWind
 
     # Compute fourier frequencies
     fj = np.fft.fftfreq(N,dt)
@@ -193,18 +199,108 @@ def psdraw(ts,dt=1,demean=False):
     psd = N*dt*yf*np.conjugate(yf)
 
     # One sided psd from dft
-    if np.mod(N,2) == 0:
+    if np.mod(N,2) == 0: #if even
        sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N2],
                             np.array([psd[N2]])))
        freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N2],
                                          np.array([fj[N2]]))))
-    else:
+    else: #if odd
        sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N12]))
        freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N12])))
 
 
     # End of function
     return freq_amp,sf.real
+
+
+#===============================================================================
+# Variance spectrum (1-sided PSD) from subsampled time-series
+#===============================================================================
+def psd_subsamp(ts,dt,N_obs,window=True):
+    """
+
+    [freq,Sf] = psd_subsamp(ts,dt,N_obs):
+
+    Subsample time-series into windows, each with N_obs number of elements, 
+	compute the variance 1-sided spectrum of each window in the 
+	range [f_0,f_N], and then average all specs. 
+
+    PARAMETERS:
+    -----------
+    ts     : time series
+    dt     : sampling rate (in time domain)
+    N_obs  : number of observations per sample
+    window : apply a hann window to the data?
+
+    RETURNS:
+    --------
+    freq  : Spectral frequencies (Positive Fourier frequencies)
+    Sf    : Subsampled variance spectrum
+
+    NOTES:
+    ------
+    var(ts) = integrate(freq,Sf)
+        >>> np.var(ts)
+        >>> spi.integrate.trapz(Sf,freq)
+
+    Nyquist frequency = (2*dt)**-1
+
+    Frequency resolution = (N*dt)**-1
+    """
+
+     # Compute record length
+    N = np.int(ts.shape[0])
+
+    # Calculate number of samples each with length N_obs
+    samples = N//N_obs
+
+    # Prep window data if requested
+    if window:
+        hannWind = spi.signal.hann(N_obs)
+        boost_factor = 1 / np.mean(hannWind**2)
+
+    # Compute fourier frequencies
+    fj = np.fft.fftfreq(N_obs,dt)
+
+    # Preallocate psd
+    if np.mod(N_obs,2) == 0: #if even
+        N2 = N_obs//2       #np.int(N/2) #also works
+        psd_1sided = np.zeros([N2+1,samples])
+    else: #if odd
+        N2 = (N_obs+1)//2  #np.int((N+1)/2) #also works
+        psd_1sided = np.zeros([N2,samples])
+
+    # FFT & PSD
+    for ii in range(samples):
+        y = ts[ii*N_obs : (1+ii)*N_obs] * 1
+        y -= y.mean() # Remove mean
+        if window:
+            y *= hannWind # Apply window if requested
+
+        # Compute power spectral density (Cooley-Tukey Method)
+        yf = np.fft.fft(y)/N_obs
+        psd = (np.abs(yf)**2) * N_obs * dt
+        if window:
+            psd *= boost_factor
+                #N*dt*yf*np.conjugate(yf) * BoostFactor  #also works
+
+        # One sided psd from dft
+        if np.mod(N_obs,2) == 0: #if even
+           sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N2],
+                                np.array([psd[N2]])))
+           if ii == 0:
+               freq = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N2],
+                                                 np.array([fj[N2]]))))
+        else: #if odd
+           sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N2]))
+           if ii == 0:
+               freq = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N2])))
+
+        psd_1sided[:,ii] = sf.real		
+    psd_1sided = np.mean(psd_1sided,axis=1)
+	
+	# End of function
+    return freq,psd_1sided,samples
 
 
 # =============================================================================
@@ -1115,8 +1211,8 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
     
     NOTES:
     ------
-    - Need to provide freqmin or freqmax at least. Provide both for band pass
-      filtering.
+    - At least one filtering criteria is required (freqmin or freqmax).
+      Provide both for band pass filtering.
     - The mean will be added back to the time series after performing the 
       frequency domain filtering when demean=True.
     
