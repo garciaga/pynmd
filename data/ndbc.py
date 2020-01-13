@@ -663,9 +663,9 @@ def spec2nc(buoyfld,dtheta=5):
             
             # Read spectral data
             alpha_1 = np.loadtxt(tmp_alpha_1,skiprows=1)
-            alpha_2 = np.loadtxt(tmp_alpha_1,skiprows=1)
-            r_1 = np.loadtxt(tmp_alpha_1,skiprows=1) * 0.01
-            r_2 = np.loadtxt(tmp_alpha_1,skiprows=1) * 0.01
+            alpha_2 = np.loadtxt(tmp_alpha_2,skiprows=1)
+            r_1 = np.loadtxt(tmp_r_1,skiprows=1) * 0.01
+            r_2 = np.loadtxt(tmp_r_2,skiprows=1) * 0.01
     
             # Allocate date
             dir_time = np.zeros((alpha_1.shape[0]))              
