@@ -27,7 +27,7 @@ import netCDF4
 import pynmd.models.tools.unstructured as ustr
 
 # ==============================================================================
-# Read fort.14 ASCII file and save as nc file
+# Read fort.14 ASCII file and save as nc file (not necessary to run adcirc)
 # ==============================================================================
 def fort14_to_nc(fort14,**kwargs):
     """ 
@@ -37,7 +37,7 @@ def fort14_to_nc(fort14,**kwargs):
     PARAMETERS:
     -----------
     fort14: Path to fort14 file
-    savename(optional)
+    savepath(optional)
 
     RETURNS:
     --------
@@ -51,8 +51,8 @@ def fort14_to_nc(fort14,**kwargs):
     grid = ustr.read_fort14(fort14)
     
     # Create the file and add global attributes
-    if 'savename' in kwargs:
-        ncfile = kwargs['savename']
+    if 'savepath' in kwargs:
+        ncfile = kwargs['savepath']
     else:
         ncfile = fort14 + '.nc'
     nc = netCDF4.Dataset(ncfile, 'w', format='NETCDF4')

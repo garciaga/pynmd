@@ -84,6 +84,7 @@ def fort61_to_nc(fort61,staname,x,y,varname='zeta',
     nc.variables['time'].long_name = 'model time'
     nc.variables['time'].standard_name = 'time'
     nc.variables['time'].units = 'seconds since ' + ncdate
+    nc.variables['time'].base_date = ncdate
     
     # Create and store spatial variables
     nc.createVariable('station_name','S1',('station','namelen'))
@@ -172,6 +173,7 @@ def fort63_to_nc(fort63,varname='zeta',
     nc.variables['time'].long_name = 'model time'
     nc.variables['time'].standard_name = 'time'
     nc.variables['time'].units = 'seconds since ' + ncdate
+    nc.variables['time'].base_date = ncdate
     
     # Create the rest of the variables
     nc.createVariable(varname,'f8',('time','node'))
@@ -246,6 +248,7 @@ def fort64_to_nc(fort64,varname_xy=['u-vel','v-vel'],
     nc.variables['time'].long_name = 'model time'
     nc.variables['time'].standard_name = 'time'
     nc.variables['time'].units = 'seconds since ' + ncdate
+    nc.variables['time'].base_date = ncdate
     
     # Create the rest of the variables
     nc.createVariable(varname_xy[0],'f8',('time','node'))
@@ -324,6 +327,7 @@ def max63_to_nc(max63,varname='zeta',
     nc.variables['time'].long_name = 'model time'
     nc.variables['time'].standard_name = 'time'
     nc.variables['time'].units = 'seconds since ' + ncdate
+    nc.variables['time'].base_date = ncdate
     
     # Create the rest of the variables
     nc.createVariable(varname+'_max','f8','node')
