@@ -788,6 +788,10 @@ def readWind(windFile,atDiff=False):
                 vwnd.append(tmpData[ind:,:])
 
             # Did we reach end of file
+            if len(tmpline) == 0:
+                dataFlag = False
+                break
+            
             if len(tmpline[0]) < 1:
                 dataFlag = False
                 break
