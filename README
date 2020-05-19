@@ -2,7 +2,9 @@ General:
 --------
 
 pynmd is a collection of tools that we have developed for analyzing and
-processing oceanographic data.
+processing oceanographic data. This is really meant for personal use 
+across my computers but if you find anything useful here feel free to 
+download and use it. 
 
 Dependencies:
 -------------
@@ -11,7 +13,7 @@ scipy, numpy, netCDF4, matplotlib, pandas, okean
 
 Python:
 -------
-Developed for python 2.x
+Developed for python 3
 
 Functions:
 ----------
