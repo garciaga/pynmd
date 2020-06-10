@@ -435,7 +435,7 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
     # Create s_rho vector
     if s_rho:
         ds    = 1.0/s_rho
-        sigma = np.arange(ds/2.0,1-ds/2.0,ds)
+        sigma = np.arange(ds/2.0,1-ds/2.0+1e-10,ds)
         nc.createVariable('s_rho','f8',('s_rho'))
         nc.variables['s_rho'].longname = 's-coordinate at cell centers'
         nc.variables['s_rho'].positive = 'up'

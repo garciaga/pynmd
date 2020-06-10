@@ -2,7 +2,7 @@
 #
 # Last Edit:
 # 31 March 2015 - Gabriel Garcia Medina
-from . import adcirc
+#from . import adcirc
 from . import funwave
 from . import nhwave
 from . import roms
