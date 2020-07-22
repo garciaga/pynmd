@@ -8,7 +8,7 @@ download and use it.
 
 Dependencies:
 -------------
-scipy, numpy, netCDF4, matplotlib, pandas, okean
+scipy, numpy, netCDF4, matplotlib, pandas, okean, pyproj
 
 
 Python:
