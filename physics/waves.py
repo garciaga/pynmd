@@ -1327,7 +1327,7 @@ def iec_params(freq,dirs,spec,dpt,rho=1025.0):
 
     # Non directional parameters -----------------------------------------------    
     if ndirs > 1:
-        #freqSpec = np.trapz(spec,dirs,axis=-1)
+        #freqSpec = np.trapz(spec,dirs*np.pi/180,axis=-1)
         dth = dirs[1] - dirs[0]
         freqSpec = np.sum(spec,axis=-1)*dth
     else:

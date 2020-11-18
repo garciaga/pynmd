@@ -683,8 +683,7 @@ def readTable(tableFile):
         try:
             if len(units[aa]) == 1:
                 units[aa] = '[]'
-                aa += 1
-                units.pop(aa)
+                units.pop(aa+1)
         except:
             continue
     
@@ -725,7 +724,7 @@ def readTable(tableFile):
 
 
     # ==============================================================================
-    # Read and write variables to netCDF file
+    # Read and write variables to dictionary
     # ==============================================================================
 
     print("Reading the file contents ...")

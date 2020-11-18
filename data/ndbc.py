@@ -441,7 +441,7 @@ def spec2nc(buoyfld,dtheta=5):
     
     # Create output netcdf file ------------------------------------------------
     # Global attributes  
-    nc = netCDF4.Dataset(buoyfld + '/' + buoyid + '_spec.nc',
+    nc = netCDF4.Dataset(buoyfld + buoyid + '_spec.nc',
                          'w',format='NETCDF4')
     nc.Description = buoyid + ' NDBC Spectral Data'
     nc.Rawdata = 'National Data Buoy Center \nwww.ndbc.noaa.gov'
@@ -776,7 +776,7 @@ def spec2nc(buoyfld,dtheta=5):
     # Wrap up ------------------------------------------------------------------
     # Information
     print('Data stored as:')
-    print('  ' + buoyfld + '/' + buoyid + '.nc')
+    print('  ' + buoyfld + '/' + buoyid + '_spec.nc')
     
     # Close NetCDF File     
     nc.close()

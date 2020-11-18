@@ -47,6 +47,7 @@ def fort14_to_nc(fort14,**kwargs):
     nbdv:    node numbers on each elevation specified boundary segment
     nbvv:    node numbers on normal flow boundary segment
     depth:   depth at each node
+    
     """
     grid = ustr.read_fort14(fort14)
     
@@ -139,9 +140,17 @@ def readsta_fort15(fort15):
     
     """
     
-    grid = ustr.read_fort14(os.path.dirname(fort15)+'/fort.14')    
-    neta = grid['neta']
-    
+    # Get "neta" (total number of elevation boundary nodes) from grid file
+    fort14 = os.path.dirname(fort15)+'/fort.14'
+    if not os.path.isfile(fort14):
+        print ('fort.14 is not loacated in the same directory as fort.15')
+        fort14 = input("Please enter path to fort.14 file:\n")
+    try:
+        neta = ustr.read_fort14(fort14)['neta']
+    except IOError:
+        print("Grid file (fort.14) not accessible")
+            
+    # Open Model Parameter and Periodic Boundary Condition File
     fobj = open(fort15,'r')
     
     # Skip lines (checks are needed because the number of lines varies)
@@ -194,7 +203,7 @@ def readsta_fort15(fort15):
         for s in tmpline[2:]:
             n = n+s
         nameel[ii] = n[:50].ljust(50)
-    dic_el = {'nstae':nstae,'xel':xel,'yel':yel,'nameel':nameel}
+    dix = {'nstae':nstae,'xel':xel,'yel':yel,'nameel':nameel}
     
     # Velocity recording stations (fort.62 output)
     fobj.readline() #NOUTV, TOUTSV,TOUTFV, NSPOOLV
@@ -210,10 +219,9 @@ def readsta_fort15(fort15):
         for s in tmpline[2:]:
             n = n+s
         nameev[ii] = n[:50].ljust(50)
-    dic_ev = {'nstav':nstav,'xev':xev,'yev':yev,'nameev':nameev}
+    dix.update({'nstav':nstav,'xev':xev,'yev':yev,'nameev':nameev})
     
     # Concentration recording stations (fort.91 output)
-    dic_ec ={} #dummy
     if im==10:
         fobj.readline() #NOUTC, TOUTSC, TOUTFC, NSPOOLC
         nstac = np.int(fobj.readline().split()[0])
@@ -228,10 +236,9 @@ def readsta_fort15(fort15):
             for s in tmpline[2:]:
                 n = n+s
             nameec[ii] = n[:50].ljust(50)
-        dic_ec = {'nstac':nstac,'xev':xec,'yev':yec,'nameec':nameec}
+        dix.update({'nstac':nstac,'xev':xec,'yev':yec,'nameec':nameec})
         
     # Meterology recording stations (units 71&72 output)
-    dic_em ={} #dummy
     if nws != 0:
         fobj.readline() #NOUTM, TOUTSM, TOUTFM, NSPOOLM
         nstam = np.int(fobj.readline().split()[0])
@@ -246,10 +253,122 @@ def readsta_fort15(fort15):
             for s in tmpline[2:]:
                 n = n+s
             nameem[ii] = n[:50].ljust(50)
-        dic_em = {'nstam':nstam,'xem':xem,'yem':yem,'nameem':nameem}
+        dix.update({'nstam':nstam,'xem':xem,'yem':yem,'nameem':nameem})
     
     # Close ASCII file
     fobj.close()
     
     # Generate output
-    return {**dic_el,**dic_ev,**dic_ec,**dic_em}
+    return dix
+
+# ==============================================================================
+# Read fort.22 ASCII file and save as nc file (not necessary to run adcirc)
+# ==============================================================================
+def fort22nws5_to_nc(fort22,wtiminc,ncdate='0001-01-01 00:00:00 UTC',**kwargs):
+    """ 
+    Script to read fort.22 input file corresponding to a simulation of type
+    NWS=5 (wind velocity, every node, every WTIMINC) and store it in a 
+    netcdf4 file
+
+    PARAMETERS:
+    -----------
+    fort22:   path to fort22 file
+    wtiminc:  time increment between meteorological forcing data sets (in sec)
+    ncdate:   cold start date/time in CF standard: yyyy-MM-dd hh:mm:ss tz
+    nodes :   total number of nodes (optional). If not provided, code will 
+              attempt to read fort14 to obtain the node count
+    fort14:   path to fort14 file (optional, checked only if 'nodes' is not
+              provided, assumed to be in the same directory as fort22)
+    savepath: path to output nc file
+    
+    RETURNS:
+    --------
+    Netcdf containing values at each corresponding node
+    wvx,wvy: applied horizontal wind velocity in the x,y directions. An 
+             oceanographic convention is used where velocity is positive when
+             it is blowing toward positive coordinate directions. 
+    prn:     applied atmospheric pressure at the free surface
+    
+    """
+    
+    # Get total number of elevation boundary nodes from grid file
+    if 'nodes' in kwargs:
+        nodes = kwargs['nodes']
+    else:
+        if 'fort14' in kwargs:
+            fort14 = kwargs['fort14']
+        else:
+            fort14 = os.path.dirname(fort22)+'/fort.14'
+        if not os.path.isfile(fort14):
+            print ('Grid file (fort.14) was not specified and is not loacated '+ 
+                   'in the same directory as fort.22')
+            fort14 = input('Please enter path to fort.14 file (or quit and '+ 
+                           'provide total number of nodes):\n')
+        try:
+            with open(fort14,'r') as fobj:
+                fobj.readline() # Header line
+                nodes = np.int(fobj.readline().split()[1])
+        except IOError:
+            print("Grid file not accessible")
+        
+    # Create the file and add global attributes
+    if 'savepath' in kwargs:
+        ncfile = kwargs['savepath']
+    else:
+        ncfile = fort22 + '.nc'
+    nc = netCDF4.Dataset(ncfile, 'w', format='NETCDF4')
+    
+    # Global attributes 
+    nc.Author = getpass.getuser()
+    nc.Created = time.ctime()  
+    nc.Software = 'Created with Python ' + sys.version
+    nc.NetCDF_Lib = str(netCDF4.getlibversion())
+    
+    # Create dimensions
+    nc.createDimension('time',0)          # The unlimited dimension
+    nc.createDimension('node',nodes)      # Number of nodes
+    
+    # Create time vector
+    nc.createVariable('time','f8',('time'))
+    nc.variables['time'].long_name = 'model time'
+    nc.variables['time'].standard_name = 'time'
+    nc.variables['time'].units = 'seconds since ' + ncdate
+    nc.variables['time'].base_date = ncdate
+    
+    # Create variables
+    nc.createVariable('wvx','f8',('time','node'))
+    nc.variables['wvx'].long_name = 'applied horizontal wind velocity in the x direction'
+    nc.variables['wvx'].units = 'meters of water'
+    
+    nc.createVariable('wvy','f8',('time','node'))
+    nc.variables['wvy'].long_name = 'applied horizontal wind velocity in the y direction'
+    nc.variables['wvy'].units = 'meters of water'
+    
+    nc.createVariable('prn','f8',('time','node'))
+    nc.variables['prn'].long_name = 'applied atmospheric pressure at the free surface'
+    nc.variables['prn'].units = 'meters of water'
+    
+    # Open ascii file and store data in nc file
+    fobj = open(fort22,'r')
+    tt = 0
+    secs = 0
+    line = fobj.readline()
+    print('Working on time step:')
+    while line:
+        nc.variables['time'][tt] = secs
+        print('    '+str(tt))
+        for nn in range(0,nodes):
+            tmpline = [np.float64(a) for a in line.split(',')]
+            nc.variables['wvx'][tt,nn] = np.float64(tmpline[1])
+            nc.variables['wvy'][tt,nn] = np.float64(tmpline[2])
+            nc.variables['prn'][tt,nn] = np.float64(tmpline[3])
+            
+            line = fobj.readline()
+        tt += 1
+        secs += wtiminc
+    fobj.close()
+    
+    # All done here
+    nc.close()
+    fobj.close()
+    
