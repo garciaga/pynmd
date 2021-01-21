@@ -1523,3 +1523,47 @@ def runVar(y,span,nanTreat=False):
 
     return ybox
 
+# Spectral validation parameters -----------------------------------------------
+def angularValidation(x,y,deg=True):
+    '''
+    Compute angular bias and angular correlation based on 
+    Equations 12 and 13 from
+    Hanson et al 2009: Pacific Hindcast Performance, JTECH
+
+    PARAMETERS:
+    ----------
+    x,y    : Time series of the same length to compare. x is thought to be the
+             real (measured) data.
+    deg    : True for degrees and False for radians
+
+    RETURNS:
+    --------
+    A dictionary with the following parameters
+    abias  : Angular bias [input units]
+    cor    : Angular correlation
+
+    '''
+    if deg:
+        fac = np.pi / 180
+    else:
+        fac = 1.0
+
+    # Angular bias
+    # Equations 12 and 13 from 
+    # Hanson et al 2009: Pacific Hindcast Performance, JTECH
+    dth = np.abs(y - x)
+    s = np.sum(np.sin(dth * fac))
+    c = np.sum(np.cos(dth * fac))
+    angBias = np.arctan2(s,c) / fac
+
+    # Circular correlations
+    # Equation 14
+    x2 = np.sin((x - np.mean(x)) * fac)
+    y2 = np.sin((y - np.mean(y)) * fac)
+    nume = np.sum(x2 * y2)
+    deno = (np.sum(x2**2) * np.sum(y2**2))**0.5
+    cor = nume / deno
+    
+    N = x.shape[0]
+
+    return {'cor':cor,'N':N,'abias':angBias}
