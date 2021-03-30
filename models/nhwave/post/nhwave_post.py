@@ -296,7 +296,9 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
         
         if verbose:
             print("Input file not provided")
-    
+        
+        dx = 1.0
+        dy = 1.0 
 
 
     # If bathymetry file is given then the coordinates should be taken from 
@@ -322,10 +324,10 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
         # Check if it is a 1D or 2D model
         hdims = h.ndim                              # Horizontal dimensions
         if hdims == 1:
-            x_rho = np.arange(0,h.shape[0],1)
+            x_rho = np.arange(0,h.shape[0]*dx,dx)
         elif hdims == 2:
-            x_rho, y_rho = np.meshgrid(np.arange(0,h.shape[1],1),
-                                       np.arange(0,h.shape[0],1))
+            x_rho, y_rho = np.meshgrid(np.arange(0,h.shape[1]*dx,dx),
+                                       np.arange(0,h.shape[0]*dy,dy))
         else:
             print('Something is wrong with the depth file')
             print('Quitting...')
