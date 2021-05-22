@@ -26,10 +26,6 @@ def align_yticks(ax1,ax2,color1=True,color2=True):
     --------
     ax1,ax2
     
-    TODO:
-    -----
-    align_xticks
-    
     """
     
     # Get the data from the axes
@@ -89,10 +85,6 @@ def align_xticks(ax1,ax2,color1=True,color2=True):
     RETURNS:
     --------
     ax1,ax2
-    
-    TODO:
-    -----
-    align_xticks
     
     """
     
