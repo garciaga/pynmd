@@ -312,3 +312,35 @@ def ticksNonRectangularProj(ax,parallels,meridians,proj,minLon=120,maxLon=240):
         ax.set_xticklabels(labelStr)
 
     return ax
+
+# Create histogram
+def raw_hist(x,y,z=None,xbins=10,ybins=10):
+    """
+    Script to generate data for plotting 2d histograms (heatmaps)
+    """
+    keepInd = _np.logical_and(_np.isfinite(x),_np.isfinite(y))
+    zz,xx,yy = _np.histogram2d(x[keepInd],y[keepInd],bins=[xbins,ybins])
+    zz[_np.isclose(zz,0.0)] = _np.NAN           
+    zz = zz.T  # Massage for plotting
+    
+    # Compute avearge wave height per bin
+    if z:
+        hh = _np.zeros_like(zz) * _np.NAN
+        for ii in range(yy.shape[0]-1):
+            for jj in range(xx.shape[0]-1):
+                if _np.isnan(zz[ii,jj]):
+                    continue
+                keepIndPer = _np.logical_and(tp >= yy[ii], tp < yy[ii + 1])
+                keepIndDir = _np.logical_and(dp >= xx[jj], dp < xx[jj + 1])
+                keepInd = _np.logical_and(keepIndDir,keepIndPer)
+                hh[ii,jj] = _np.nanmean(hs[keepInd])
+
+    # Figure out axes
+    xx = 0.5 * (xx[1:] + xx[:-1])
+    yy = 0.5 * (yy[1:] + yy[:-1])
+    [xx,yy] = _np.meshgrid(xx,yy)
+    if z:
+        outList = (xx.flatten(),yy.flatten(),zz.flatten(),hh.flatten())
+    else:
+        outList = (xx.flatten(),yy.flatten(),zz.flatten())
+    return outList
