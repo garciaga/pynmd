@@ -307,7 +307,7 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
     if bathyfile: 
         ncfile = netCDF4.Dataset(bathyfile,'r')
         x_rho = ncfile.variables['x_rho'][:]
-        if ncfile.variables.has_key('y_rho'):
+        if 'y_rho' in ncfile.variables.keys():
             y_rho = ncfile.variables['y_rho'][:]
         h = ncfile.variables['h'][:]
         ncfile.close()
