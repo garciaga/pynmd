@@ -371,7 +371,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True,suffix='.txt'):
 # Spectral parameters code
 #===============================================================================
 
-def spec2nc(buoyfld,dtheta=5):
+def spec2nc(buoyfld,dtheta=5,fixNegative=False):
     '''
     Code to convert NDBC spectral data files to netCDF format. 
     
@@ -385,6 +385,8 @@ def spec2nc(buoyfld,dtheta=5):
                files in the folder.
     dtheta   : Directional resolution for the reconstruction of the frequency-
                direction spectrum. Defaults to 5 degrees. 
+    fixNegative : If true, redistributes negative energy into the positive
+                  components of the spectrum. 
     
     Notes:
       1. NetCDF4 file will be generated
@@ -398,7 +400,6 @@ def spec2nc(buoyfld,dtheta=5):
       
     TODO:
     - Only works with newer formats (YY MM DD hh mm)
-    - Fix negative energy (the fix is in the code just incorporate)
     '''
     
     # For testing only ---------------------------------------------------------
@@ -743,21 +744,22 @@ def spec2nc(buoyfld,dtheta=5):
                                             np.cos(2 * np.pi / 180.0 * 
                                                    (angles[dd]-alpha_2[bb,cc])))
                                            )
-#             CLEAN ME UP---------------
-#             # Get the positive energy
-#             tmpSpec = spec.copy()
-#             tmpSpec[tmpSpec<0] = 0.0
-#             tmpFreqSpec = np.sum(tmpSpec,axis=-1)*(dirs[2]-dirs[1])
-#             posEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
-#             
-#             # Get the total energy
-#             tmpFreqSpec = np.sum(spec,axis=-1)*(dirs[2]-dirs[1])
-#             totalEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
-#             
-#             # Scale the spectrum
-#             spec = np.array([spec[aa,...] * totalEnergy[aa]/posEnergy[aa] 
-#                              for aa in range(spec.shape[0])])
-#             spec[spec<0] = 0.0
+
+            # Get the positive energy
+            if fixNegative:
+                tmpSpec = wspec.copy()
+                tmpSpec[tmpSpec<0] = 0.0
+                tmpFreqSpec = np.sum(tmpSpec,axis=-1)*(dirs[2]-dirs[1])
+                posEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
+            
+                # Get the total energy
+                tmpFreqSpec = np.sum(np.abs(wspec),axis=-1)*(dirs[2]-dirs[1])
+                totalEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
+             
+                # Scale the spectrum
+                wspec = np.array([wspec[ii,...] * totalEnergy[ii] / posEnergy[ii] 
+                                 for ii in range(wspec.shape[0])])
+                wspec[wspec<0] = 0.0
 
             # Write to file
             if cnt_dir == 1:
