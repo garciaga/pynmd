@@ -87,6 +87,94 @@ def read_grid(grdFile):
             'nele':nele,'triang':ele}
 
 # ==============================================================================
+# Write grid file
+# ==============================================================================
+def write_grid(grd,outFld,casename):
+    """
+    Writes Casename_grd.dat file
+
+    PARAMETERS:
+    -----------
+    grd: Dictionary containing
+         x     : x or longitude of nodes
+         y     : y or latitude of nodes
+         triang: Elements (use zero counting)
+    outFld : Path to directory where file will be written
+    casename: String with name of file
+
+    NOTES:
+    ------
+    1. Zero counting convention used.
+
+    """
+
+    # Create the output file
+    outFile = outFld + '/' + casename + '_grd.dat'
+    print('Creating: ' + outFile)
+    
+    fid = open(outFile,'w')
+
+    # Write header lines
+    fid.write('Node Number = {:.0f}\n'.format(grd['x'].shape[0]))
+    fid.write('Cell Number = {:.0f}\n'.format(grd['triang'].shape[0]))
+
+    # Write triangulation
+    for ii in range(grd['triang'].shape[0]):
+        fid.write('{:.0f} {:.0f} {:.0f} {:.0f} 1\n'.format(ii+1,
+                        grd['triang'][ii,0] + 1,
+                        grd['triang'][ii,1] + 1,
+                        grd['triang'][ii,2] + 1))
+    
+    # Write nodes
+    for ii in range(grd['x'].shape[0]):
+        fid.write('{:.0f} {:.8f} {:.8f}\n'.format(ii + 1,
+                                                  grd['x'][ii],
+                                                  grd['y'][ii]))
+    
+    # Close now
+    fid.close()
+
+# ==============================================================================
+# Write grid file
+# ==============================================================================
+def write_dep(grd,outFld,casename):
+    """
+    Writes Casename_dep.dat file
+
+    PARAMETERS:
+    -----------
+    grd: Dictionary containing
+         x     : x or longitude of nodes
+         y     : y or latitude of nodes
+         d     : depth [meter]
+    outFld : Path to directory where file will be written
+    casename: String with name of file
+
+    NOTES:
+    ------
+    1. Depth in FVCOM is specified at the node point
+
+    """
+
+    # Create the output file
+    outFile = outFld + '/' + casename + '_dep.dat'
+    print('Creating: ' + outFile)
+    
+    fid = open(outFile,'w')
+
+    # Write header lines
+    fid.write('Node Number = {:.0f}\n'.format(grd['x'].shape[0]))
+
+    # Write nodes
+    for ii in range(grd['x'].shape[0]):
+        fid.write('{:.8f} {:.8f} {:.3f}\n'.format(grd['x'][ii],
+                                                  grd['y'][ii],
+                                                  grd['z'][ii]))
+    
+    # Close now
+    fid.close()
+
+# ==============================================================================
 # Read river file
 # ==============================================================================
 def read_river(rivFile):

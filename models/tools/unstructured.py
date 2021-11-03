@@ -100,6 +100,10 @@ def read_fort14(fort14):
     # Open boundary conditions -------------------------------------------------
     # Number of open boundaries
     tmpline = fobj.readline().split()
+    if len(tmpline) < 1:
+        return {'x':x,'y':y,'z':z,'triang':triang,
+                'nbdv':_np.NAN,'neta':_np.NAN,'nope':_np.NAN,
+                'nbvv':_np.NAN,'nvel':_np.NAN}
     nope = _np.int(tmpline[0])
     # Number of open boundary nodes
     tmpline = fobj.readline().split()
