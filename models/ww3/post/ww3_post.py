@@ -93,7 +93,15 @@ def read_spec(specfile,bulkparam=True):
     Kuik, A. J., G. P. van Vledder, and L. H. Holthuijsen, 1988: A method for
     the routine analysis of pitch-and-roll buoy wave data. Journal of Physical
     Oceanography, 18, 1020 - 1034.
-         
+
+    Notes
+    -----
+    1. WW3 provides the directions in a modified natical convention where the 
+       direction waves are going to (measured from true north) is given. 
+       a. To convert WW3 to Cartesian (degrees)
+          cart = 450 - WW3
+       b. To convert WW3 to traditional nautical convention
+          naut = 180 + WW3 
     '''
     
     # For code development only -----------------------------------------------
@@ -108,14 +116,9 @@ def read_spec(specfile,bulkparam=True):
     ldates = re.findall(r'\d{8}\s\d{6}',fobj.read())
     fobj.close()
     
-    # Number of dates
-    numdates = len(ldates)
-    
     # Get Datetime array
     wavetime = [datetime.datetime.strptime(x,"%Y%m%d %H%M%S") for x in ldates]
     # wavetime = np.asarray(wavetime)
-    
-    
     
     # Open the file
     fobj = open(specfile,'r')
@@ -170,8 +173,6 @@ def read_spec(specfile,bulkparam=True):
     cur          = np.zeros((npts,len(wavetime)))
     curdir       = np.zeros((npts,len(wavetime)))
     
-    
-    
     # Loop over the file to get spectral data
     for aa in range(len(wavetime)):
         
@@ -195,30 +196,36 @@ def read_spec(specfile,bulkparam=True):
             # Note: Wavewatch III does not provide a space between the latitude
             #       and the longitude if the longitude is a negative number
             #       and has 5 digits (i.e. longitude <= -100.00)
-            station_name[bb] = tmpstr[0][1::]           
-            if len(tmpstr) == 8:
-                latitude[bb]    = float(tmpstr[2].rsplit('-')[0])
-                longitude[bb]   = -1.0*float(tmpstr[2].rsplit('-')[1])
+            station_name[bb] = tmpstr[0][1:-1]
+            if len(tmpstr) == 7:
+                latitude[bb]    = float(tmpstr[1].rsplit('-')[0])
+                longitude[bb]   = -1.0*float(tmpstr[1].rsplit('-')[1])
+                dpt[bb,aa]      = float(tmpstr[2])
+                wnd[bb,aa]      = float(tmpstr[3])
+                wnddir[bb,aa]   = float(tmpstr[4])
+                cur[bb,aa]      = float(tmpstr[5])
+                curdir[bb,aa]   = float(tmpstr[6])
+            else:
+                latitude[bb]    = float(tmpstr[1])
+                longitude[bb]   = float(tmpstr[2])
                 dpt[bb,aa]      = float(tmpstr[3])
                 wnd[bb,aa]      = float(tmpstr[4])
                 wnddir[bb,aa]   = float(tmpstr[5])
                 cur[bb,aa]      = float(tmpstr[6])
                 curdir[bb,aa]   = float(tmpstr[7])
-            else:
-                latitude[bb]    = float(tmpstr[2])
-                longitude[bb]   = float(tmpstr[3])
-                dpt[bb,aa]      = float(tmpstr[4])
-                wnd[bb,aa]      = float(tmpstr[5])
-                wnddir[bb,aa]   = float(tmpstr[6])
-                cur[bb,aa]      = float(tmpstr[7])
-                curdir[bb,aa]   = float(tmpstr[8])
                                                
             # Read and allocate spectral data
             tmpline = fobj.readline().split() 
             tmpspec = [float(x) for x in tmpline]                      
-            if nfreq*ndir > len(tmpline):
-                for cc in range(int(np.floor(np.double(nfreq)*np.double(ndir)
-                                         /len(tmpline)))):
+            if nfreq*ndir > len(tmpline):                
+
+                if len(tmpline) == nfreq:
+                    tmpRange = range(ndir-1)                
+                else:
+                    tmpSize = np.double(nfreq)*np.double(ndir)
+                    tmpRange = range(int(np.floor(tmpSize/len(tmpline))))
+
+                for cc in tmpRange:
                     tmpline = fobj.readline().split()
                     tmpflt  = [float(x) for x in tmpline]
                     tmpspec.extend(tmpflt)
@@ -240,7 +247,9 @@ def read_spec(specfile,bulkparam=True):
     if bulkparam:
         
         # Frequency spectra
-        freq_spec = np.trapz(spec,direction,axis=-2)
+        # freq_spec = np.trapz(spec,direction,axis=-2) # Incorrect
+        dth = np.abs(direction[2] - direction[1])
+        freq_spec = np.sum(spec,axis=-2) * dth
         
         # Moments of spectra
         moment0 = np.trapz(freq_spec,frequency,axis=-1)
@@ -313,7 +322,6 @@ def read_spec(specfile,bulkparam=True):
         direction = direction[sortind]
         spec = spec[:,:,sortind,:]
 
-
         # Return values
         return {'name': station_name, 'latitude':latitude, 'longitude':longitude ,
                 'dpt':dpt,'wnd':wnd, 'wnddir':wnddir,'cur':cur, 'curdir':curdir,
@@ -336,6 +344,217 @@ def read_spec(specfile,bulkparam=True):
                 'direction':direction,'frequency':frequency,'spec':spec,
                 'wavetime':wavetime}
         
+# =============================================================================
+# Read source term output
+# =============================================================================
+def read_src_term(specfile,version='5.16',stot=True):
+    """
+    Reads the source term output from Wavewatch III
+       
+    read_src_term(specfile)
+    
+    Parameters
+    ----------
+    specfile       : Full path to the spectra file to be read (string)                    
+    
+    Returns
+    -------
+    ww3spec: dictionary
+             Contains
+               'fileId'       : spectral ouptut file identifier
+               'name          : station name
+               'latitude'     : decimal latitudes
+               'longitude'    : decimal longitudes
+               'dpt'          : depth time series
+               'wnd'          : 10m wind at the station
+               'wnddir'       : wind direction
+               'cur'          : flow velocity at the station
+               'curdir'       : flow direction
+               'direction'    : spectral directions in radians from true north
+               'frequency'    : spectral frequencies in Hz               
+               'wavetime'     : datetime array
+               'sterms'       : Dictionary containing 4D array of source term
+                                density data. Keys correspond to the source 
+                                term.
+
+    NOTES
+    -----
+    1. There are issues with the source term formatting in WW3 v5.16
+
+    """
+    
+    # Find the length of the file and get dates
+    # Add open error here and exit the code
+    fobj = open(specfile,'r')    
+    ldates = re.findall(r'\d{8}\s\d{6}',fobj.read())
+    fobj.close()
+        
+    # Get Datetime array
+    wavetime = [datetime.datetime.strptime(x,"%Y%m%d %H%M%S") for x in ldates]
+    # wavetime = np.asarray(wavetime)
+    
+    # Open the file
+    fobj = open(specfile,'r')
+    
+    # Read file information
+    # The header includes
+    # 'File ID', number of frequencies, number of directions, number of points,
+    #   Flags for spectrum, Sin, Snl, Sds, Sbt, Sice, Stot
+    tmpline  = fobj.readline()
+    fileId   = tmpline.split('\'')[1]
+    tmpline  = tmpline.split('\'')[2].split()
+    nfreq    = int(tmpline[0])
+    ndir     = int(tmpline[1])
+    npts     = int(tmpline[2])
+    
+    # All source term keys
+    if version == '5.16':
+        stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Sice','Stot']
+        #stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Stot'] # WW3 v4.18
+        fobj.readline().split() # There is a weird line in v5.16
+    else:
+        stkeysAll = ['SW','Sin','Snl','Sds','Sbt','Stot'] # WW3 v4.18
+    
+    # Activated source term keys only
+    stkeys = []
+    for aa in range(3,len(tmpline)):
+        if tmpline[aa] == 'T':
+            stkeys.append(stkeysAll[aa-3])            
+    
+    # The total source term flag is not being written in v5.16.
+    if version == '5.16' and stot:
+        stkeys.append(stkeysAll[-1])
+
+    # Get the frequencies
+    tmpline = fobj.readline().split()       # Get the first line
+    frequency = [float(x) for x in tmpline] # Allocate the first line
+    
+    # Verify if all the frequencies are in the first line
+    if nfreq > len(tmpline):
+        for aa in range(int(np.ceil(np.double(nfreq)/len(tmpline))-1)):
+            tmpline = fobj.readline().split()
+            tmpfreq = [float(x) for x in tmpline]
+            frequency.extend(tmpfreq)
+            del tmpfreq,tmpline
+    frequency = np.asarray(frequency)
+    
+    # Read the directions (in radians and oceanographic convention)
+    tmpline = fobj.readline().split()       
+    direction = [float(x) for x in tmpline] 
+    
+    # Verify if all the frequencies are in the first line
+    if ndir > len(tmpline):
+        for aa in range(int(np.ceil(np.double(ndir)/len(tmpline))-1)):
+            tmpline = fobj.readline().split()
+            tmpdir = [float(x) for x in tmpline]
+            direction.extend(tmpdir)
+            del tmpdir,tmpline
+    direction = np.asarray(direction)    
+    
+    # Sort directions
+    sortind = np.argsort(direction)
+    direction = direction[sortind]
+    
+    # Direction vector in degrees
+    # dir_degree = direction * 180.0/pi
+    
+    # Preallocate/Initialize variables
+    station_name = [None]*npts
+    latitude     = np.zeros(npts)
+    longitude    = np.zeros(npts)
+    dpt          = np.zeros((npts,len(wavetime)))
+    wnd          = np.zeros((npts,len(wavetime)))
+    wnddir       = np.zeros((npts,len(wavetime)))
+    cur          = np.zeros((npts,len(wavetime)))
+    curdir       = np.zeros((npts,len(wavetime)))
+    
+    # The source term dictionary
+    sterms = {}
+    for aa in stkeys:
+        sterms[aa] = np.zeros((npts,len(wavetime),ndir,nfreq))
+    
+    # Loop over the file to get source terms
+    # The looping order works as follows
+    # - Time -> aa
+    #   - Points -> bb
+    #     - Source terms -> dd
+    
+    for aa in range(len(wavetime)):
+        
+        # Read date line
+        tmpline = fobj.readline()
+        
+        # End of file reached
+        if tmpline == '':
+            break                 
+        
+        # Loop over data points
+        for bb in range(npts):
+            
+            # Read point information
+            tmpline = fobj.readline()
+
+            # Remove string markers
+            tmpline = tmpline.translate(None,'\'')
+            
+            # Store Point information
+            tmpstr = tmpline.split()
+            
+            # Station Information
+            # Note: Wavewatch III does not provide a space between the latitude
+            #       and the longitude if the longitude is a negative number
+            #       and has 5 digits (i.e. longitude <= -100.00)
+            station_name[bb] = tmpstr[0][:]            
+            if len(tmpstr) == 7:
+                latitude[bb]    = float(tmpstr[1].rsplit('-')[0])
+                longitude[bb]   = -1.0*float(tmpstr[1].rsplit('-')[1])
+                dpt[bb,aa]      = float(tmpstr[2])
+                wnd[bb,aa]      = float(tmpstr[3])
+                wnddir[bb,aa]   = float(tmpstr[4])
+                cur[bb,aa]      = float(tmpstr[5])
+                curdir[bb,aa]   = float(tmpstr[6])
+            else:
+                latitude[bb]    = float(tmpstr[1])
+                longitude[bb]   = float(tmpstr[2])
+                dpt[bb,aa]      = float(tmpstr[3])
+                wnd[bb,aa]      = float(tmpstr[4])
+                wnddir[bb,aa]   = float(tmpstr[5])
+                cur[bb,aa]      = float(tmpstr[6])
+                curdir[bb,aa]   = float(tmpstr[7])
+                                               
+            # Read and allocate the source term parameters
+            for dd in range(len(stkeys)):
+                           
+                tmpline = fobj.readline().split() 
+                tmpspec = [float(x) for x in tmpline]                      
+                if nfreq*ndir > len(tmpline):
+                    for cc in range(int(np.floor(np.double(nfreq)*np.double(ndir)
+                                             /len(tmpline)))):
+                        tmpline = fobj.readline().split()
+                        tmpflt  = [float(x) for x in tmpline]
+                        tmpspec.extend(tmpflt)
+                        del tmpflt,tmpline
+                tmpspec = np.asarray(tmpspec)
+                tmpspec = tmpspec.reshape((ndir,nfreq))
+                
+                # Sort directions
+                sterms[stkeys[dd]][bb,aa,...] = tmpspec[sortind,:]
+                          
+    # Close file
+    fobj.close()    
+    
+    # Convert spectrum and direction to oceanographic convention 
+    direction = gangles.wrapto2pi(np.pi + direction)
+    sortind = np.argsort(direction)
+    direction = direction[sortind]
+    for aa in sterms.keys():
+        sterms[aa] = sterms[aa][:,:,sortind,:]      
+    
+    # Return values
+    return {'name': station_name, 'latitude':latitude, 'longitude':longitude ,
+            'dpt':dpt,'wnd':wnd, 'wnddir':wnddir,'cur':cur, 'curdir':curdir,
+            'direction':direction,'frequency':frequency,'sterms':sterms,
+            'wavetime':wavetime,'fileId':fileId}
        
 #===============================================================================
 # Write spectral data in WW3 Format        
@@ -513,218 +732,82 @@ def write_nc_spec(latitude,longitude,spectrum,frequency,direction,time1,station,
     nc.variables['efth'][:] = spectrum
 
     nc.close()
-    
-
 
 # ==============================================================================
-# Subroutine to write bathymetry file ------------------------------------------
+# Read Wind Files 
 # ==============================================================================
-def write_bathy(outfld,lon,lat,depth,spherical=True):
-    '''
-    Function to generate bathymetry files to be used as input for WW3 v4.18
-    
-    PARAMETERS:
-    -----------
-    outfld        : folder to write the files to
-    lon           : longitudes (or x for cartesian) at every grid point 
-                    (I assume they have been meshgridded)
-    lat           : latitudes (or y for cartesian) at every grid point
-    spherical     : True for spherical grids and False for cartesian grids    
-    
-    OUTPUT:
-    -------
-    ww3_grid.bot  : ASCII file containing the grid depths
-    ww3_grid.lon  : ASCII file containing the longitudes (or x locations)
-    ww3_grid.lat  : ASCII file containing the latitudes (or y locations)
-    ww3_grid.nc   : NetCDF file containing the grid information
-    ww3_grid.inp  : Input file template to be used for the grid preprocessor. 
-                    You will need to fix many things it will probably not
-                    work out of the box. 
-    
-    NOTES:   
-    ------
-    I assume that if the grid is in spherical coordiantes the latitude and 
-        longitudes are given in decimal degrees (east). On the other hand if the 
-        grid is cartesian I assume meters.
-    
-    '''
-    
-    # Convert longitudes to degrees east 
-    lon = gangles.wrapto360(lon)
-    
-    # Write ascii files --------------------------------------------------------
-    # Bathymetry
-    fid = open(outfld + 'ww3_grid.bot','w')
-    for aa in range(depth.shape[0]):
-        for bb in range(depth.shape[1]):
-            fid.write('%12.4f' % depth[aa,bb])
-        fid.write('\n')
-    fid.close()
-    
-    
-    # Latitude File
-    fid = open(outfld + 'ww3_grid.lat','w')
-    for aa in range(lat.shape[0]):
-        for bb in range(lat.shape[1]):
-            fid.write('%12.4f' % lat[aa,bb])
-        fid.write('\n')
-    fid.close()
-    
-    
-    # Longitude File
-    fid = open(outfld + 'ww3_grid.lon','w')
-    for aa in range(lon.shape[0]):
-        for bb in range(lon.shape[1]):
-            fid.write('%12.4f' % lon[aa,bb])
-        fid.write('\n')
-    fid.close()
+def readWind(windFile,atDiff=False):
+    """
+    Read wind files in WW3 format
+    """
 
-    # Write netcdf file --------------------------------------------------------
+    # Find the length of the file and get dates
+    print('Finding time steps')
+    fobj = open(windFile,'r')    
+    ldates = re.findall(r'\d{8}\s\d{6}',fobj.read())
+    fobj.close()
     
-    # Global attributes  
-    nc = netCDF4.Dataset(outfld + 'ww3_grid.nc', 'w', format='NETCDF4')
-    nc.Description = 'Wavewatch III Bathymetry'
-    nc.Author = getpass.getuser()
-    nc.Created = time.ctime()
-    nc.Owner = 'Nearshore Modeling Group (http://ozkan.oce.orst.edu/nmg)'
-    nc.Software = 'Created with Python ' + sys.version
-    nc.NetCDF_Lib = str(netCDF4.getlibversion())
-    nc.Script = os.path.realpath(__file__)           
+    # Set as wavetime
+    windTime = [datetime.datetime.strptime(x,"%Y%m%d %H%M%S") for x in ldates]
+    windTime = np.array(windTime)
+
+    # Read wind data
+    print('Reading wind data')
+    uwnd = []      # Zonal Wind
+    vwnd = []      # Meridional Wind
+    astemp = []    # Air-sea temperature differences
+    tmpData = []   # Tmp data container
+
+    # Open the file
+    fobj = open(windFile,'r')
+    
+    # Discard the first line (it contains time information)
+    fobj.readline()
+    dataFlag = True
+    cnt = 0
+    while dataFlag:
         
-    # Create dimensions
-    nc.createDimension('xi_rho', lon.shape[1])
-    nc.createDimension('eta_rho',lon.shape[0])
-    
-    # Write coordinates and depth to netcdf file    
-    if spherical:
-        nc.createVariable('lat_rho','f8',('eta_rho','xi_rho'))
-        nc.variables['lat_rho'].units = 'degree_north'
-        nc.variables['lat_rho'].long_name = 'latitude of RHO-points'
-        nc.variables['lat_rho'][:] = lat
-    else:
-        nc.createVariable('y_rho','f8',('eta_rho','xi_rho'))
-        nc.variables['y_rho'].units = 'meter'
-        nc.variables['y_rho'].long_name = 'y location of RHO-points'
-        nc.variables['y_rho'][:] = lat
-    
-    # Write longitude
-    if spherical:
-        nc.createVariable('lon_rho','f8',('eta_rho','xi_rho'))
-        nc.variables['lon_rho'].units = 'degree_east'
-        nc.variables['lon_rho'].long_name = 'latitude of RHO-points'
-        nc.variables['lon_rho'][:] = lon
-    else:
-        nc.createVariable('x_rho','f8',('eta_rho','xi_rho'))
-        nc.variables['x_rho'].units = 'meter'
-        nc.variables['x_rho'].long_name = 'x location of RHO-points'
-        nc.variables['x_rho'][:] = lon
-        
-    # Write water depth
-    nc.createVariable('h','f8',('eta_rho','xi_rho'))
-    nc.variables['h'].units = 'meter'
-    nc.variables['h'].long_name = 'bathymetry at RHO-points'
-    nc.variables['h'][:] = depth          
+        # Read line
+        tmpline = fobj.readline().rstrip().split()
+        cnt += 1
+        # Another date stamp or file ended
+        if len(tmpline) <= 2:
+            # Allocate the wind data
+            tmpData = np.array(tmpData)
+            lats = tmpData.shape[0]
+            
+            if atDiff:
+                ind = np.int(lats/3)
+                ind2=ind*2 + 1
+                uwnd.append(tmpData[:ind,:])                
+                vwnd.append(tmpData[ind:ind2,:])
+                astemp.append(tmpData[ind2:,:])
+            else:
+                ind = np.int(lats/2)
+                uwnd.append(tmpData[:ind,:])
+                vwnd.append(tmpData[ind:,:])
 
-    # Close NetCDF file
-    nc.close()
-    
-    # Write input file for grid preprocessor ----------------------------------
-    
-    # Create a generic input file
-    fid = open(outfld + 'ww3_grid.inp','w')
-    
-    fid.write('$ ----------------------------------------------------------$\n')
-    fid.write('$ WAVEWATCH III Grid preprocessor input file                $\n')
-    fid.write('$ ----------------------------------------------------------$\n')
-    fid.write('\'Grid Name\'\n')
-    fid.write('$\n')
-    fid.write('1.1  0.030  40  36  0.\n')
-    fid.write('$\n')
-    fid.write('F T T T T T\n')
-    fid.write('$\n')
-    fid.write('3600. 600. 3600. 300.\n')
-    fid.write('$\n')
-    fid.write('END OF NAMELISTS\n')
-    fid.write('$\n')
-    fid.write('$ Define grid --------------------------------------------- $\n')
-    fid.write('$ Five records containing :\n')
-    fid.write('$  1 Type of grid, coordinate system and type of closure: GSTRG, FLAGLL,\n')
-    fid.write('$    CSTRG. Grid closure can only be applied in spherical coordinates.\n')
-    fid.write('$      GSTRG  : String indicating type of grid :\n')
-    fid.write('$               ''RECT''  : rectilinear\n')
-    fid.write('$               ''CURV''  : curvilinear\n')
-    fid.write('$      FLAGLL : Flag to indicate coordinate system :\n')
-    fid.write('$               T  : Spherical (lon/lat in degrees)\n')
-    fid.write('$               F  : Cartesian (meters)\n')
-    fid.write('$      CSTRG  : String indicating the type of grid index space closure :\n')
-    fid.write('$               ''NONE''  : No closure is applied\n')
-    fid.write('$               ''SMPL''  : Simple grid closure : Grid is periodic in the\n')
-    fid.write('$                         : i-index and wraps at i=NX+1. In other words,\n')
-    fid.write('$                         : (NX+1,J) => (1,J). A grid with simple closure\n')
-    fid.write('$                         : may be rectilinear or curvilinear.\n')
-    fid.write('$               ''TRPL''  : Tripole grid closure : Grid is periodic in the\n')
-    fid.write('$                         : i-index and wraps at i=NX+1 and has closure at\n')
-    fid.write('$                         : j=NY+1. In other words, (NX+1,J<=NY) => (1,J)\n')
-    fid.write('$                         : and (I,NY+1) => (MOD(NX-I+1,NX)+1,NY). Tripole\n')
-    fid.write('$                         : grid closure requires that NX be even. A grid\n')
-    fid.write('$                         : with tripole closure must be curvilinear.\n')
-    fid.write('$  2 NX, NY. As the outer grid lines are always defined as land\n')
-    fid.write('$    points, the minimum size is 3x3.\n')
-    fid.write('$  3 Unit number of file with x-coordinate.\n')
-    fid.write('$    Scale factor and add offset: x <= scale_fac * x_read + add_offset.\n')
-    fid.write('$    IDLA, IDFM, format for formatted read, FROM and filename.\n')
-    fid.write('$  4 Unit number of file with y-coordinate.\n')
-    fid.write('$    Scale factor and add offset: y <= scale_fac * y_read + add_offset.\n')
-    fid.write('$    IDLA, IDFM, format for formatted read, FROM and filename.\n')
-    fid.write('$  5 Limiting bottom depth (m) to discriminate between land and sea\n')
-    fid.write('$    points, minimum water depth (m) as allowed in model, unit number\n')
-    fid.write('$    of file with bottom depths, scale factor for bottom depths (mult.),\n')
-    fid.write('$    IDLA, IDFM, format for formatted read, FROM and filename.\n')
-    fid.write('$      IDLA : Layout indicator :\n')
-    fid.write('$                  1   : Read line-by-line bottom to top.\n')
-    fid.write('$                  2   : Like 1, single read statement.\n')
-    fid.write('$                  3   : Read line-by-line top to bottom.\n')
-    fid.write('$                  4   : Like 3, single read statement.\n')
-    fid.write('$      IDFM : format indicator :\n')
-    fid.write('$                  1   : Free format.\n')
-    fid.write('$                  2   : Fixed format with above format descriptor.\n')
-    fid.write('$                  3   : Unformatted.\n')
-    fid.write('$      FROM : file type parameter\n')
-    fid.write('$             ''UNIT'' : open file by unit number only.\n')
-    fid.write('$             ''NAME'' : open file by name and assign to unit.\n')
-    fid.write('$  If the Unit Numbers in above files is 10 then data is read from this file\n')
-    fid.write('$\n')
+            # Did we reach end of file
+            if len(tmpline) == 0:
+                dataFlag = False
+                break
+            
+            if len(tmpline[0]) < 1:
+                dataFlag = False
+                break
+            
+            # Reset the container
+            tmpData = []
 
-    # I prefer considering only curvilinear grids.     
-    if spherical:
-        fid.write('\'CURV\' T \'NONE\'\n')
-    else:
-        fid.write('\'CURV\' F \'NONE\'\n')
+        else:
+            # Store wind in temporary array
+            tmpData.append([np.float(bb) for bb in tmpline])
+    
+    fobj.close()
 
-    # Grid size
-    fid.write(np.str(lon.shape[1]) + '  ' + np.str(lon.shape[0]) + '\n')
-    
-    # Path to grid name
-    fid.write('           11 1.0 0. 1 1 \'(....)\'  \'NAME\'  \'ww3_grid.lon\'\n')
-    fid.write('           12 1.0 0. 1 1 \'(....)\'  \'NAME\'  \'ww3_grid.lat\'\n')
-    
-    # Bottom bathymetry information
-    fid.write('$ Bottom bathymetry\n')
-    fid.write(' -0.5 0.05 13        1 1 \'(....)\'  \'NAME\'  \'ww3_grid.bot\'\n')
-    fid.write('$ Subgrid Information\n')
-    fid.write('           10        1 1 \'(....)\'  \'PART\'  \'dummy\'\n')
-    
-    # Subgrid information
-    fid.write('$\n')
-    fid.write('  0   0   F\n')
-    fid.write('$\n')
-    fid.write('  0   0   F\n')
-    fid.write('  0   0\n')
-    fid.write('$\n')
-    fid.write('  0.  0.  0.  0.  0\n')
-    fid.write('$ ----------------------------------------------------------$\n')
-    fid.write('$ End of input file                                         $\n')
-    fid.write('$ ----------------------------------------------------------$\n')
+    # Generate arrays    
+    ww3 = {'ot':windTime,'uwnd':np.array(uwnd),'vwnd':np.array(vwnd)}
+    if atDiff:
+        ww3['tDiff'] = astemp
 
-    # Close input file
-    fid.close()
+    return ww3

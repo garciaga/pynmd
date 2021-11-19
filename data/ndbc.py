@@ -46,7 +46,7 @@ import glob
 #===============================================================================
 # Bulk parameter code
 #===============================================================================
-def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
+def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True,suffix='.txt'):
     '''
     Code to convert bulk parameter text files into netcdf file
     
@@ -93,7 +93,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
     # Loop over files
     for tmpFile in archivos:
         
-        if tmpFile.endswith('.txt'):
+        if tmpFile.endswith(suffix):
             
             if verbose:
                 print(tmpFile)
@@ -328,8 +328,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
     
     # Create dimensions  
     nc.createDimension('wave_time',None)
-    
-    
+        
     # pyroms subroutine to write NetCDF fields
     def write_nc_var(var, name, dimensions, units=None, longname=None):
         nc.createVariable(name, 'f8', dimensions)
@@ -372,7 +371,7 @@ def bulk2nc(buoyfld,buoyid,ncformat=4,verbose=True):
 # Spectral parameters code
 #===============================================================================
 
-def spec2nc(buoyfld,dtheta=5):
+def spec2nc(buoyfld,dtheta=5,fixNegative=False):
     '''
     Code to convert NDBC spectral data files to netCDF format. 
     
@@ -386,6 +385,8 @@ def spec2nc(buoyfld,dtheta=5):
                files in the folder.
     dtheta   : Directional resolution for the reconstruction of the frequency-
                direction spectrum. Defaults to 5 degrees. 
+    fixNegative : If true, redistributes negative energy into the positive
+                  components of the spectrum. 
     
     Notes:
       1. NetCDF4 file will be generated
@@ -398,8 +399,7 @@ def spec2nc(buoyfld,dtheta=5):
       Physical Oceanography, 18, 1020-1034.
       
     TODO:
-    Only works with newer formats (YY MM DD hh mm)
-    
+    - Only works with newer formats (YY MM DD hh mm)
     '''
     
     # For testing only ---------------------------------------------------------
@@ -442,7 +442,7 @@ def spec2nc(buoyfld,dtheta=5):
     
     # Create output netcdf file ------------------------------------------------
     # Global attributes  
-    nc = netCDF4.Dataset(buoyfld + '/' + buoyid + '_spec.nc',
+    nc = netCDF4.Dataset(buoyfld + buoyid + '_spec.nc',
                          'w',format='NETCDF4')
     nc.Description = buoyid + ' NDBC Spectral Data'
     nc.Rawdata = 'National Data Buoy Center \nwww.ndbc.noaa.gov'
@@ -664,9 +664,9 @@ def spec2nc(buoyfld,dtheta=5):
             
             # Read spectral data
             alpha_1 = np.loadtxt(tmp_alpha_1,skiprows=1)
-            alpha_2 = np.loadtxt(tmp_alpha_1,skiprows=1)
-            r_1 = np.loadtxt(tmp_alpha_1,skiprows=1) * 0.01
-            r_2 = np.loadtxt(tmp_alpha_1,skiprows=1) * 0.01
+            alpha_2 = np.loadtxt(tmp_alpha_2,skiprows=1)
+            r_1 = np.loadtxt(tmp_r_1,skiprows=1) * 0.01
+            r_2 = np.loadtxt(tmp_r_2,skiprows=1) * 0.01
     
             # Allocate date
             dir_time = np.zeros((alpha_1.shape[0]))              
@@ -744,7 +744,23 @@ def spec2nc(buoyfld,dtheta=5):
                                             np.cos(2 * np.pi / 180.0 * 
                                                    (angles[dd]-alpha_2[bb,cc])))
                                            )
+
+            # Get the positive energy
+            if fixNegative:
+                tmpSpec = wspec.copy()
+                tmpSpec[tmpSpec<0] = 0.0
+                tmpFreqSpec = np.sum(tmpSpec,axis=-1)*(dirs[2]-dirs[1])
+                posEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
             
+                # Get the total energy
+                tmpFreqSpec = np.sum(np.abs(wspec),axis=-1)*(dirs[2]-dirs[1])
+                totalEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
+             
+                # Scale the spectrum
+                wspec = np.array([wspec[ii,...] * totalEnergy[ii] / posEnergy[ii] 
+                                 for ii in range(wspec.shape[0])])
+                wspec[wspec<0] = 0.0
+
             # Write to file
             if cnt_dir == 1:
                 nc.variables['dir_spec'+formId][:] = wspec
@@ -762,10 +778,180 @@ def spec2nc(buoyfld,dtheta=5):
     # Wrap up ------------------------------------------------------------------
     # Information
     print('Data stored as:')
-    print('  ' + buoyfld + '/' + buoyid + '.nc')
+    print('  ' + buoyfld + '/' + buoyid + '_spec.nc')
     
     # Close NetCDF File     
     nc.close()
         
+
+#===============================================================================
+# Bulk parameter code
+#===============================================================================
+def bulk2ncCanada(buoyFld,buoyId,verbose=True):
+    '''
+    Code to convert bulk parameter text files from Peches et Oceans Canada
+    into netcdf file.
+    
+    Usage:
+    ------
+    bulk2ncCanada(buoyfld,buoyid,verbose)
+    
+    Input:
+    ------
+    buoyfld  = Folder where the bulk paramerter text files reside.
+    buoyid   = Netcdf buoy identifier (to figure out the file names)
+    verbose  = some extra information (True is default)
+    
+    Notes:
+    Only the bulk parameter files must be present in that directory. The code is
+    not smart enough (and I do not have the time to make it so) to figure out 
+    the bulk parameter files. 
+    
+    '''
+    
+    #===========================================================================
+    # Read and Clean Up Data
+    #===========================================================================
+    
+    # Dictionary translating from Canadian to US
+    varNames = {'VCAR':'WVHT',
+                'VTPK':'DPD',
+                'GSPD':'GST',
+                'SSTP':'WTMP',
+                'DATE':'wave_time'
+                }
+
+    # They provide just one file
+    archivo = buoyFld + '/c' + buoyId + '.csv'
+
+    # Get the variable keys
+    fobj = open(archivo) 
+             
+    # Get variable names
+    varkeys = fobj.readline().rstrip()[:-1].split(',')
+
+    # Translate variables 
+    for aa in range(len(varkeys)):
+        if varkeys[aa] in varNames:
+            varkeys[aa] = varNames[varkeys[aa]]
+
+    # Create netcdf file -------------------------------------------------------
+    nc = netCDF4.Dataset(buoyFld + '/' + buoyId + '.nc', 'w', format='NETCDF4')
+    nc.Description = buoyId + ' Environment Canada Bulk Parameter Data'
+    nc.rawdata = ('Fisheries and Oceans Canada\n' + 
+                  'http://www.meds-sdmm.dfo-mpo.gc.ca/isdm-gdsi/waves-vagues/index-eng.htm')
+    nc.Created = time.ctime()
+    nc.Software = 'Created with Python ' + sys.version
+    nc.NetCDF_Lib = str(netCDF4.getlibversion())
+    nc.Script = os.path.realpath(__file__)
+    
+    # Create dimensions  
+    nc.createDimension('wave_time',None)
+    
+    # Create netcdf variables
+    def create_nc_var(name, dimensions, units=None, longname=None):
+        nc.createVariable(name, 'f8', dimensions)
+        if units is not None:
+            nc.variables[name].units = units  
+        if longname is not None:
+            nc.variables[name].long_name = longname           
+    
+    # Create NetCDF variables
+    create_nc_var('wave_time','wave_time',
+                 'seconds since 1900-01-01 00:00:00','measurement time UTC')
+    if 'Q_FLAG' in varkeys:
+        create_nc_var('Q_FLAG','wave_time','',
+                      'Quality Codes\n' + 
+                      '0: No quality control has been performed\n' + 
+                      '1: Good - QC has been performed: record appears correct\n' + 
+                      '3: Doubtful - QC has been performed\n' + 
+                      '4: Erroneous - QU has been performed\n' + 
+                      '5: Changes - The record has been changed as a result of QC\n' +
+                      '6: Acceptable - QC has been performed: record seems ' + 
+                      'inconsistent with other records\n' + 
+                      '7: Off Position - There is a problem with the buoy ' +
+                      'position or mooring. Data may steel be useful')
+    if 'LATITUDE' in varkeys:
+        create_nc_var('LATITUDE','wave_time','degrees','Latitude')
+    if 'LONGITUDE' in varkeys:
+        create_nc_var('LONGITUDE','wave_time','degrees','Longitude')
+    if 'DEPTH' in varkeys:
+        create_nc_var('DEPTH','wave_time','meter','water depth')
+    if 'WVHT' in varkeys:
+        create_nc_var('WVHT','wave_time','meter',
+                      'Significant wave height during the 20 minute sampling period')
+    if 'DPD' in varkeys:
+        create_nc_var('DPD','wave_time','second',
+                      'Dominant wave period (period with the maximum wave energy)')
+    if r'VWH$' in varkeys:
+        create_nc_var('VWH$','wave_time','meter',
+                      'Significant wave height (reported by the buoy)')
+    if 'VCMX' in varkeys:
+        create_nc_var('VCMX','wave_time','meter',
+                      'Maximum zero crossing wave height (reported by buoy)')
+    if r'VTP$' in varkeys:
+        create_nc_var('VTP$','wave_time','second',
+                      'Wave spectrum peak period (reported by the buoy)')
+    if 'WDIR' in varkeys:
+        create_nc_var('WDIR', 'wave_time', 'degrees',
+                      'Wind direction (direction the wind is coming from in ' + 
+                      'degrees clockwise from true North')
+    if 'WSPD' in varkeys:
+        create_nc_var('WSPD', 'wave_time', 'meter second-1',
+                     'Horizontal wind speed')
+    if r'WSS$' in varkeys:
+        create_nc_var('WSS$','wave_time','meter second-1',
+                      'Horizontal scalar wind speed')
+    if 'GST' in varkeys:
+        create_nc_var('GST','wave_time','meter second-1',
+                      'Gust wind speed')
+    if 'ATMS' in varkeys:
+        create_nc_var('ATMS','wave_time','mbar',
+                      'Atmospheric pressure at sea level')
+    if 'DRYT' in varkeys:
+        create_nc_var('DRYT','wave_time','Celsius',
+                      'Dry bulb temperature')
+    if 'WTMP' in varkeys:
+        create_nc_var('WTMP','wave_time','Celsius',
+                      'Sea surface temperature')
+
+    if 'ATMS1' in varkeys:
+        create_nc_var('ATMS1','wave_time','mbar',
+                      'Atmospheric pressure at sea level')    
+    if 'WSPD1' in varkeys:
+        create_nc_var('WSPD1', 'wave_time', 'meter second-1',
+                     'Horizontal wind speed')
+
+    # Load wave data ----------------------------------------------
+    cnt = -1 # Counter variable for storing to file
+    # Read line by line
+    for tmpline in fobj:
+
+        # Counter variable for NetCDF4 storage
+        cnt += 1
+
+        # Parse input line
+        tmpline = tmpline.rstrip().split(',')
+
+        # Process time file
+        # Datetime object
+        tmptime = datetime.datetime.strptime(tmpline[1],'%m/%d/%Y %H:%M')
+        # Seconds since 20th Century
+        sectime = tmptime - datetime.datetime(1900,1,1,0,0,0)
+        secsecs = sectime.total_seconds()
+        # Write to file
+        nc['wave_time'][cnt] = secsecs
+        
+        # Write the rest of the variables
+        for aa in range(2,len(varkeys)): 
+            try:           
+                tmpvar = np.float(tmpline[aa])
+            except:
+                tmpvar = -99.0
+            nc[varkeys[aa]][cnt] = tmpvar
+
+    # Close files
+    fobj.close()    
+    nc.close()
 
     

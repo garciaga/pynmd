@@ -26,7 +26,7 @@ import pynmd.physics.waves as _gwaves
 # Stockdon 2006
 #===============================================================================
 def stockdon2006(H,L,B):
-    '''
+    """
     Estimate runup based on the parametric relation by Stockdon et al 2006.
     
     USAGE:
@@ -56,7 +56,7 @@ def stockdon2006(H,L,B):
         parameterization of setup, swash, and runup. Coastal Engineering, 53,
         573-588.
         
-    '''
+    """
     
     # Make sure parameters are double
     H = np.double(H)
@@ -167,14 +167,14 @@ def ruggiero2001(H,L,B):
 # Guza and Feddersen
 #===============================================================================
 def guza2012(H,L,Fw,Ds=1.0):
-    '''
-    Estimate the expected infragravity runup based on the parametric relation 
+    """
+    Estimate the expected infragravity swash based on the parametric relation 
     by Guza and Feddersen 2012.
 
     
     USAGE:
     ------
-    R2 = guza2012(H,L,B,Fw,Ds)
+    Sig = guza2012(H,L,Fw,Ds)
     
     PARAMETERS:
     -----------
@@ -185,14 +185,15 @@ def guza2012(H,L,Fw,Ds=1.0):
     
     RETURNS:
     --------
-    R2 : 2% Runup exceedence [m]
+    Sig : Infragravity swash [m]
     
     NOTES:
     ------
-    R2 = (-0.013 ln(Fp*Ds/Fw) + 0.058)*(HL)**0.5
+    R2% = A(setup + S/2) = A(setup + 0.5*(Sig**2 + Sinc**2)**0.5)
+
+    Sig = (-0.013 ln(Fp*Ds/Fw) + 0.058)*(HL)**0.5 (Eq 4)
     
     This equation was derived for iribarren number < 0.4.
-    
     
     REFERENCES:
     -----------
@@ -200,12 +201,11 @@ def guza2012(H,L,Fw,Ds=1.0):
         spread on shoreline runup. Geophysical Research Letters, 39, L11607, 
         doi:10.1029/2012GL051959.
         
-    '''
+    """
     
     # Make sure parameters are double precision
     H  = np.double(H)
     L  = np.double(L)
-    B  = np.double(B)
     Fw = np.double(Fw)
     Ds = np.double(Ds)
     

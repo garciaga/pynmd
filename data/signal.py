@@ -61,7 +61,7 @@ def cross_corr(x,y,lags,norma=1.0):
 
     Results
     -------
-       - rho   : cross(auto)-correlation coefficient
+       - rho   : cross(auto)-correlation coefficient (aka R)
        - stats : lag, cross(auto)-covariance, x standard deviation,
                  y standard deviation, number of observations
 
@@ -127,20 +127,21 @@ def cross_corr(x,y,lags,norma=1.0):
 
 
 #===============================================================================
-# Variance spectrum
+# Variance spectrum (1-sided PSD)
 #===============================================================================
-def psdraw(ts,dt=1,demean=False):
+def psdraw(ts,dt=1,demean=False,window=False):
     """
 
     [freq,Sf] = psdraw(ts,dt,demean)
 
-    Compute the variance spectrum
+    Compute the variance spectrum (1-sided in the range [f_0,f_N])
 
     PARAMETERS:
     -----------
-    ts    : time series
-    dt    : sampling rate (in time domain)
-    demean: Remove mean
+    ts     : time series
+    dt     : sampling rate (in time domain)
+    demean : remove mean
+    window : flag to apply a hann window to the data
 
     RETURNS:
     --------
@@ -163,7 +164,9 @@ def psdraw(ts,dt=1,demean=False):
         ts -= ts.mean()
 
     # Compute record length
-    N = ts.shape[0]
+    N = np.int(ts.shape[0])
+    N2 = np.int(N/2)
+    N12 = np.int((N+1)/2)
 
     # Another way that is equivalent for reference
     """
@@ -182,6 +185,11 @@ def psdraw(ts,dt=1,demean=False):
 
 
     """
+	
+    # Window data if requested
+    if window:
+        hannWind = spi.signal.hanning(ts.shape[0])
+        ts *= hannWind
 
     # Compute fourier frequencies
     fj = np.fft.fftfreq(N,dt)
@@ -191,18 +199,108 @@ def psdraw(ts,dt=1,demean=False):
     psd = N*dt*yf*np.conjugate(yf)
 
     # One sided psd from dft
-    if np.mod(N,2) == 0:
-       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N/2],
-                            np.array([psd[N/2]])))
-       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N/2],
-                                         np.array([fj[N/2]]))))
-    else:
-       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:(N+1)/2]))
-       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:(N+1)/2])))
+    if np.mod(N,2) == 0: #if even
+       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N2],
+                            np.array([psd[N2]])))
+       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N2],
+                                         np.array([fj[N2]]))))
+    else: #if odd
+       sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N12]))
+       freq_amp = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N12])))
 
 
     # End of function
     return freq_amp,sf.real
+
+
+#===============================================================================
+# Variance spectrum (1-sided PSD) from subsampled time-series
+#===============================================================================
+def psd_subsamp(ts,dt,N_obs,window=True):
+    """
+
+    [freq,Sf] = psd_subsamp(ts,dt,N_obs):
+
+    Subsample time-series into windows, each with N_obs number of elements, 
+	compute the variance 1-sided spectrum of each window in the 
+	range [f_0,f_N], and then average all specs. 
+
+    PARAMETERS:
+    -----------
+    ts     : time series
+    dt     : sampling rate (in time domain)
+    N_obs  : number of observations per sample
+    window : apply a hann window to the data?
+
+    RETURNS:
+    --------
+    freq  : Spectral frequencies (Positive Fourier frequencies)
+    Sf    : Subsampled variance spectrum
+
+    NOTES:
+    ------
+    var(ts) = integrate(freq,Sf)
+        >>> np.var(ts)
+        >>> spi.integrate.trapz(Sf,freq)
+
+    Nyquist frequency = (2*dt)**-1
+
+    Frequency resolution = (N*dt)**-1
+    """
+
+     # Compute record length
+    N = np.int(ts.shape[0])
+
+    # Calculate number of samples each with length N_obs
+    samples = N//N_obs
+
+    # Prep window data if requested
+    if window:
+        hannWind = spi.signal.hann(N_obs)
+        boost_factor = 1 / np.mean(hannWind**2)
+
+    # Compute fourier frequencies
+    fj = np.fft.fftfreq(N_obs,dt)
+
+    # Preallocate psd
+    if np.mod(N_obs,2) == 0: #if even
+        N2 = N_obs//2       #np.int(N/2) #also works
+        psd_1sided = np.zeros([N2+1,samples])
+    else: #if odd
+        N2 = (N_obs+1)//2  #np.int((N+1)/2) #also works
+        psd_1sided = np.zeros([N2,samples])
+
+    # FFT & PSD
+    for ii in range(samples):
+        y = ts[ii*N_obs : (1+ii)*N_obs] * 1
+        y -= y.mean() # Remove mean
+        if window:
+            y *= hannWind # Apply window if requested
+
+        # Compute power spectral density (Cooley-Tukey Method)
+        yf = np.fft.fft(y)/N_obs
+        psd = (np.abs(yf)**2) * N_obs * dt
+        if window:
+            psd *= boost_factor
+                #N*dt*yf*np.conjugate(yf) * BoostFactor  #also works
+
+        # One sided psd from dft
+        if np.mod(N_obs,2) == 0: #if even
+           sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N2],
+                                np.array([psd[N2]])))
+           if ii == 0:
+               freq = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N2],
+                                                 np.array([fj[N2]]))))
+        else: #if odd
+           sf = np.concatenate((np.array([psd[0]]),2.0*psd[1:N2]))
+           if ii == 0:
+               freq = np.abs(np.concatenate((np.array([fj[0]]),fj[1:N2])))
+
+        psd_1sided[:,ii] = sf.real		
+    psd_1sided = np.mean(psd_1sided,axis=1)
+	
+	# End of function
+    return freq,psd_1sided,samples
 
 
 # =============================================================================
@@ -420,7 +518,9 @@ def squared_coherence(x,y,stencil,dt=1,cl=0.95):
     tl = pxy_ba/(2.0 * np.pi * fj_ba)
 
     # End of function
-    return fj_ba,g2.real,g2crit,sxy_conj_ba,sxy_ba,sxx_ba,syy_ba,pxy_ba,pcl,tl
+    return {'freq':fj_ba,'g2':g2.real,'g2crit':g2crit,
+            'sxy_conj':sxy_conj_ba,'sxy':sxy_ba,'sxx':sxx_ba,'syy':syy_ba,
+            'pxy':pxy_ba,'pcl':pcl,'tl':tl}   
 
 
 #===============================================================================
@@ -474,8 +574,8 @@ def band_averaging(psd,freq,stencil):
     for aa in range(1,Nout-1):
 
         # Find averaging limits
-        ind_low = (aa - 1.0)*stencil + 1.0
-        ind_high = ind_low + stencil
+        ind_low = np.int((aa - 1.0)*stencil + 1.0)
+        ind_high = np.int(ind_low + stencil)
 
         # Band averaging
         psd_ba[aa] = np.mean(psd[ind_low:ind_high])
@@ -493,7 +593,7 @@ def band_averaging(psd,freq,stencil):
 #===============================================================================
 # Very simple implementation of a boxcar function for averaging purposes.
 #===============================================================================
-def boxcar(y,span,nanTreat=False):
+def boxcar(y,span,nanTreat=False,endTreat=True):
     """
 
     Usage:
@@ -553,13 +653,18 @@ def boxcar(y,span,nanTreat=False):
             ybox[aa] = np.sum(y[aa-offset:aa+offset+1],axis=0)/width
 
     # Provide end treatment
-    for aa in range(0,first):
-        ybox[aa] = (np.sum(y[0:aa+offset+1],axis=0) /
-                    (aa + offset + 1.0))
+    if endTreat:
+        for aa in range(0,first):
+            ybox[aa] = (np.sum(y[0:aa+offset+1],axis=0) /
+                        (aa + offset + 1.0))
 
-    for aa in range(last+1,y.shape[0]):
-        ybox[aa] = (np.sum(y[aa-offset::],axis=0) /
-                    (y.shape[0] - aa + offset + 0.0))
+        for aa in range(last+1,y.shape[0]):
+            ybox[aa] = (np.sum(y[aa-offset::],axis=0) /
+                        (y.shape[0] - aa + offset + 0.0))
+    
+    else:
+        ybox[:first] = y[:first]
+        ybox[last:]  = y[last:]
 
     return ybox
 
@@ -831,6 +936,7 @@ def basic_stats(x,y):
     rmse   : Root-mean squared error [input units squared]
     nrmse  : Normalized root-mean squared error [percentage]
     bias   : Bias [input units]
+    pbias  : Percent bias
     si     : Scatter index
     r2     : Linear correlation coefficient    
 
@@ -845,8 +951,14 @@ def basic_stats(x,y):
     # Normalized root mean squared error
     nrmse = 100.0*(np.sum(((x - y)/x)**2)/N)**0.5
 
+    # Percent error
+    pe = 100 / N * np.sum((y - x)/x)
+
     # Bias
     bias = np.sum(y - x)/N
+
+    # Percent bias
+    pbias = (np.sum(y) - np.sum(x)) / np.sum(x) * 100.0
 
     # Scatter index
     si = rmse/np.mean(x)
@@ -859,8 +971,8 @@ def basic_stats(x,y):
     #Nstar = essize(x,y)[0]
     
     # Function output
-    return {'N':N, 'rmse':rmse,'nrmse':nrmse,
-            'bias':bias,'si':si,'r2':r2[0]}
+    return {'N':N, 'rmse':rmse,'nrmse':nrmse,'pbias':pbias,
+            'bias':bias,'si':si,'r2':r2[0],'pe':pe}
 
 
 
@@ -955,7 +1067,7 @@ def synthetic_ts(freq,spec,rseed=None):
 
     USAGE:
     ------
-    [t,syntTs] = synthetic_ts(freq,spec)
+    [t,syntTs] = synthetic_ts(freq,spec[,rseed])
 
     PARAMETERS:
     -----------
@@ -1025,6 +1137,58 @@ def synthetic_ts(freq,spec,rseed=None):
     return t,syntTs
 
 
+
+	
+#==============================================================================
+# Directional spread function
+#==============================================================================
+def dir_spread(thetad,S,ind_f):
+    '''
+    Calculates directional spread (as a function of frequency)
+
+    USAGE:
+    ------
+    thetad, G_theta = wrapped_sf(thetad_peak,sigma_thetad[,mtheta,N,eq_bins])
+
+    PARAMETERS:
+    -----------
+    thetad   : Spectral directions in degrees
+    S        : Frequency-direction sprectrum, S(f,theta) [m**2/Hz/rad]
+    ind_f    : Frequency indices (give peak frequency index for a single directional spread value)
+
+    RETURNS:
+    --------
+    sigd    : Directional spread in degrees
+
+    METHOD:
+    -------
+    1. tan[2*theta_mean(f)] = int{-pi,pi}[(sin(2theta) * S(f,theta)) * dtheta] / 
+							  int{-pi,pi}[(cos(2theta) * S(f,theta)) * dtheta]
+    2. sigma**2(f)= int{-pi,pi}[(sin**2[theta-theta_mean(f)] * S(f,theta)) * dtheta] / E(f)
+	3. sigma(f) = (sigma**2(f)) **.5
+
+    NOTES:
+    -----
+
+    '''
+    # Convert to radians
+    theta = np.deg2rad(thetad)
+    
+    # Calculate mean direction
+    tan2thetam = np.trapz( np.squeeze(np.sin(2*theta)*S[ind_f,:]),x=theta) / np.trapz( np.squeeze(np.cos(2*theta)*S[ind_f,:]),x=theta)
+    theta_m = np.arctan(tan2thetam * .5)
+    
+    # Calculate frequency spectrum
+    ef = np.trapz(S,x=theta,axis=1)
+    
+    # Calculate the directional spread
+    sig2 = np.trapz( np.squeeze(np.sin(theta*theta_m)**2 *S[ind_f,:]),x=theta) / ef[ind_f]
+    sigd = np.rad2deg(sig2 ** .5) 
+    
+    return sigd
+
+
+
 #===============================================================================
 # Band pass filtering
 #===============================================================================
@@ -1038,7 +1202,7 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
     dt      : Sampling interval of the time series of interest
     freqmin : (Optional) minimum frequency to keep
     freqmax : (Optional) maximum frequency to keep
-    demean  : Remove mean from data
+    demean  : Remove mean from data before computing the Fourier Transform.
     window  : Apply a hamming window to the data
     
     RETURNS:
@@ -1047,8 +1211,10 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
     
     NOTES:
     ------
-    - Need to provide freqmin or freqmax at least. Provide both for band pass
-      filtering.
+    - At least one filtering criteria is required (freqmin or freqmax).
+      Provide both for band pass filtering.
+    - The mean will be added back to the time series after performing the 
+      frequency domain filtering when demean=True.
     
     """
     
@@ -1066,10 +1232,10 @@ def freq_dom_flt(y,dt,freqmin=None,freqmax=None,demean=True,window=True):
         # Band pass filtering
         rmvInd = np.logical_or(freq<freqmin,freq>freqmax)
     elif freqmin:
-        # Low pass filtering
+        # High pass filtering
         rmvInd = freq < freqmin
     else:
-        # High pass filtering
+        # Low pass filtering
         rmvInd = freq > freqmax
         
     # Remove mean if requested
@@ -1293,3 +1459,111 @@ def scrit(N,dof,cl=0.95):
     scrit = (dof*finv)/((N-dof-1) + dof*finv)
 
     return scrit
+
+#===============================================================================
+# Running variance
+#===============================================================================
+def runVar(y,span,nanTreat=False):
+    """
+
+    Compute running variance
+    
+    Usage:
+    ------
+    var = runVariance(y,span)
+
+    Input
+    -----
+       - y is the signal whose variance will be computed
+       - span is the stencil width (should be an odd number, otherwise it will
+         be forced to be so)
+       - nanTreat (default = False) if true uses nansum instead of sum. Does
+         not affect end treatment.
+
+    Results
+    -------
+       - Returns variance along the signal
+
+    Notes
+    -----
+       - Operates on first dimension of the array
+       - A lot of assumptions about the data are made here, this function is by
+         no means as robust as Matlab's smooth function. Only real valued
+         numbers are assumed to be passed to the array and no repetition in the
+         coordinate variable is assumed. Use at your own risk.
+
+    """
+
+    # Quick data check
+    if span > y.shape[0]:
+        print("Stencil of " + np.str(span) + " is larger than the " +
+              "length of the array (" + np.str(y.shape[0]) + ")")
+        return
+
+
+    # Span must be an odd number
+    width = span - 1 + span % 2
+    offset = np.int((width - 1.0)/2.0)
+
+    # Preallocate variable
+    ybox = np.zeros_like(y) * np.NAN
+
+    # Find indices for averaging
+    first = np.int(np.ceil(width/2.0) - 1.0)
+    last = np.int(y.shape[0] - first - 1.0)
+
+    if nanTreat:
+        for aa in range(first,last+1):
+            ybox[aa] = np.nanvar(y[aa-offset:aa+offset+1],axis=0)
+    else:
+        for aa in range(first,last+1):
+            if np.isnan(np.sum(y[aa-offset:aa+offset+1])):
+                continue
+            ybox[aa] = np.var(y[aa-offset:aa+offset+1],axis=0)
+
+    return ybox
+
+# Spectral validation parameters -----------------------------------------------
+def angularValidation(x,y,deg=True):
+    '''
+    Compute angular bias and angular correlation based on 
+    Equations 12 and 13 from
+    Hanson et al 2009: Pacific Hindcast Performance, JTECH
+
+    PARAMETERS:
+    ----------
+    x,y    : Time series of the same length to compare. x is thought to be the
+             real (measured) data.
+    deg    : True for degrees and False for radians
+
+    RETURNS:
+    --------
+    A dictionary with the following parameters
+    abias  : Angular bias [input units]
+    cor    : Angular correlation
+
+    '''
+    if deg:
+        fac = np.pi / 180
+    else:
+        fac = 1.0
+
+    # Angular bias
+    # Equations 12 and 13 from 
+    # Hanson et al 2009: Pacific Hindcast Performance, JTECH
+    dth = np.abs(y - x)
+    s = np.sum(np.sin(dth * fac))
+    c = np.sum(np.cos(dth * fac))
+    angBias = np.arctan2(s,c) / fac
+
+    # Circular correlations
+    # Equation 14
+    x2 = np.sin((x - np.mean(x)) * fac)
+    y2 = np.sin((y - np.mean(y)) * fac)
+    nume = np.sum(x2 * y2)
+    deno = (np.sum(x2**2) * np.sum(y2**2))**0.5
+    cor = nume / deno
+    
+    N = x.shape[0]
+
+    return {'cor':cor,'N':N,'abias':angBias}

@@ -70,5 +70,39 @@ def wraptopi(x):
     
     return(x)
             
-         
-# End of module
+def cartToNautDeg(x):
+    """
+    Converts from cartesian to nautical convention and wraps to 360
+
+    If the direction that waves are travelling to is given it will return
+    the nautical equivalent of that. In other words the output would be
+    direction waves are traveling to in nautical coordinates.
+    """
+
+    x = 90.0 - np.double(x)
+
+    return wrapto360(x)
+    
+def decimalDegreesToDMS(x,nDec=0):
+    """
+    Converts decimal degrees to Degree, Minute, Seconds
+
+    PARAMETERS:
+    -----------
+    x:    Decimal degrees
+    nDEC: Number of decimals in the seconds
+
+    RETURNS:
+    --------
+    d: Degrees (integer)
+    m: Minutes (integer)
+    s: Seconds (Float rounded at nDec)
+    """
+    
+    d = np.int(x)
+    m = (x - d)*60
+    s = np.round((m - np.int(m))*60,decimals=nDec)
+    m = np.int(m)
+
+    return d,m,s
+    

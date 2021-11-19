@@ -57,11 +57,11 @@ def debug(ftn, txt):
 def fatal(ftn, txt):
     """If can't continue."""
     msg = "%s.%s:FATAL:%s\n" % (modname, ftn, txt)
-    raise SystemExit, msg
+    raise SystemExit(msg)
  
 def usage():
     """Prints the docstring."""
-    print __doc__
+    print (__doc__)
 
 #====================================
 
@@ -91,7 +91,7 @@ def fft_lowpass(nelevation, low_bound, high_bound):
     factor[sl] = a
 
     result = result * factor
-    print 'result=', len(result)
+    print ('result=', len(result))
     relevation = F.irfft(result, len(nelevation))
-    print 'result=', len(relevation)
+    print ('result=', len(relevation))
     return relevation
