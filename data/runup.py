@@ -23,6 +23,8 @@ gsignal
 import numpy as np
 import scipy as _spi
 import itertools as _itertools
+import scipy as _spi
+import scipy.optimize
 
 # Internal modules
 import signal as _gsignal
@@ -158,22 +160,20 @@ def runup_maxima(x,ot,sten,upcross=False):
     return ind_max
 
 # ==============================================================================
-# Runup maxima
+# Runup maxima and minima
 # ==============================================================================
-def runupUprushSpeed(x,ot):
+def runupMaxMin(x,ot):
     """
-    This function finds the runup maxima and the uprush speed from the previous
-    minima and from the setup line. Zero upcrossing is used to find runup
-    maxima and minima.
-    
+    This function find runup maxima and minima using a zero upcrossing method.
+       
     USAGE:
     ------
-    max_ind,min_ind,speedMinima,speedSetup = runup_maxima(x,ot)
-    
+    max_ind,min_ind = runupMaxMin(x,ot)
+              
     PARAMETERS:
     -----------
     x       : Runup time series [m]
-    ot      : Time vector, must have the same length as x and time in seconds. 
+    ot      : Time vector, must have the same length as x and time in seconds.
     
     RETURNS:
     --------
@@ -181,15 +181,13 @@ def runupUprushSpeed(x,ot):
               time series.
     min_ind : Vector of indices corresponding to the local minima of the input
               time series.              
-    speedMinima : uprush speed with respect to previous minima
-    speedSetup  : uprush speed with respect to setup
     
     NOTES:
     ------
     - All inputs should be numpy arrays
     - x must cross zero. You can for instance remove the setup from the time
       series.
-    - The first uprush speed with respect to the minima is always NAN.
+    
     """
         
     # Find the upcrossing locations
@@ -201,24 +199,161 @@ def runupUprushSpeed(x,ot):
     ind_min = [np.argmin(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
                for aa in range(indCross.shape[0]-1)]
     
-    # Runup uprush speed with respect to previous minima (check me!)
+    # Convert to arrays
+    ind_max = np.array(ind_max)
+    ind_min = np.array(ind_min)
+    
+    # Clean up (some times you get consecutive maxima and/or consecutive minima)
+    # Remove consecutive minima
+    for aa in range(ind_max.shape[0]-1):
+        
+        bb = np.logical_and(ind_min>ind_max[aa],ind_min<ind_max[aa+1])
+        
+        # One minima between maxima (ok)
+        if np.sum(bb) == 1:
+            continue
+        
+        # Multiple minima between maxima: keep the smallest
+        elif np.sum(bb) > 1:
+            
+            # Convert to indices
+            cc = np.where(bb)[0]
+            
+            # Find the smallest minima (the one to keep)
+            dd = cc[np.argmin(x[ind_min][cc])]
+            
+            # Create array to delete (true values will be deleted)
+            bb[dd] = np.False_
+            
+            # Remove the other minima
+            ind_min = np.delete(ind_min,np.where(bb)[0])
+
+    # Remove consecutive maxima
+    for aa in range(ind_min.shape[0]-1):
+        
+        bb = np.logical_and(ind_max>ind_min[aa],ind_max<ind_min[aa+1])
+        
+        # One minima between maxima (ok)
+        if np.sum(bb) == 1:
+            continue
+        
+        # Multiple minima between maxima: keep the smallest
+        elif np.sum(bb) > 1:
+            
+            # Convert to indices
+            cc = np.where(bb)[0]
+            
+            # Find the smallest minima (the one to keep)
+            dd = cc[np.argmax(x[ind_max][cc])]
+            
+            # Create array to delete (true values will be deleted)
+            bb[dd] = np.False_
+            
+            # Remove the other minima
+            ind_max = np.delete(ind_max,np.where(bb)[0])
+
+    # Start and end with a runup minima
+    if ind_min[0] > ind_max[0]:
+        ind_max = ind_max[1:]
+    
+    if ind_min[-1] < ind_max[-1]:
+        ind_max = ind_max[:-1]
+        
+    return [ind_max,ind_min]
+
+
+# ==============================================================================
+# Runup maxima
+# ==============================================================================
+def runupUprushSpeed(x,ot,interpSetup=False):
+    """
+    This function finds the runup maxima and the uprush speed from the previous
+    minima and from the setup line. Zero upcrossing is used to find runup
+    maxima and minima.
+    
+    USAGE:
+    ------
+    max_ind,min_ind,speedMinima,speedSetup =\
+      runupUprushSpeed(x,ot,interpSetup=False)
+
+    max_ind,min_ind,speedMinima,speedSetup,otCross =\
+      runupUprushSpeed(x,ot,interpSetup=True)
+          
+    PARAMETERS:
+    -----------
+    x       : Runup time series [m]
+    ot      : Time vector, must have the same length as x and time in seconds.
+    interpSetup: If True the zero crossing position is interpolated. Otherwise
+                 the closest measured point to the zero crossing is used. 
+    
+    RETURNS:
+    --------
+    max_ind : Vector of indices corresponding to the local maxima of the input
+              time series.
+    min_ind : Vector of indices corresponding to the local minima of the input
+              time series.              
+    speedMinima : uprush speed with respect to previous minima
+    speedSetup  : uprush speed with respect to setup
+    otCross     : Interpolated setup crossing
+    
+    NOTES:
+    ------
+    - All inputs should be numpy arrays
+    - x must cross zero. You can for instance remove the setup from the time
+      series.
+    - The first uprush speed with respect to the minima is always NAN.
+    
+    """
+        
+    # Find the upcrossing locations (Raw output)
+    indCross = _gsignal.zero_crossing(x)
+    
+    # Find the index of the maximum runup between upcrossings
+    #ind_max = [np.argmax(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+    #           for aa in range(indCross.shape[0]-1)]
+    #ind_min = [np.argmin(x[indCross[aa]:indCross[aa+1]]) + indCross[aa] 
+    #           for aa in range(indCross.shape[0]-1)]
+    
+    # Use the runupMaxMin function which cleans up the data
+    ind_max,ind_min = runupMaxMin(x,ot)
+        
+    # Runup uprush speed with respect to previous minima
+    # Need an offset if the clean up function is not used
+    #  i.e. for aa in range(1,len(ind_max)):
+    #           tmpIndMin = ind_min[aa-1]
     speedMinima  = np.zeros((len(ind_max))) * np.NAN
-    for aa in range(1,len(ind_max)):
+    for aa in range(len(ind_max)):
         tmpIndMax = ind_max[aa]
-        tmpIndMin = ind_min[aa-1]
+        tmpIndMin = ind_min[aa]
         speedMinima[aa] = ((x[tmpIndMax] - x[tmpIndMin]) / 
                            (ot[tmpIndMax] - ot[tmpIndMin]))
     
     # Runup uprush speed with respect to setup
+    if interpSetup:
+        crossOt = np.zeros((len(ind_max),)) * np.NAN
+        
     speedSetup  = np.zeros((len(ind_max))) * np.NAN    
     for aa in range(len(ind_max)):
         tmpIndMax   = ind_max[aa]
-        tmpIndCross = indCross[aa]
-        speedSetup[aa] = x[tmpIndMax] / (ot[tmpIndMax]-ot[tmpIndCross])
+        # This takes care of consecutive zero crossings
+        # due to clean up  in runupMaxMin
+        tmpIndCross = indCross[indCross < ind_max[aa]][-1]
+        if interpSetup:
+            tmpOt = np.interp(0.0,x[tmpIndCross:tmpIndMax],
+                              ot[tmpIndCross:tmpIndMax])            
+            speedSetup[aa] = x[tmpIndMax] /(ot[tmpIndMax]-tmpOt)
+            crossOt[aa] = tmpOt            
+        else:
+            speedSetup[aa] = ((x[tmpIndMax] - x[tmpIndCross]) /
+                              (ot[tmpIndMax] - ot[tmpIndCross]))
     
-    return np.array(ind_max),np.array(ind_min),speedMinima,speedSetup
+    # Output management
+    output = [np.array(ind_max),np.array(ind_min),speedMinima,speedSetup]
+    if interpSetup:
+        output.append(crossOt)
     
-
+    return output
+    
 #===============================================================================
 # Compute mean setup
 #===============================================================================
@@ -247,6 +382,7 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05,hfNoise=None):
     in           : Significant incident swash elevation [m]
     r_max        : Maximum runup [m]
     r_var        : Runup variance [m2]     
+    sig          : Significant runup (mean of 1/3 largest time domain) [m]
                
     Notes:
     ------
@@ -303,11 +439,19 @@ def runup_params(runup,ot,detrend=True,window=True,igcut=0.05,hfNoise=None):
     [xS,prob,_] = _gsignal.ecdf(swash[max_ind])
     r2_cdf_max = np.interp(0.98,prob,xS)
     
+    # Significant runup
+    ztmp = np.sort(swash[max_ind])
+    # Index of sorted time series
+    ind = np.int(np.ceil(2*ztmp.shape[0]/3.0))
+    # Average highest 1/3 of waves (i.e. runups) - significant
+    rSig = np.mean(ztmp[ind:]) 
+        
     # Generate output
     return {'setup':setup, 'ig':swash_ig,'in':swash_in,
             'r2_combined':r2_combined,'r2_cdf':r2_cdf,
             'r1_cdf':r1_cdf,'r_max':runup.max(),'r_var':np.var(runup),
-            'r2_cdf_max':r2_cdf_max+setup}
+            'r2_cdf_max':r2_cdf_max+setup,
+            'sig':rSig}
 
 
 #===============================================================================
@@ -753,3 +897,73 @@ def unexpected_event_period(x,alpha,pM,tM,m,xMean=False):
         
     # Return unexpected event matrix
     return np.array(unex),nR
+
+#===============================================================================
+# Carrier and Greenspan Runup
+#===============================================================================
+def carrierGreenspanRunup(per,s,a):
+    """
+    Gives the predicted runup from as derived by Carrier and Greenspan.
+    
+    USAGE:
+    ------
+    xR = carrierGreenspanRunup(per,s,a)
+    
+    PARAMETERS:
+    -----------
+    per : long wave period [s]
+    s   : beach slope
+    a   : wave amplitude
+        
+    RETURNS:
+    --------
+    xR  : Runup [m]
+    ot  : time [s]
+       
+    REFERENCES:
+    -----------
+    Carrier, G. F., and H. P. Greenspan, 1958: Water waves of finite amplitude
+        on a sloping beach. Journal of Fluid Mechanics, 4 (01), 97-109.
+    Mei, Chiang C., Michael Stiassnie, and Dick K-P. Yue. Theory and
+        applications of ocean surface waves: nonlinear aspects. 
+        Vol. 23. World scientific, 2005.
+        
+    """
+    
+    # Maximum allowed amplitude
+    amax = 9.81 * (((per * s) / (2.0 * np.pi)) ** 2) 
+    
+    if a > amax:
+        print("Wave amplitude is not ok")
+    else:
+        print("Wave amplitude is ok")
+    print('    Maximum Amplitude:' + "{:6.3f}".format(a) + ' m')
+
+    # Function to find lambda given the time of simulation (12.3.37)
+    t = np.arange(0,per*2,0.01)
+    omega = 2.0 * np.pi / per
+    l = np.zeros_like(t)
+
+    def _f(l,a,per,s,t):
+        omega = 2.0 * np.pi / per
+        g = 9.81
+        m = s * g
+        p1 = -1.0/(2.0 * m)
+        p2 = 2.0 * g * a * omega / m
+        p3 = np.cos(omega * l / 2.0 / m)
+        y = p1 * (l - p2 * p3) - t
+        return y
+    
+    # Get lambda for a given time
+    linit = 0.0
+    for aa in range(t.shape[0]):
+        linit = _spi.optimize.newton(_f,linit,fprime=None,
+                                     args=(a,per,s,t[aa]),maxiter=100)
+        l[aa] = linit
+    
+    # Get the shoreline position (12.3.36c)
+    x = a / s * (-np.sin(omega*l/(2.0*s*9.81)) + 
+                 9.81 * a / 2.0 * (omega/(s*9.81))**2 * 
+                 (np.cos(omega * l / (2.0 * s * 9.81)))**2)
+    
+    return x,t

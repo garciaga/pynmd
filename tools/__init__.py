@@ -5,3 +5,5 @@ from . import generic
 from . import tide_analysis
 from . import compute_statistics
 from . import filter
+from . import downsampleLineResolution
+from . import utm

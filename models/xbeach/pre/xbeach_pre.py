@@ -61,9 +61,9 @@ def write_bathy(x,z,outfld,y=None,ncsave=True):
                 
         for aa in range(z.shape[0]):
             for bb in range(z.shape[1]):
-                fidx.write('%16.4f' % x[aa,bb])
-                fidy.write('%16.4f' % y[aa,bb])
-                fidz.write('%16.4f' % z[aa,bb])
+                fidx.write('%16.3f' % x[aa,bb])
+                fidy.write('%16.3f' % y[aa,bb])
+                fidz.write('%16.3f' % z[aa,bb])
         
             fidx.write('\n')
             fidy.write('\n')
@@ -80,14 +80,14 @@ def write_bathy(x,z,outfld,y=None,ncsave=True):
         # Water depth        
         fid = open(outfld + 'z.dep','w')
         for aa in range(len(z)):
-            fid.write('%16.4f' % z[aa])
+            fid.write('%16.3f' % z[aa])
         fid.write('\n')
         fid.close()
         
         # Coordinates
         fid = open(outfld + 'x.grd','w')
         for aa in range(len(x)):
-            fid.write('%16.4f' % x[aa])
+            fid.write('%16.3f' % x[aa])
         fid.write('\n')
         fid.close()        
 

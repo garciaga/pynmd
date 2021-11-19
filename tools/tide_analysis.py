@@ -5,7 +5,7 @@ __version__ = "1.0"
 __email__ = "moghimis@gmail.com"
 
 import  netCDF4
-import  netcdftime
+#import  netcdftime
 from    datetime import datetime,timedelta
 from    dateutil.parser import *
 import  scipy.io as sio
@@ -13,7 +13,7 @@ from    collections  import defaultdict
 import  numpy as np
 import  os,sys
 import  pandas as pd
-import  cPickle as pickle
+import  pickle as pickle
 import  string
 import  matplotlib.pyplot as plt
 import  pynmd.plotting.plot_settings as ps
@@ -58,7 +58,7 @@ def get_depth(x,y,all=False):
         return dep
 
 def read_Elgar_pressure_data(flow_data):
-    print '   > Elgar pressure data;'
+    print ('   > Elgar pressure data;')
     dir1 = data_dir + '/elgar/*_filter_abs.nc'
     flist    = glob.glob(dir1)
     flist.sort()
@@ -67,11 +67,13 @@ def read_Elgar_pressure_data(flow_data):
         ncf   = netCDF4.Dataset(filename,'r')
         ncvar = ncf.variables
         time       = ncvar['time']
-        utime      = netcdftime.utime(time.units)
-        dates      = utime.num2date(time[:])
+        #utime      = netcdftime.utime(time.units)
+        #dates      = utime.num2date(time[:])
+        dates      = netCDF4.num2date(time[:],time.units)
+        
         sta_name   = filename.split('/')[-1][:3]
         if 'p' in sta_name or 'q' in sta_name:
-            print '    > read  > Station name: ', sta_name
+            print ('    > read  > Station name: ', sta_name)
     
             water_depth = ncvar['water_depth'][:]
     
@@ -92,7 +94,7 @@ def read_Elgar_pressure_data(flow_data):
 
 #
 def read_wl_noaa_station(flow_data,inp_dir,sta_name):
-    print  inp_dir
+    print  (inp_dir)
     dir1  = data_dir + inp_dir + '/'
     finfo = open(dir1 + 'info')
     for line in finfo:
@@ -102,7 +104,7 @@ def read_wl_noaa_station(flow_data,inp_dir,sta_name):
     finfo.close()
     
     filename2 = dir1 + 'data.csv'
-    print 'Read observation at: ', filename2
+    print ('Read observation at: ', filename2)
     
     fp   = open(filename2, "r")
     line = ''
@@ -125,7 +127,7 @@ def read_wl_noaa_station(flow_data,inp_dir,sta_name):
     obs       = np.array(obs)
     obs_dates = np.array(obs_dates)
     
-    print '    > read  > Station name: ', sta_name
+    print ('    > read  > Station name: ', sta_name)
     
     water_depth = obs
     data  = pd.DataFrame(data = water_depth, columns = ['water_depth'], index = obs_dates)    
@@ -144,14 +146,16 @@ def read_wl_noaa_station(flow_data,inp_dir,sta_name):
 
 #
 def read_ncom(flow_data):
-    print '  > NCOM;'
+    print ('  > NCOM;')
     filename  = data_dir + '/ncom/ncom_glb_regp01_2012-3-4-5.nc'
 
     ncf   = netCDF4.Dataset(filename,'r')
     ncvar = ncf.variables
     time       = ncvar['time']
-    utime      = netcdftime.utime(time.units)
-    dates      = utime.num2date(time[:])
+    #utime      = netcdftime.utime(time.units)
+    #dates      = utime.num2date(time[:])
+    dates      = netCDF4.num2date(time[:],time.units)
+
     sta_name   = filename.split('/')[-1][:3]
     
     lona,lata = np.meshgrid(ncvar['lon'][:],ncvar['lat'][:])
@@ -174,7 +178,7 @@ def read_ncom(flow_data):
     flow_data[sta_name]['datenum_mat']   = datenum
 #
 def read_roms_zeta(flow_data,name,roms_hisfile):
-    print '  >  ROMS ZETA  > in   read_roms_zeta();'
+    print ('  >  ROMS ZETA  > in   read_roms_zeta();')
     ncvar   = netCDF4.Dataset(roms_hisfile,'r').variables
     dates   = netCDF4.num2date(times=ncvar['ocean_time'][:],units=ncvar['ocean_time'].units,calendar='standard')
     x       = ncvar['x_rho'][:]
@@ -270,7 +274,7 @@ def datetime2matlabdn(dt):
 
 
 def read_noaa_station(fname):
-    print 'Read observation for: ', fname
+    print ('Read observation for: ', fname)
     #
     fp   = open(fname, "r")
     line = ''
@@ -326,7 +330,7 @@ def do_r_t_tide_analysis(flow_data,constits,out_dir):
         eng.addpath(r'/data01/01-projects/01-passaic/03-modeling/01-delft3d/02-pass-ideal/pycodes/post/06-r_t_tide/mcodes/r_t_tide',nargout=0);
         #
         for sta_name in flow_data.keys():
-            print sta_name
+            print (sta_name)
 
             t_sta  = np.array(flow_data[sta_name]['datenum_mat'])
             h_sta  = np.array(flow_data[sta_name]['elev'])
@@ -414,10 +418,10 @@ def do_r_t_tide_analysis(flow_data,constits,out_dir):
             #delete elev data
             del flow_data[sta_name]['elev']
         
-        print ' > Write pickle > ', pick_name
+        print (' > Write pickle > ', pick_name)
         pickle.dump( flow_data, open(pick_name , "wb" ) )
     else:
-        print 'Read pickle > ', pick_name
+        print ('Read pickle > ', pick_name)
         flow_data = pickle.load( open( pick_name , "r" ) )        
     
     return r_t_tide_out_dir        
@@ -574,14 +578,14 @@ def do_tappy_tide_analysis(flow_data,constits,out_dir):
             sta_df['pha'] = sta_df['pha'].convert_objects(convert_numeric=True)
             
             flow_data[sta_name]['tappy_tide'] = sta_df
-            print ' >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> '
+            print (' >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ')
         
 
-        print ' > Write pickle > ', pick_name
+        print (' > Write pickle > ', pick_name)
         pickle.dump( flow_data, open(pick_name , "wb" ) )
         #
     else:
-        print 'Read pickle > ', pick_name
+        print ('Read pickle > ', pick_name)
         flow_data = pickle.load( open( pick_name , "r" ) )        
     
     return tappy_tide_out_dir        

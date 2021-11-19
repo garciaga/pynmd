@@ -296,7 +296,9 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
         
         if verbose:
             print("Input file not provided")
-    
+        
+        dx = 1.0
+        dy = 1.0 
 
 
     # If bathymetry file is given then the coordinates should be taken from 
@@ -305,7 +307,7 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
     if bathyfile: 
         ncfile = netCDF4.Dataset(bathyfile,'r')
         x_rho = ncfile.variables['x_rho'][:]
-        if ncfile.variables.has_key('y_rho'):
+        if 'y_rho' in ncfile.variables.keys():
             y_rho = ncfile.variables['y_rho'][:]
         h = ncfile.variables['h'][:]
         ncfile.close()
@@ -322,10 +324,10 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
         # Check if it is a 1D or 2D model
         hdims = h.ndim                              # Horizontal dimensions
         if hdims == 1:
-            x_rho = np.arange(0,h.shape[0],1)
+            x_rho = np.arange(0,h.shape[0]*dx,dx)
         elif hdims == 2:
-            x_rho, y_rho = np.meshgrid(np.arange(0,h.shape[1],1),
-                                       np.arange(0,h.shape[0],1))
+            x_rho, y_rho = np.meshgrid(np.arange(0,h.shape[1]*dx,dx),
+                                       np.arange(0,h.shape[0]*dy,dy))
         else:
             print('Something is wrong with the depth file')
             print('Quitting...')
@@ -435,7 +437,7 @@ def convert_output(workfld,outfile,bathyfile=None,inpfile=None,verbose=False):
     # Create s_rho vector
     if s_rho:
         ds    = 1.0/s_rho
-        sigma = np.arange(ds/2.0,1-ds/2.0,ds)
+        sigma = np.arange(ds/2.0,1-ds/2.0+1e-10,ds)
         nc.createVariable('s_rho','f8',('s_rho'))
         nc.variables['s_rho'].longname = 's-coordinate at cell centers'
         nc.variables['s_rho'].positive = 'up'

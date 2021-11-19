@@ -13,5 +13,6 @@ import os
 import string
 
 path =  os.path.abspath(plot_settings.__file__).split('/')[:-1]
-path = string.join(path,'/')
+path = '/'.join(path)
 os.environ["CARTOPY_USER_BACKGROUNDS"] = os.path.join(path,'BG/')
+from . import general

@@ -177,7 +177,15 @@ def convert_output(workfld,outfile,time_int=1.0,bathyfile=None,
         
         hdims = h.ndim
         if hdims == 1:
-            x_rho = np.arange(0,h.shape[0],dx)
+        
+            x_rho = np.arange(1,h.shape[0]+dx,dx)
+
+            # Create u grid
+            x_u       = np.zeros((x_rho.shape[0]+1,))
+            x_u[0]    = x_rho[0] - dx/2
+            x_u[-1]   = x_rho[-1] + dx/2
+            x_u[1:-1] = (x_rho[1:] + x_rho[:-1])/2.0
+            
         elif hdims == 2:
             x_rho, y_rho = np.meshgrid(np.arange(0,h.shape[1],dx),
                                        np.arange(0,h.shape[0],dy))           
@@ -341,7 +349,8 @@ def runup(eta,h,x,r_depth=None):
     runup        : Water surface elevation time series relative to SWL given
                    a contour depth [m]
     x_runup      : Across-shore location of runup time series [m]
-                   
+    r_depth      : Contour depth that was tracked
+                       
     Notes:
     ------
     - Really meant for 1D simulations.
@@ -369,7 +378,8 @@ def runup(eta,h,x,r_depth=None):
         wdepth_ind = np.argmin(wdepth>r_depth)-1
         
         # Store the water surface elevation in matrix
-        runup[aa]= eta[aa,wdepth_ind]
+        #runup[aa]= eta[aa,wdepth_ind] # unrealistic values for large r_depth
+        runup[aa]= -h[wdepth_ind]
         
         # Store runup position
         x_runup[aa] = x[wdepth_ind] 
@@ -384,7 +394,7 @@ def nc_runup(nc,r_depth=None):
     
     Function to compute runup from netcdf file.
     
-    runup,x_runup = nc_runup(nc,r_depth)
+    runup,x_runup,r_depth = nc_runup(nc,r_depth)
     
     Parameters:
     -----------
@@ -396,6 +406,7 @@ def nc_runup(nc,r_depth=None):
     runup        : Water surface elevation time series relative to SWL given
                    a tolerance depth [m]
     x_runup      : Across-shore location of runup time series [m]
+    r_depth      : Contour depth that was tracked
                    
     Notes:
     ------
@@ -413,7 +424,7 @@ def nc_runup(nc,r_depth=None):
     
     # Find the maximum runup depth
     if r_depth is None:
-         runupInd = h < 1.0
+         runupInd = h < 0.0
          r_depth = 4.0*np.nanmax(np.abs(h[runupInd][1:] - h[runupInd][:-1])) 
 
     # Preallocate runup variable
@@ -431,7 +442,8 @@ def nc_runup(nc,r_depth=None):
         wdepth_ind = np.argmin(wdepth>r_depth)-1
         
         # Store the water surface elevation in matrix
-        runup[aa] = eta[wdepth_ind]
+        #runup[aa] = eta[wdepth_ind] # Unrealistic values for large r_depth
+        runup[aa] = -h[wdepth_ind]
         
         # Store runup position
         x_runup[aa] = x[wdepth_ind] 

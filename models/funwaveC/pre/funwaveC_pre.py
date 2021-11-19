@@ -191,9 +191,25 @@ def write_bathy(x,h,path,y=None,ncsave=True,dt=None):
 #===============================================================================
 # Model stability criteria    
 #===============================================================================
-def stabilityCriteria(dx,hmax,dy=None,dt=None,verbose=False):
+def stabilityCriteria(dx,hmax,dy=None,dt=None,verbose=False,H=None):
     """
     Give the user some ideas on the stability parameters
+    
+    PARAMETERS:
+    -----------
+    dx   : Model spatial resolution [m]
+    hmax : Maximum water depth [m]
+    
+    OPTIONAL PARAMETERS:
+    --------------------
+    dy      : Model alongshore spatial resolution [m]
+    dt      : Model time increment for integration of momentum equations [s]
+    verbose : Show formulae used to compute the stability parameters.
+    H       : Wave height. Used to compute maximum flow velocity from the 
+              shallow water equations polarization relation. 
+              U = H (g/h)**0.5
+                * For a typical value I will assume H = h
+                * If not provided I will use H=1.0m
     """
     
     # CFL stability criterion (wave only) --------------------------------------
@@ -238,8 +254,16 @@ def stabilityCriteria(dx,hmax,dy=None,dt=None,verbose=False):
     print('  Maximum biharmonic friction layer damping (gamma_bi) = ' + 
           '{:6.4f}'.format(gamma_bi))
     
+    # Reynolds grid based on maximum velocity
+    if not H:
+        H = 1.0
+    re_bi = (H*9.81)**0.5 * (dx**3) / gamma_bi    
+    print('  Grid Reynolds number (R_bi) = ' + '{:6.4f}'.format(re_bi))
+    print('    U = ' + '{:4.1f}'.format((H*9.81)**0.5) + ' m/s')
+    
     if verbose:
         print('    S_bi = gamma_bi * dt / min(dx**4,dy**4) < 0.008')
+        print('    R_bi = U * min(dx**3,dy**3) / gamma_bi << 1')        
     
     # Breaking stability -------------------------------------------------------
     if verbose:
@@ -327,9 +351,17 @@ def makeInput(inp,outfld):
         for aa in range(3,len(inp['eta_source'])):
             fid.write(' ' + np.str(np.int(inp['eta_source'][aa])))
         fid.write('\n')
+    elif inp['eta_source'][1] == 'monochromatic':
+        fid.write('eta_source on ' + inp['eta_source'][1])
+        for aa in range(2,len(inp['eta_source'])):
+            if aa == 5:
+                fid.write(' ' + np.str(np.int(inp['eta_source'][aa])))
+            else:
+                fid.write(' ' + np.str(inp['eta_source'][aa]))
+        fid.write('\n')
     else:
         print('Accepted eta_source parameters:')
-        print('  [random2nb,random2filea]')
+        print('  [random2nb,random2filea,monochromatic]')
         print('  Turning wavemaker off')
         fid.write('eta_source off\n')
         

@@ -32,7 +32,7 @@ import scipy.signal
 
 # Internal modules
 import pynmd.data.signal as gsignal
-
+import pynmd.data.angles as _gangles
 
 #===============================================================================
 # Compute radian frequency from wave number
@@ -685,31 +685,34 @@ def directional_spreading(spec,peak_dir,m,dirs=None):
     Nautical convention refers to the direction the waves (wind) are coming
       (is blowing) from with respect to the true north measured clockwise.
     To recover the significant wave height
-       4.004 * np.trapz(np.trapz(dir_spec,dirs,axis=-1),freq)**0.5
+       4.004 * np.trapz(np.sum(dir_spec,axis=-1)*(dirs[2]-dirs[1]),freq)**0.5
     """
 
     # If direction vector is not passed as argument the directional distribution
     # will be computed every five degrees.
-    if dirs == None:
-        dirs = np.arange(0,360,5)
+    try:
+        if dirs == None:
+            dirs = np.arange(0,360,5)
+    except:
+        pass
 
     # Change directions to radians for internal computations
-    peak_dir = np.pi / 180.0 * peak_dir
-    dirs = np.pi / 180.0 * dirs
+    peak_dir_r = np.pi / 180.0 * peak_dir
+    dirs_r = np.pi / 180.0 * dirs
 
     # Compute directional spread
-    g = np.cos(0.5*(dirs - peak_dir))**(2*m)
-    g = g / np.trapz(g,dirs)
+    g = np.cos(0.5*(dirs_r - peak_dir_r))**(2*m)
+
+    # Normalize the directional spread so that no energy is added
+    # Scaling is done in direction space to account for the units
+    # In other workds dir_spec will be of [m2/Hz-deg]
+    dth = dirs[2] - dirs[1]
+    g /= (np.sum(g)*dth)
 
     # Generate the directionally spread spectrum
     dir_spec = np.zeros((spec.shape[0],dirs.shape[0]))
     for aa in range(spec.shape[0]):
         dir_spec[aa,:] = spec[aa] * g
-
-    # Rescale the spectrum for dimensions of [m2/Hz-deg] if the input spectrum
-    # has units of [m2/Hz].
-    dir_spec = dir_spec * 180.0 / np.pi
-    dirs = dirs * 180.0 / np.pi
 
     # Return directional spectrum
     return dir_spec,dirs
@@ -817,7 +820,7 @@ def eta_bulk_params(eta,ot,band_ave=False,window=False,IGBand=[0.005,0.05]):
 #===============================================================================
 # Function to compute bulk wave parameters from frequency spectrum
 #===============================================================================
-def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
+def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05],zeroth=True):
     """
     Function to compute bulk wave parameters from frequency spectrum
 
@@ -827,6 +830,7 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
     spec    : Frequency spectrum [m2/Hz]
     IGBand  : Infragravity wave frequency cutoff 
               defaults to 0.005-0.05 Hz
+    zeroth  : If true will remove the first frequency from the analysis
 
     Returns:
     --------
@@ -842,18 +846,18 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
     Sw         : Spectral width (m0*m2/m1/m1 - 1)**2
     Tm01IG     : First moment wave period over the infragravity frequency band
     TpIG       : Peak wave period over the infragravity frequency band [s]
+    HsIG       : Significant wave height in the infragravity frequency band [m]
 
     Notes:
     ------
     - mn are the different spectral moments
-    - First frequency will be discarded from the analysis. It is assumed to be
-      the zeroth-frequency.
 
     """
 
-    # Remove zeroth frequencies
-    spec = spec[1:]
-    freq = freq[1:]
+    # Remove zeroth frequencies ------------------------------------------------
+    if zeroth:
+        spec = spec[1:]
+        freq = freq[1:]
 
     # Compute spectral moments
     moment0 = np.trapz(spec,freq,axis=-1)
@@ -893,18 +897,92 @@ def fspec_bulk_params(freq,spec,IGBand=[0.005,0.05]):
         tmp_fit = np.polyfit(freq[minfreq:maxfreq],spec[minfreq:maxfreq],2)
         Tp_fit = (-1.0 * tmp_fit[1] / (2.0* tmp_fit[0]))**-1
 
-    # Infragravity wave periods
+    # Infragravity wave periods ------------------------------------------------
     igInd = np.logical_and(freq>=IGBand[0],freq<IGBand[1])
     moment0 = np.trapz(spec[igInd],freq[igInd],axis=-1)
     moment1 = np.trapz(spec[igInd]*freq[igInd],freq[igInd],axis=-1)
     Tm01IG  = moment0 / moment1
+    
+    HsIG = 4.004 * (moment0)**0.5     
     
     freq_max_ind = np.argmax(spec[igInd])
     TpIG = freq[igInd][freq_max_ind]**-1
     
     # Exit function
     return {'Hs':Hs,'H1':H1,'Tp':Tp,'Tp_fit':Tp_fit,'Tm01':Tm01,'Tm02':Tm02,
-            'Te':Te,'Sw':Sw,'Tm01IG':Tm01IG,'TpIG':TpIG}
+            'Te':Te,'Sw':Sw,'Tm01IG':Tm01IG,'TpIG':TpIG,'HsIG':HsIG}
+
+#===============================================================================
+# Bulk parameters from a directional spectrum
+#===============================================================================
+def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05],zeroth=True):
+    """
+    Function to compute bulk wave parameters from frequency-direction spectrum
+
+    Parameters:
+    -----------
+    freq    : Vector of spectral frequencies [Hz]
+    dirs    : Vector of directions (nautical convention) [Deg or Rad]
+    spec    : Wave spectrum [m2/Hz/Deg or m2/Hz/Deg]
+              The shape must be [freq,dirs]
+    IGBand  : Infragravity wave frequency cutoff 
+              defaults to 0.005-0.05 Hz
+    zeroth  : If true will remove the first frequency from the analysis
+
+    Returns:
+    --------
+    Dictionary containing bulk wave parameters
+    Hs         : Significant wave height [m]
+    H1         : Mean wave height [m]
+    Tp         : Peak wave period [s]
+    Tp_fit     : Peak wave period computed from second order polynomial fit
+                 near Tp[s]
+    Tm01       : First moment wave period [s]
+    Tm02       : Second moment wave period [s]
+    Te         : Energy period [s]
+    Sw         : Spectral width (m0*m2/m1/m1 - 1)**2
+    Tm01IG     : First moment wave period over the infragravity frequency band
+    TpIG       : Peak wave period over the infragravity frequency band [s]
+    HsIG       : Significant wave height in the infragravity frequency band [m]
+    Dm         : Mean wave direction, second moment (Kuik et al. 1988)
+    Dp         : Peak wave direction (computed from directional spectrum)
+    
+    Notes:
+    ------
+    - mn are the different spectral moments
+    - First frequency will be discarded from the analysis. It is assumed to be
+      the zeroth-frequency.
+
+    REFERENCES:
+    -----------
+    Kuik, A.J., G.P. Van Vledder, and L.H. Holthuijsen, 1988: A method for the
+        routine analysis of pitch-and-roll buoy wave data. Journal of Physical
+        Oceanography, 18(7), pp.1020-1034.
+    """
+    
+    # Get directional properties
+    dirSpec = np.trapz(spec,freq,axis=0)
+    
+    # Find peak wave directon
+    Dp = np.argmax(dirSpec)
+    Dp = dirs[Dp]
+    dirDict = dict(Dp=Dp)
+    
+    # Find mean wave direction (Kuik et al 1988)
+    a1 = np.trapz(dirSpec*np.cos((270.0-dirs)*np.pi/180),dirs)
+    b1 = np.trapz(dirSpec*np.sin((270.0-dirs)*np.pi/180),dirs)
+    # Mean wave direction in nautical coordinates
+    Dm = _gangles.wrapto360(270.0 - np.arctan2(b1,a1) * 180.0 / np.pi)
+    dirDict.update(Dm=Dm)
+    
+    # Get the parameter from the frequency spectrum
+    #freqSpec = np.trapz(spec,dirs,axis=-1)
+    dth = np.abs(dirs[2] - dirs[1])
+    freqSpec = np.sum(spec,axis=-1) * dth
+    bp = fspec_bulk_params(freq,freqSpec,IGBand,zeroth=zeroth)
+    bp.update(dirDict)
+    
+    return bp
 
 #===============================================================================
 # Wave Height and Period From time series
@@ -945,7 +1023,7 @@ def whwpts(t,x,d='up'):
     '''
     
     # Find the zero crossings
-    zcross = gsignal.zero_crossing(x,d='up')
+    zcross = gsignal.zero_crossing(x,d=d)
     
     # Find the wave period
     wp = t[zcross[1:]] - t[zcross[:-1]]
@@ -964,8 +1042,8 @@ def whwpts(t,x,d='up'):
 # Iribarrren number
 #===============================================================================
 def iribarren(m,H,wl,verbose=False):
-    '''
-    Function to compute surf similarity parameter (aka Iribarren number) for 
+    """
+    Function to compute the Iribarren number (aka surf similarity parameter) for 
     deep water conditions
     
     USAGE:
@@ -993,7 +1071,7 @@ def iribarren(m,H,wl,verbose=False):
     - 0.5 < ssp < 3.3 : Intermediate beach (plunging breaker)
     - ssp < 0.5 : Dissipative beach (spilling breaker)
     
-    '''
+    """
     
     # Compute iribarren number
     ssp = np.tan(m) / (H/wl)**0.5
@@ -1187,3 +1265,133 @@ def shoal(H1,h1,period,h0):
     k0 = dispersion(period,h0)
     
     return H0,k0
+
+
+#===============================================================================
+# Compute IEC Bulk Parameters from Spectrum
+#===============================================================================
+def iec_params(freq,dirs,spec,dpt,rho=1025.0):
+    """
+    Function to compute IEC recommended wave energy parameters from 
+    frequency-direction spectrum
+
+    Parameters:
+    -----------
+    freq    : Vector of spectral frequencies [Hz]
+    dirs    : Vector of directions (nautical convention) [Deg]
+    spec    : Wave spectrum [m2/Hz/Deg]
+              The shape must be [time,npts,freq,dirs]
+    dpt     : Water depth of shape [npts]
+    rho     : (Optional) Density of water
+    
+    Returns:
+    --------
+    Dictionary containing bulk wave parameters
+    Hs         : Significant wave height [m]
+    OWP        : Omnidirectional wave power [W/m]
+    Jth        : Maximum directionally resolved wave power [W/m]
+    Th         : Direction of maximum directionally resolved wave power [deg]
+    d          : Directionality coefficient (Jth/OWP)
+    Te         : Energy period [s]
+    Sw         : Spectral width (m0*m-2/m-1/m-1 - 1)**2
+    
+    Notes:
+    ------
+    - mn are the different spectral moments
+    - Directional grid is assumed to be regular 
+      need to implement a trapz for when this is not true.
+    - Pass everything as arrays:
+      >>> dpt = np.array([100.0]) # If you only have one point
+
+    REFERENCES:
+    -----------
+    Marine energy - Wave, tidal and other water current converters - 
+        Part 101: Wave energy resoure assessment and characterization. 
+        IEC TS 62600-101
+    """
+    
+    # Figure out the size of the array and adjust if necessary
+    _,npts,nfreq,ndirs = np.shape(spec)
+
+    # Directions must be sorted (if they exist)
+    if ndirs > 1:
+        sortInd = np.argsort(dirs)
+        spec = spec[...,sortInd]
+        dirs = dirs[sortInd]
+
+    # Compute the group velocity for each point
+    cg = np.zeros((npts,nfreq)) * np.NAN
+    for aa in range(cg.shape[0]):
+        for bb in range(cg.shape[1]):
+            _,_,cg[aa,bb] = celerity(1/freq[bb],dpt[aa])
+
+    # Non directional parameters -----------------------------------------------    
+    if ndirs > 1:
+        #freqSpec = np.trapz(spec,dirs*np.pi/180,axis=-1)
+        dth = dirs[1] - dirs[0]
+        freqSpec = np.sum(spec,axis=-1)*dth
+    else:
+        freqSpec = spec[...,0]
+    
+    # Compute omnidirectional wave power
+    moment0 = np.trapz(freqSpec,freq,axis=-1)
+    momentn1 = np.trapz(freqSpec*(freq)**-1,freq,axis=-1)
+    momentn2 = np.trapz(freqSpec*(freq)**-2,freq,axis=-1)
+
+    # Significant wave height
+    bp = {}
+    bp['Hs'] = 4.004 * (moment0**0.5)
+
+    # Energy Period
+    bp['Te'] = momentn1/moment0
+    
+    # Spectral width
+    bp['Sw'] = (moment0*momentn2/momentn1/momentn1 - 1.0)**0.5
+
+    # Omnidirectional wave power (loop extravaganza here)    
+    owp = np.zeros_like(bp['Hs']) * np.NAN
+    # Time loop
+    for aa in range(spec.shape[0]):
+        # Point loop
+        for bb in range(spec.shape[1]):
+            # Omnidirectional wave power
+            owp[aa,bb] = np.trapz(freqSpec[aa,bb,:]*cg[bb,:],freq)
+
+    # Get directional properties -----------------------------------------------
+
+    if ndirs > 1:
+        # Omidirectional wave power through a plane
+        cg  = np.repeat(np.expand_dims(cg,axis=-1),ndirs,axis=-1)
+        jth = np.zeros_like(owp)
+        th  = np.zeros_like(owp) * np.NAN
+        # Time loop
+        for aa in range(spec.shape[0]):
+            # Point loop
+            for bb in range(spec.shape[1]):
+                # Directional wave power
+                tmpJth = 0.0
+                dirSpec = np.trapz(spec[aa,bb,...]*cg[bb,...],freq,axis=-2)
+                # Direction loop
+                for cc in range(ndirs):                
+                    fac = np.cos(np.pi/180.0 * (dirs[cc] - dirs))
+                    fac[fac<0] = 0.0
+                    tmpJth = np.sum(dirSpec*fac,axis=-1) * dth
+                    if tmpJth > jth[aa,bb]:
+                        jth[aa,bb] = tmpJth
+                        th[aa,bb]  = dirs[cc]
+
+    else:
+        th  = np.zeros_like(owp) * np.NAN
+        jth = np.zeros_like(owp) * np.NAN
+
+    # Take care of units here
+    owp *= 9.81 * rho
+    jth *= 9.81 * rho
+
+    # Allocate in arrays
+    bp['Th']  = th
+    bp['OWP'] = owp
+    bp['Jth'] = jth
+    bp['d']   = jth/owp      # Directionality coefficient
+    
+    return bp

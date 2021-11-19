@@ -3,7 +3,7 @@
 
 import matplotlib.pyplot as plt
 from  collections import defaultdict
-import colormaps as maps
+import pynmd.plotting.colormaps as maps
 
 
 """

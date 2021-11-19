@@ -76,7 +76,6 @@ def statatistics(data,model):
 
     
 def model_on_data(data_dates, model_dates, model_val):
-    print '  >>>>>>>>>>>>>>>   '
     units     = 'seconds since 2012-04-01 00:00:00'
     data_sec  = n4.date2num(data_dates , units)
     model_sec = n4.date2num(model_dates, units)
