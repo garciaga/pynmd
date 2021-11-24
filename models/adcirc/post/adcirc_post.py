@@ -206,13 +206,12 @@ def ReadTri(DirName):
     # create a triangulation object, specifying the triangle connectivity array
     print ('[info:] Generate Tri ...')
     tri  = Tri.Triangulation(x,y, triangles=el)
-    if False:
+    if True:
         try:
             zeta = nc.variables['zeta_max'][:].squeeze()
             zeta = np.ma.masked_where(np.isnan(zeta),zeta)
-            tri = tri_mask(tri,zeta.mask)
+            tri = maskTri(tri,zeta.mask)
             print ('[info:] Generate Tri.mask ...')
-
         except:
             print (' Tri mask did not applied !')
             pass

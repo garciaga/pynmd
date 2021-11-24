@@ -9,6 +9,13 @@ import matplotlib.tri as Tri
 import matplotlib.dates as mdates
 
 
+import cartopy.crs as ccrs
+from cartopy.io import shapereader
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+
+from math import floor
+from matplotlib import patheffects
+
 """
 Simple routines for plooting time_series, pcolors for structured and trianglur data (from adcirc and delf3d moved here) 
 """
@@ -495,7 +502,6 @@ def TriMapPlot(fig,axp,data,args):
     if True:
         #text22=ps.ordinal[nn] +' '+ title
         text22 = title
-        print text22
         axp.set_title(text22,loc='left')
     
     axp.set_xlim(xmin,xmax)
@@ -593,7 +599,7 @@ def TimeSeriesPlot(ax,data,args):
 
     if type(data['xx'][0]) is datetime.date:
         if type(xmin) is not datetime.date:
-            print ' This is a plot_date call make sure xlims are datetime objs ... '
+            print (' This is a plot_date call make sure xlims are datetime objs ... ')
             sys.exit('ERROR !')
     
     ax.plot(data['xx'],data['val'],color=color,label=label,
@@ -620,8 +626,8 @@ def TimeSeriesPlot(ax,data,args):
     ax.set_title(title)
 
     # the linewidth of the rectangular axis frame
-    fr_linewidth=0.4
-    [i.set_linewidth(fr_linewidth) for i in ax.spines.itervalues()]
+    #fr_linewidth=0.4
+    #[i.set_linewidth(fr_linewidth) for i in ax.spines.itervalues()]
    
     #ax.xaxis.set_ticks(ticks=range(len(point_list))) 
     #ax.xaxis.set_ticklabels(ticklabels=point_list)  #,fontsize=18)
@@ -645,7 +651,7 @@ def TimeSeriesPlot(ax,data,args):
         
         ax.text (xtext, ytext, '('+ps.ordinal[panel_num])
 
-    print var['label']
+    print (var['label'])
     ax.set_ylabel(var['label'])
     ax.set_xlabel('Time')
     ax.ticklabel_format(style='sci', axis='y', scilimits=(0,3))
@@ -699,7 +705,7 @@ def read_salt_temp(filename,ncvar,wher,dates,data):
         else:
             indx    = np.argmin(np.array(val_bis))
 
-        print 'index>',indx #,'   rmse> ',val_rms[indx],val_rms
+        print ('index>',indx) #,'   rmse> ',val_rms[indx],val_rms
         val_interp = val_all[indx]
     nc.close()
 
@@ -750,11 +756,11 @@ def plot_scatter(ax,data,model,var=dict(),color='k',marker = None,nn=None, title
           '\nN='+"%3i"       % len(model)
 
     ax.text (min1 + 0.05 * ddt ,var['vmax'] - 0.35 * (var['vmax']-var['vmin']) , txt , fontsize=7)
-    print var['label']    
+    print (var['label'])    
 
     # the linewidth of the rectangular axis frame
-    fr_linewidth=0.5
-    [i.set_linewidth(fr_linewidth) for i in ax.spines.itervalues()]
+    #fr_linewidth=0.5
+    #[i.set_linewidth(fr_linewidth) for i in ax.spines.itervalues()]
     
     for tick in ax.xaxis.get_major_ticks():
         tick.label.set_rotation(0)
@@ -802,6 +808,166 @@ def stick_plot(time, u, v, **kw):
     ax.xaxis_date()
     return q
 
+def make_map(projection=ccrs.PlateCarree(), res='m', xylabels = False):
+    
+    """
+    Generate fig and ax using cartopy
+    input: projection
+    output: fig and ax
+    """
+
+
+    subplot_kw = dict(projection=projection)
+    fig, ax = plt.subplots(figsize=(9, 13),
+                           subplot_kw=subplot_kw)
+    if xylabels:
+        gl = ax.gridlines(draw_labels=True)
+        gl.xlabels_top = gl.ylabels_right = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+    else:
+        gl = ax.gridlines(draw_labels=False)
+        gl.xlines = False
+        gl.ylines = False
+
+
+    
+    #if res is not None:
+    #    if res == 'm':
+    #        ax.background_img(name='BM', resolution='high')   # from local hdd you need to > import pynmd.plotting
+    #    else:
+    #        ax.background_img(name='BMH', resolution='high')   # from local hdd you need to > import pynmd.plotting
+
+    return fig, ax
+
+
+
+def utm_from_lon(lon):
+    """
+    utm_from_lon - UTM zone for a longitude
+
+    Not right for some polar regions (Norway, Svalbard, Antartica)
+
+    :param float lon: longitude
+    :return: UTM zone number
+    :rtype: int
+    """
+    return floor( ( lon + 180 ) / 6) + 1
+
+def scale_bar(ax, proj, length, location=(0.5, 0.05), linewidth=3,
+              units='km', m_per_unit=1000):
+    """
+
+    http://stackoverflow.com/a/35705477/1072212
+    ax is the axes to draw the scalebar on.
+    proj is the projection the axes are in
+    location is center of the scalebar in axis coordinates ie. 0.5 is the middle of the plot
+    length is the length of the scalebar in km.
+    linewidth is the thickness of the scalebar.
+    units is the name of the unit
+    m_per_unit is the number of meters in a unit
+    """
+    # find lat/lon center to find best UTM zone
+    x0, x1, y0, y1 = ax.get_extent(proj.as_geodetic())
+    # Projection in metres
+    utm = ccrs.UTM(utm_from_lon((x0+x1)/2))
+    # Get the extent of the plotted area in coordinates in metres
+    x0, x1, y0, y1 = ax.get_extent(utm)
+    # Turn the specified scalebar location into coordinates in metres
+    sbcx, sbcy = x0 + (x1 - x0) * location[0], y0 + (y1 - y0) * location[1]
+    # Generate the x coordinate for the ends of the scalebar
+    bar_xs = [sbcx - length * m_per_unit/2, sbcx + length * m_per_unit/2]
+    # buffer for scalebar
+    buffer = [patheffects.withStroke(linewidth=5, foreground="w")]
+    # Plot the scalebar with buffer
+    ax.plot(bar_xs, [sbcy, sbcy], transform=utm, color='k',
+        linewidth=linewidth, path_effects=buffer)
+    # buffer for text
+    buffer = [patheffects.withStroke(linewidth=3, foreground="w")]
+    # Plot the scalebar label
+    t0 = ax.text(sbcx, sbcy, str(length) + ' ' + units, transform=utm,
+        horizontalalignment='center', verticalalignment='bottom',
+        path_effects=buffer, zorder=2)
+    left = x0+(x1-x0)*0.05
+    # Plot the N arrow
+    t1 = ax.text(left, sbcy, u'\u25B2\nN', transform=utm,
+        horizontalalignment='center', verticalalignment='bottom',
+        path_effects=buffer, zorder=2)
+    # Plot the scalebar without buffer, in case covered by text buffer
+    ax.plot(bar_xs, [sbcy, sbcy], transform=utm, color='k',
+        linewidth=linewidth, zorder=3)
+
+def readTrack ( atcfFile ):
+    """
+    Reads ATCF-formatted file
+    Args:
+        'atcfFile': (str) - full path to the ATCF file
+    Returns:
+        dict: 'lat', 'lon', 'vmax', 'mslp','dates'
+    """
+    lines = open(atcfFile).readlines()
+        
+    myOcn  = []
+    myCy   = []
+    myDate = []
+    myLat  = []
+    myLon  = []
+    myVmax = []
+    myMSLP = []
+    for line in lines:
+        r = line.rstrip().split(',')
+        myOcn.append  (r[0])
+        myCy.append   (int(r[1]))
+        myDate.append (datetime.strptime(r[2].strip(),'%Y%m%d%H'))
+        latSign = -1.0
+        if 'N' in r[6]:
+            latSign = 1.0     
+        myLat.append  (latSign*0.1*float(r[6][:-1]))
+        lonSign = -1.0
+        if 'E' in r[7]:
+            lonSign = 1.0
+        myLon.append  (lonSign*0.1*float(r[7][:-1]))
+        myVmax.append (float(r[8]))
+        myMSLP.append (float(r[9]))
+    
+    return { 
+            'basin' : myOcn,    'cy' : myCy, 'dates' : myDate, 
+            'lat'   : myLat,   'lon' : myLon,
+            'vmax'  : myVmax, 'mslp' : myMSLP }
+
+
+def read_track(ax,path,date):
+    ike_track_file = '/scratch4/COASTAL/coastal/save/Saeed.Moghimi/models/NEMS/NEMS_inps/data/tracks/ike_bal092008.dat'
+    track = readTrack(ike_track_file)
+    keys = ['dates', 'lon', 'vmax', 'lat']
+    for key in keys:
+        tmp   = pd.DataFrame(track[key],columns=[key])
+
+        #dfh   = df
+        if 'trc' not in globals():
+            trc = tmp
+        else:
+            trc  = pd.concat([trc,tmp],axis=1,join_axes=[trc.index])    
+    
+    
+    
+    trc = trc.drop_duplicates(subset='dates',keep='first')
+    trc = trc.set_index (trc.dates)
+    trc = trc.resample('H').interpolate()
+    trc.drop('dates',axis=1,inplace=True)
+    
+    dates = datetime64todatetime(trc.index)
+    
+    return dates,trc.lon.values, trc.lat.values
+    
+
+def plot_track(ax,track,date=None):
+    
+    if date is not None:
+        dates = np.array(track['dates'])
+        ind = np.array(np.where((dates==date))).squeeze().item()
+        ax.scatter(lon[ind],lat[ind],s=50,c='r',alpha=50)
+    ax.plot(track['lon'],track['lat'],lw=2,c='r')
 
 
 #def imscatter(x, y, image=None, ax=None, zoom=0.05):
@@ -831,4 +997,16 @@ def stick_plot(time, u, v, **kw):
 #    ax.autoscale()
 #    return artists
 
+if __name__ == '__main__':
 
+    ax = plt.axes(projection=ccrs.Mercator())
+    plt.title('Cyprus')
+    ax.set_extent([31, 35.5, 34, 36], ccrs.Geodetic())
+    ax.stock_img()
+    ax.coastlines(resolution='10m')
+
+    scale_bar(ax, ccrs.Mercator(), 100)  # 100 km scale bar
+    # or to use m instead of km
+    # scale_bar(ax, ccrs.Mercator(), 100000, m_per_unit=1, units='m')
+    # or to use miles instead of km
+    # scale_bar(ax, ccrs.Mercator(), 60, m_per_unit=1609.34, units='miles')

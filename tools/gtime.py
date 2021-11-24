@@ -292,3 +292,17 @@ def monthVector(yr1,yr2):
     timeVec = _np.array(timeVec)
     
     return timeVec
+
+
+def find_nearest_time(dates,date):
+    """
+    Return nearest time indexs
+    Inp: dates: timedate vector
+         date: timedate pint
+    Out: index
+    
+    """
+    dtsec = []
+    for tmp in dates:
+        dtsec.append( np.abs( (tmp-date).total_seconds()  ) )  
+    return np.argmin(dtsec)    
