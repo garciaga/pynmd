@@ -146,3 +146,75 @@ def read_fort14(fort14):
     return {'x':x,'y':y,'z':z,'triang':triang,
             'nbdv':nbdv,'neta':neta,'nope':nope,
             'nbvv':nbvv,'nvel':nvel}
+
+# Get nodes connected to node ii
+def getNodalConnectivity(ii,elements):
+    """
+    Get nodes connected to node ii
+
+    PARAMETERS:
+    -----------
+    ii : int 
+        node number
+    elements: int (nele,3)
+        triangulation matrix
+
+    RETURNS:
+    --------
+    eleId : array, int
+        Id of elements connected to node ii
+
+    Parallel Usage Example:
+    -----------------------
+    from multiprocessing import Pool
+    from functools import partial
+    wl_pool = Pool(23)
+    connections = wl_pool.map(partial(getNodalConnectivity,
+                                      elements=f14['triang']),
+                              np.arange(nodes.shape[0]))
+    wl_pool.close()
+
+    """
+       
+    # Get the elements where current node is present
+    elementWithNodeIndex = _np.where(elements == ii)[0]
+    
+    # Get all the nodes connected with ii
+    connectedNodes = elements[elementWithNodeIndex,:].flatten()
+    
+    # Get the unique nodes
+    connectedNodesUnique = _np.unique(connectedNodes)
+    
+    # Remove the current node from list
+    keepInd = connectedNodesUnique != ii
+    connectedNodesOrdered = _np.r_[_np.array([ii,]),connectedNodesUnique[keepInd]]
+
+    # return np.asarray(connections)
+    return connectedNodesOrdered
+
+# Get nodes connected to node ii
+def getElementConnectivity(nodes,elements):
+    """
+    Get elements connected to the nodes
+
+    PARAMETERS:
+    -----------
+    nodes : int 
+        node ids
+    elements: int (nele,3)
+        triangulation matrix
+
+    RETURNS:
+    --------
+    eleId : array, int
+        Id of elements connected to node ii
+
+    """
+       
+    # Get the elements where current node is present
+    elementWithNodeIndex = []
+    for ii in nodes:
+        elementWithNodeIndex.append(_np.where(elements == ii)[0])
+    
+    # return np.asarray(connections)
+    return elementWithNodeIndex
