@@ -946,6 +946,8 @@ def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05],zeroth=True):
     HsIG       : Significant wave height in the infragravity frequency band [m]
     Dm         : Mean wave direction, second moment (Kuik et al. 1988)
     Dp         : Peak wave direction (computed from directional spectrum)
+    Dp_fit     : Peak wave direction (computed using second order 
+                 polynomial fit around the peak of the directional spectrum)
     
     Notes:
     ------
@@ -962,12 +964,27 @@ def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05],zeroth=True):
     
     # Get directional properties
     dirSpec = np.trapz(spec,freq,axis=0)
-    
+    dth = np.abs(dirs[2] - dirs[1])
+
     # Find peak wave directon
-    Dp = np.argmax(dirSpec)
-    Dp = dirs[Dp]
+    Dp = dirs[np.argmax(dirSpec)]
     dirDict = dict(Dp=Dp)
-    
+
+    # Peak wave direction using a quadratic fit over the largest directions
+    dir_max_ind = np.argmax(dirSpec)
+    if dir_max_ind == 0:
+        tmp_fit = np.polyfit([dirs[0] - dth,dirs[0],dirs[1]],
+                             [dirSpec[-1],dirSpec[0],dirSpec[1]],2)
+    elif dir_max_ind == dirs.shape[0]-1:
+        tmp_fit = np.polyfit([dirs[-2],dirs[-1],dirs[-1] + dth],
+                             [dirSpec[-2],dirSpec[-1],dirSpec[0]],2)
+    else:
+        minDirInd = dir_max_ind - 1
+        maxDirInd = dir_max_ind + 2
+        tmp_fit = np.polyfit(dirs[minDirInd:maxDirInd],dirSpec[minDirInd:maxDirInd],2)
+    Dp_fit = -1.0 * tmp_fit[1] / (2.0* tmp_fit[0])
+    dirDict.update(Dp_fit=_gangles.wrapto360(Dp_fit))
+
     # Find mean wave direction (Kuik et al 1988)
     a1 = np.trapz(dirSpec*np.cos((270.0-dirs)*np.pi/180),dirs)
     b1 = np.trapz(dirSpec*np.sin((270.0-dirs)*np.pi/180),dirs)
@@ -977,7 +994,6 @@ def spec_bulk_params(freq,dirs,spec,IGBand=[0.005,0.05],zeroth=True):
     
     # Get the parameter from the frequency spectrum
     #freqSpec = np.trapz(spec,dirs,axis=-1)
-    dth = np.abs(dirs[2] - dirs[1])
     freqSpec = np.sum(spec,axis=-1) * dth
     bp = fspec_bulk_params(freq,freqSpec,IGBand,zeroth=zeroth)
     bp.update(dirDict)
