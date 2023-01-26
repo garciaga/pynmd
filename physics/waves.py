@@ -353,6 +353,27 @@ def shallow_water_depth(period):
 
     return h
 
+
+def deep_water_period(depth):
+    '''
+
+    t_deep = deep_water_depth(depth)
+
+    Find the period of waves entering intermediate water depth at a give depth
+    according to linear wave theory (i.e. kh = pi)
+
+    PARAMETERS:
+    -----------
+    depth     : water depth [m]
+
+    RETURNS:
+    --------
+    t_deep  : waves of this period and shorter do not feel the bottom [s]
+
+    '''
+
+    return 2.0 * np.pi / idispersion(np.pi/depth,depth)
+
 #===============================================================================
 # Wave length
 #===============================================================================

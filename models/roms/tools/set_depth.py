@@ -90,7 +90,7 @@ def set_depth( Vtr, Vstr, thts, thtb, hc, N, igrid, h, zeta ):
     else:
         kgrid=0
     
-    s,C = stretching(Vstr, thts, thtb, hc, N, kgrid)
+    s,C = stretching.stretching(Vstr, thts, thtb, hc, N, kgrid)
         
     #-----------------------------------------------------------------------
     #  Average bathymetry and free-surface at requested C-grid type.
