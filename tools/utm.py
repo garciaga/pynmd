@@ -1,5 +1,5 @@
 import pyproj
-
+import numpy as _np
 
 _projections = {}
 
@@ -79,3 +79,19 @@ def unproject(z, l, x, y):
         y -= 10000000
     lng, lat = _projections[z](x, y, inverse=True)
     return (lng, lat)
+
+def haversine(lat1,lon1,lat2,lon2):
+    """
+    Compute distance between two points using the haversine formula
+
+    RETURNS:
+    --------
+    d : distance between lat1,lon1 and lat2,lon2 in meters
+
+    """
+    sin_dlon = _np.sin(_np.pi / 180 * (lon2 - lon1) / 2)**2
+    sin_dlat = _np.sin(_np.pi / 180 * (lat2 - lat1) / 2)**2
+    x = sin_dlat + (_np.cos(_np.pi / 180 * lat1) * _np.cos(_np.pi / 180 * lat2) *
+                    sin_dlon)
+    d = 2 * 6378137 * _np.arcsin((x)**0.5)
+    return d
