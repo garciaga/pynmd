@@ -244,7 +244,7 @@ def write_dep(grd,outFld,casename):
     grd: Dictionary containing
          x     : x or longitude of nodes
          y     : y or latitude of nodes
-         d     : depth [meter]
+         h     : depth [meter]
     outFld : Path to directory where file will be written
     casename: String with name of file
 
@@ -267,7 +267,7 @@ def write_dep(grd,outFld,casename):
     for ii in range(grd['x'].shape[0]):
         fid.write('{:.8f} {:.8f} {:.3f}\n'.format(grd['x'][ii],
                                                   grd['y'][ii],
-                                                  grd['z'][ii]))
+                                                  grd['h'][ii]))
     
     # Close now
     fid.close()
