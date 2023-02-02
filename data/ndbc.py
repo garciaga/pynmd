@@ -480,6 +480,8 @@ def spec2nc(buoyfld,dtheta=5,fixNegative=False):
         tmpfile = buoyfld + buoyid + 'w' + aa + '.txt'
         if os.path.isfile(tmpfile) == False:
             # No spectral density found for the given year, go to next one
+            print('    No spectral density file found: ' +
+                  buoyid + 'w' + aa + '.txt')
             continue
         
         # Info
@@ -615,12 +617,29 @@ def spec2nc(buoyfld,dtheta=5,fixNegative=False):
         tmp_r_1 = buoyfld  + buoyid + 'j' + aa + '.txt'
         tmp_r_2 = buoyfld  + buoyid + 'k' + aa + '.txt'
     
-    
         if (os.path.isfile(tmp_alpha_1) and os.path.isfile(tmp_alpha_2) and
             os.path.isfile(tmp_r_1) and os.path.isfile(tmp_r_2)):
-            
+
             # Information
             print('    Directional Data')
+
+            # Read spectral data
+            try:
+                alpha_1 = np.loadtxt(tmp_alpha_1,skiprows=1)
+                alpha_2 = np.loadtxt(tmp_alpha_2,skiprows=1)
+                r_1 = np.loadtxt(tmp_r_1,skiprows=1) * 0.01
+                r_2 = np.loadtxt(tmp_r_2,skiprows=1) * 0.01
+            except:
+                print('      Error reading the data')
+                continue
+
+            # Some years do not have consistent data. I will not attempt to 
+            # fix that here, just skip this year.
+            tmplen = alpha_1.shape[0]
+            if not all([lst.shape[0] == tmplen for lst in [alpha_2, r_1, r_2]]):
+                print('    Inconsistent data, skipping year')
+                continue
+
             
             # Read frequency of the directional spectra (not always agree with
             # the spectral densities)
@@ -660,13 +679,6 @@ def spec2nc(buoyfld,dtheta=5,fixNegative=False):
                 nc.variables['frequencyDir'+formId].units = 'Hz'
                 nc.variables['frequencyDir'+formId].long_name = 'Spectral frequency for dir_spec'
                 nc.variables['frequencyDir'+formId][:] = freqDirSpec
-            
-            
-            # Read spectral data
-            alpha_1 = np.loadtxt(tmp_alpha_1,skiprows=1)
-            alpha_2 = np.loadtxt(tmp_alpha_2,skiprows=1)
-            r_1 = np.loadtxt(tmp_r_1,skiprows=1) * 0.01
-            r_2 = np.loadtxt(tmp_r_2,skiprows=1) * 0.01
     
             # Allocate date
             dir_time = np.zeros((alpha_1.shape[0]))              
