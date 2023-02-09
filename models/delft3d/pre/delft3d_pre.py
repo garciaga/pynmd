@@ -128,3 +128,267 @@ def write_dep(fname,data):
   
     f.close()        
 
+def write_table(fname,data):
+    """
+    To write one table block of text boundary into .bcc or .bct file:
+    
+    In some cases you need to read in the file into GUI and save it again
+    to be able to read it by Delft3D properly.
+    
+    Linear : time interpolation  
+    Linear : Depth interpolation (e.g salinity)
+    """
+    fmt = "%.7e"
+    f   = open(fname,"a")
+    
+    params_header = []
+    params_header.append( "table-name          '"  +  data["table_name"]    +"'\n") 
+    params_header.append( "contents            '"  +  data["contents"]      +"'\n") 
+    params_header.append( "location            '"  +  data["location"]      +"'\n") 
+    params_header.append( "time-function       '"  +  data["time-function"] +"'\n") 
+    params_header.append( "reference-time       "  +  data["time-ref"]      +" \n") 
+    params_header.append( "time-unit           '"  +  data["time-unit"]     +"'\n") 
+    params_header.append( "interpolation       '"  +  data["interpolation"] +"'\n") 
+    
+    main_param      = data["main_param"]
+    main_param_unit = data["main_param_unit"]
+    params_header.append(     "parameter           'time                '  unit '[min]' \n")
+    if "linear" in data["contents"].lower():
+        params_header.append( "parameter           '" +  main_param +  "   end A surface'       unit '" + main_param_unit+"' \n")
+        params_header.append( "parameter           '" +  main_param +  "   end A bed    '       unit '" + main_param_unit+"' \n")
+        params_header.append( "parameter           '" +  main_param +  "   end B surface'       unit '" + main_param_unit+"' \n")
+        params_header.append( "parameter           '" +  main_param +  "   end B bed    '       unit '" + main_param_unit+"' \n")
+    elif "uniform" in data["contents"].lower():     
+        params_header.append( "parameter           '" +  main_param +  "  end A uniform'        unit '" + main_param_unit+"' \n")
+        params_header.append( "parameter           '" +  main_param +  "  end B uniform'        unit '" + main_param_unit+"' \n")
+    else:
+        sys.exit(data["contents"]+' > contents < method not yet implemented !!')
+    
+    data = data["data"]
+    nl,_ = data.shape
+    params_header.append( "records-in-table "  +  str(int(nl)) +"\n") 
+    
+    for il in range(len(params_header)):
+        f.write(params_header[il])
+    
+    np.savetxt(f,data , fmt=fmt)
+    f.close()
+    #####
+
+
+def discharge_salt_sed():
+    ref_time  = datetime.datetime(2010,01,01)
+    ref_units = "minutes since "+ref_time.isoformat()
+    ut       = netcdftime.utime(ref_units.replace("T"," "))    
+    
+    mins  = np.arange(0,3.6820800e+006 * 2, 3.6820800e+006)
+    dates = ut.num2date(mins)
+    #RIVER    
+    #write discharge file
+    data = {}
+    fname                   = "ExpPass1.bct"    
+    os.system('rm -rf '+fname)
+
+    data["table_name"]      = "Boundary Section : 2"
+    data["contents"]        = "Uniform             "
+    data["location"]        = "River               "
+    data["time-ref"]        = ref_time.isoformat()[:10].replace("-","")
+    data["time-function"]   = "non-equidistant"
+    data["time-unit"]       = ut.units
+    data["interpolation"]   = "linear"
+    data["main_param"]      = "total discharge (t)"
+    data["main_param_unit"] = "[m3/s]"
+    discharge = np.ones((len(mins))) * -17.0
+    timevec   = ut.date2num(dates)
+    data["data"]            = np.array(zip(timevec,discharge,np.ones_like(discharge)*999.999))
+    write_table(fname=fname,data=data)
+
+    #write BCC (e.g. salinity) file
+    #SeaSide
+    #salinity
+    data = {}
+    fname                   = "ExpPass1.bcc"    
+    os.system('rm -rf '+fname)
+    data["table_name"]      = "Boundary Section : 1"
+    data["contents"]        = "Linear             "
+    data["location"]        = "SeaSide            "
+    data["time-function"]   = "non-equidistant"
+    data["time-ref"]        = ref_time.isoformat()[:10].replace("-","")
+    data["time-unit"]       = ut.units
+    data["interpolation"]   = "linear"
+    #
+    data["main_param"]      = "Salinity"
+    data["main_param_unit"] = "[ppt]"
+    #end A
+    end_a_srf = np.ones((len(mins))) * 17.0
+    end_a_bot = np.ones((len(mins))) * 25.0
+    #end B
+    end_b_srf = np.ones((len(mins))) * 17.0
+    end_b_bot = np.ones((len(mins))) * 25.0
+    #
+    timevec   = ut.date2num(dates)
+    data["data"] = np.array(zip(timevec,end_a_srf,end_a_bot,end_b_srf,end_b_bot))
+    write_table(fname=fname,data=data)
+    #
+    #Sediment
+    data = {}
+    fname                   = "ExpPass1.bcc"    
+    data["table_name"]      = "Boundary Section : 1"
+    data["contents"]        = "Uniform            "
+    data["location"]        = "SeaSide            "
+    data["time-function"]   = "non-equidistant"
+    data["time-ref"]        = ref_time.isoformat()[:10].replace("-","")
+    data["time-unit"]       = ut.units
+    data["interpolation"]   = "linear"
+    #
+    data["main_param"]      = "Sediment_maximum"
+    data["main_param_unit"] = "[kg/m3]"
+    end_a = np.ones((len(mins))) * 0.0  #end A
+    end_b = np.ones((len(mins))) * 0.0  #end B 
+    timevec   = ut.date2num(dates)
+    data["data"]            = np.array(zip(timevec,end_a,end_b))
+    write_table(fname=fname,data=data)
+    #river side
+    #SeaSide
+    #salinity
+    data = {}
+    data = {}
+    fname                   = "ExpPass1.bcc"    
+    data["table_name"]      = "Boundary Section : 2"
+    data["contents"]        = "Uniform            "
+    data["location"]        = "River              "
+    data["time-function"]   = "non-equidistant"
+    data["time-ref"]        = ref_time.isoformat()[:10].replace("-","")
+    data["time-unit"]       = ut.units
+    data["interpolation"]   = "linear"
+    #
+    data["main_param"]      = "Salinity"
+    data["main_param_unit"] = "[ppt]"
+    end_a = np.ones((len(mins))) * 0.0  #end A
+    end_b = np.ones((len(mins))) * 0.0  #end B 
+    timevec   = ut.date2num(dates)
+    data["data"]            = np.array(zip(timevec,end_a,end_b))
+    write_table(fname=fname,data=data)
+    #
+    #Sediment
+    data = {}
+    fname                   = "ExpPass1.bcc"    
+    data["table_name"]      = "Boundary Section : 2"
+    data["contents"]        = "Uniform            "
+    data["location"]        = "River              "
+    data["time-function"]   = "non-equidistant"
+    data["time-ref"]        = ref_time.isoformat()[:10].replace("-","")
+    data["time-unit"]       = ut.units
+    data["interpolation"]   = "linear"
+    #
+    data["main_param"]      = "Sediment_maximum"
+    data["main_param_unit"] = "[kg/m3]"
+    end_a = np.ones((len(mins))) * 0.02  #end A
+    end_b = np.ones((len(mins))) * 0.02  #end B 
+    timevec   = ut.date2num(dates)
+    data["data"]            = np.array(zip(timevec,end_a,end_b))
+    write_table(fname=fname,data=data)
+
+
+def discharge_salt():
+    ref_time  = datetime.datetime(2010,01,01)
+    ref_units = "minutes since "+ref_time.isoformat()
+    ut       = netcdftime.utime(ref_units.replace("T"," "))    
+    
+    mins  = np.arange(0,3.6820800e+006, 3.6820800e+006 // 60)
+    dates = ut.num2date(mins)
+    #RIVER    
+    #write discharge file
+    data = {}
+    fname                   = "ExpPass1.bct"    
+    os.system('rm -rf '+fname)
+
+    data["table_name"]      = "Boundary Section : 2"
+    data["contents"]        = "Uniform             "
+    data["location"]        = "River               "
+    data["time-ref"]        = ref_time.isoformat()[:10].replace("-","")
+    data["time-function"]   = "non-equidistant"
+    data["time-unit"]       = ut.units
+    data["interpolation"]   = "linear"
+    data["main_param"]      = "total discharge (t)"
+    data["main_param_unit"] = "[m3/s]"
+    discharge = np.ones((len(mins))) * -17.0
+    timevec   = ut.date2num(dates)
+    data["data"]            = np.array(zip(timevec,discharge,np.ones_like(discharge)*999.999))
+    write_table(fname=fname,data=data)
+
+    #write BCC (e.g. salinity) file
+    #SeaSide
+    #salinity
+    data = {}
+    fname                   = "ExpPass1.bcc"    
+    os.system('rm -rf '+fname)
+    data["table_name"]      = "Boundary Section : 1"
+    data["contents"]        = "Linear             "
+    data["location"]        = "SeaSide            "
+    data["time-function"]   = "non-equidistant"
+    data["time-ref"]        = ref_time.isoformat()[:10].replace("-","")
+    data["time-unit"]       = ut.units
+    data["interpolation"]   = "linear"
+    #
+    data["main_param"]      = "Salinity"
+    data["main_param_unit"] = "[ppt]"
+    #end A
+    end_a_srf = np.ones((len(mins))) * 17.0
+    end_a_bot = np.ones((len(mins))) * 25.0
+    #end B
+    end_b_srf = np.ones((len(mins))) * 17.0
+    end_b_bot = np.ones((len(mins))) * 25.0
+    #
+    timevec   = ut.date2num(dates)
+    data["data"] = np.array(zip(timevec,end_a_srf,end_a_bot,end_b_srf,end_b_bot))
+    write_table(fname=fname,data=data)
+    #
+    #river side
+    #salinity
+    data = {}
+    data = {}
+    fname                   = "ExpPass1.bcc"    
+    data["table_name"]      = "Boundary Section : 2"
+    data["contents"]        = "Uniform            "
+    data["location"]        = "River              "
+    data["time-function"]   = "non-equidistant"
+    data["time-ref"]        = ref_time.isoformat()[:10].replace("-","")
+    data["time-unit"]       = ut.units
+    data["interpolation"]   = "linear"
+    #
+    data["main_param"]      = "Salinity"
+    data["main_param_unit"] = "[ppt]"
+    end_a = np.ones((len(mins))) * 0.0  #end A
+    end_b = np.ones((len(mins))) * 0.0  #end B 
+    timevec   = ut.date2num(dates)
+    data["data"]            = np.array(zip(timevec,end_a,end_b))
+    write_table(fname=fname,data=data)
+    #
+
+
+if __name__ == "__main__":
+    # execute only if run as a script
+    discharge_salt()
+
+# # 
+# #     BCT    
+# table-name           'Boundary Section : 2'
+# contents             'Uniform             '
+# location             'River               '
+# time-function        'non-equidistant'
+# reference-time       20100401
+# time-unit            'minutes'
+# interpolation        'linear'
+# parameter            'time                '                     unit '[min]'
+# parameter            'total discharge (t)  end A'               unit '[m3/s]'
+# parameter            'total discharge (t)  end B'               unit '[m3/s]'
+# records-in-table     2
+#  0.0000000e+000 -1.7000000e+001  9.9999900e+002
+#  4.1760000e+004 -1.7000000e+001  9.9999900e+002
+# 
+# 
+# 
+# 
+# 
+# 

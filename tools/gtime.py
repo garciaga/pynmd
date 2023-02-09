@@ -221,6 +221,21 @@ def dayOfYear(year,month,day):
     
     return a.days + 1
 
+
+def roundTime(dt=None, dateDelta=_datetime.timedelta(minutes=1)):
+    """Round a datetime object to a multiple of a timedelta
+    dt : datetime.datetime object, default now.
+    dateDelta : timedelta object, we round to a multiple of this, default 1 minute.
+    Author: Thierry Husson 2012 - Use it as you want but don't blame me.
+            Stijn Nevens 2014 - Changed to use only datetime objects as variables
+    """
+    roundTo = dateDelta.total_seconds()
+
+    if dt == None : dt = _datetime.datetime.now()
+    seconds = (dt - dt.min).seconds
+    # // is a floor division, not a comment on following line:
+    rounding = (seconds+roundTo/2) // roundTo * roundTo
+    return dt + _datetime.timedelta(0,rounding-seconds,-dt.microsecond)
 #===============================================================================
 # Monthly vector
 #===============================================================================
@@ -277,3 +292,17 @@ def monthVector(yr1,yr2):
     timeVec = _np.array(timeVec)
     
     return timeVec
+
+
+def find_nearest_time(dates,date):
+    """
+    Return nearest time indexs
+    Inp: dates: timedate vector
+         date: timedate pint
+    Out: index
+    
+    """
+    dtsec = []
+    for tmp in dates:
+        dtsec.append( np.abs( (tmp-date).total_seconds()  ) )  
+    return np.argmin(dtsec)    

@@ -15,7 +15,6 @@ __version__ = "1.0"
 __email__ = "moghimis@gmail.com"
 
 import pylab
-from   matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 # Symbols 
 symbols = ['-','--','-.',':','.',',','o','^','v','<','>','s','+','x','D','d','1','2','3','4','h','H','p']
@@ -70,7 +69,7 @@ def get_figsize(fig_width_pt):
     return fig_size
 
 # Publishable quality image settings for 2-column papers
-params0 = {'backend': 'eps',
+params0 = {'backend': 'pdf',
           'axes.labelsize': 4,
           'text.fontsize': 4,
           'xtick.labelsize': 4,
@@ -83,7 +82,7 @@ params0 = {'backend': 'eps',
           'figure.figsize': get_figsize(250)}
 
 # Medium sized images
-params1 = {'backend': 'eps',
+params1 = {'backend': 'pdf',
           'axes.labelsize': 8,
           'text.fontsize': 8,
           'xtick.labelsize': 8,
@@ -96,7 +95,7 @@ params1 = {'backend': 'eps',
           'figure.figsize': get_figsize(500)}
 
 # Large images (default)
-params2 = {'backend': 'eps',
+params2 = {'backend': 'pdf',
           'axes.labelsize': 11,
           'text.fontsize': 11,
           'xtick.labelsize': 11,
@@ -160,83 +159,71 @@ def print_nc_dates(ref_grd,time_key):
     print(date_obs)
     return date_obs
 
-############################
-cdict = {'red': ((0., 1, 1),
-                 (0.05, 1, 1),
-                 (0.11, 0, 0),
-                 (0.66, 1, 1),
-                 (0.89, 1, 1),
-                 (1, 0.5, 0.5)),
-         'green': ((0., 1, 1),
-                   (0.05, 1, 1),
-                   (0.11, 0, 0),
-                   (0.375, 1, 1),
-                   (0.64, 1, 1),
-                   (0.91, 0, 0),
-                   (1, 0, 0)),
-         'blue': ((0., 1, 1),
-                  (0.05, 1, 1),
-                  (0.11, 1, 1),
-                  (0.34, 1, 1),
-                  (0.65, 0, 0),
-                  (1, 0, 0))}
 
-my_cmap  = LinearSegmentedColormap('my_colormap',cdict,256)
 
-cdict = {'red':  ((0.   , 1, 1),
-                  (0.05 , 1, 1),
-                  (0.11 , 0, 0),
-                  (0.66 , 1, 1),
-                  (0.89 , 1, 1),
-                  (1.0  , 0, 0)),
-         'green':((0.   , 1, 1),
-                  (0.05 , 1, 1),
-                  (0.11 , 0, 0),
-                  (0.375, 1, 1),
-                  (0.64 , 1, 1),
-                  (0.91 , 0, 0),
-                  (1.0  , 0, 0)),
-         'blue': ((0.   , 1, 1),
-                  (0.05 , 1, 1),
-                  (0.11 , 1, 1),
-                  (0.34 , 1, 1),
-                  (0.65 , 0, 0),
-                  (1.0  , 0, 0))}
-
-my_cmap2 = LinearSegmentedColormap('my_colormap2',cdict,256)
-
-def jetWoGn(reverse=False):
+def mkd(t_vec,date_orig):
     """
-    jetWoGn(reverse=False)
-       - returning a colormap similar to cm.jet, but without green.
-         if reverse=True, the map starts with red instead of blue.
+    For plotting in decimal years, rather than datenum.
+
+    t_vec : vector of matlab datenume (floats)
+    date_orig : python date time of orig
+    output: vector of number of days
+
     """
-    m=18 # magic number, which works fine
-    m0=pylab.floor(m*0.0)
-    m1=pylab.floor(m*0.2)
-    m2=pylab.floor(m*0.2)
-    m3=pylab.floor(m/2)-m2-m1
-
-    b_ = pylab.hstack( (0.4*pylab.arange(m1)/(m1-1.)+0.6, pylab.ones((m2+m3,)) ) )
-    g_ = pylab.hstack( (pylab.zeros((m1,)),pylab.arange(m2)/(m2-1.),pylab.ones((m3,))) )
-    r_ = pylab.hstack( (pylab.zeros((m1,)),pylab.zeros((m2,)),pylab.arange(m3)/(m3-1.)))
-
-    r = pylab.hstack((r_,pylab.flipud(b_)))
-    g = pylab.hstack((g_,pylab.flipud(g_)))
-    b = pylab.hstack((b_,pylab.flipud(r_)))
-
-    if reverse:
-        r = pylab.flipud(r)
-        g = pylab.flipud(g)
-        b = pylab.flipud(b)
-
-    ra = pylab.linspace(0.0,1.0,m)
-
-    cdict = {'red': zip(ra,r,r),
-            'green': zip(ra,g,g),
-            'blue': zip(ra,b,b)}
-
-    return LinearSegmentedColormap('new_RdBl',cdict,256)
+    t_orig = datetime2matlabdn(date_orig)
+    return (t_vec - t_orig) / 365.25 + t_orig
 
 
+def exp_func(x, a, b, c):
+    return a*pylab.exp(-b*x)+c
 
+def power_func(x, a, b,c):
+    return a * x**b + c
+
+def x2_func(x, a, b):
+    return a * x**2 + b
+
+# define a gaussian function to fit the data
+def gaussian_func(x, a, b, c, d):
+    val = a* pylab.exp(-(x - b)**2 / c**2) + d
+    return val
+    
+    
+
+# find the indices of the points in (x,y) closest to the points in (xi,yi)
+def nearxy(x,y,xi,yi):
+    ind=ones(len(xi),dtype=int)
+    for i in arange(len(xi)):
+        dist=sqrt((x-xi[i])**2+(y-yi[i])**2)
+        ind[i]=dist.argmin()
+    return ind
+        
+def replace_pattern_line(filename, pattern, line2replace):
+    """
+    replace the whole line if the pattern found
+    
+    """
+    
+    tmpfile = filename+'.tmp2'
+    os.system(' cp  -f ' + filename + '  ' + tmpfile)
+    tmp  = open(tmpfile,'r')
+    fil  = open(filename,'w')
+    for line in tmp:
+        fil.write(line2replace if pattern in line else line)
+        
+    tmp.close()
+    fil.close()
+    os.system('rm ' + tmpfile  )  
+    
+    
+def str_assing(inp_str,new_part,index_of_start):
+    
+    """
+    replace part of a string
+    
+    """
+    
+    
+    lenn = len(index_of_start)
+    inp_str = inp_str[:index_of_start] + new_part + inp_str[index_of_start + lenn:]
+    return inp_str    

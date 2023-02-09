@@ -23,7 +23,9 @@ __all__ = ['magma', 'inferno', 'plasma', 'viridis','parula']
 
 import pylab as _pl
 import numpy as _np
-from matplotlib.colors import ListedColormap as _ListedColormap
+from   matplotlib.colors import ListedColormap as _ListedColormap
+from   matplotlib.colors import LinearSegmentedColormap
+
 
 #==============================================================================
 # Define some colormaps
@@ -1600,14 +1602,14 @@ def jetWoGn(reverse=False):
          
     Notes 
     -----
-    Courtesy of Dr. Saeed Moghimi
+    Courtesy of Octant
     
     """
     m=18 # magic number, which works fine
     #m0=_pl.floor(m*0.0)
-    m1=_pl.floor(m*0.2)
-    m2=_pl.floor(m*0.2)
-    m3=_pl.floor(m/2)-m2-m1
+    m1=int(_pl.floor(m*0.2))
+    m2=int(_pl.floor(m*0.2))
+    m3=int(_pl.floor(m/2)-m2-m1)
 
     b_ = _np.hstack( (0.4*_np.arange(m1)/(m1-1.)+0.6, _np.ones((m2+m3,)) ) )
     g_ = _np.hstack( (_np.zeros((m1,)),_np.arange(m2)/(m2-1.),_np.ones((m3,))) )
@@ -1623,6 +1625,7 @@ def jetWoGn(reverse=False):
         b = _pl.flipud(b)
 
     ra = _pl.linspace(0.0,1.0,m)
+
 
     cdict = {'red': zip(ra,r,r),
             'green': zip(ra,g,g),
@@ -1669,3 +1672,97 @@ def get_colormap_colors(N,cmapname='jet'):
          
     return colors
 
+############################
+cdict = {'red': ((0.  , 1  , 1),
+                 (0.05, 1  , 1),
+                 (0.11, 0  , 0),
+                 (0.66, 1, 1),
+                 (0.89, 1, 1),
+                 (1   , 0.5, 0.5)),
+         'green': ((0., 1, 1),
+                   (0.05, 1, 1),
+                   (0.11, 0, 0),
+                   (0.375, 1, 1),
+                   (0.64, 1, 1),
+                   (0.91, 0, 0),
+                   (1, 0, 0)),
+         'blue': ((0., 1, 1),
+                  (0.05, 1, 1),
+                  (0.11, 1, 1),
+                  (0.34, 1, 1),
+                  (0.65, 0, 0),
+                  (1, 0, 0))}
+
+jetMinWi = LinearSegmentedColormap('my_colormap',cdict,256)
+
+cdict = {'red':  ((0.   , 1, 1),
+                  (0.05 , 1, 1),
+                  (0.11 , 0, 0),
+                  (0.66 , 1, 1),
+                  (0.89 , 1, 1),
+                  (1.0  , 0, 0)),
+         'green':((0.   , 1, 1),
+                  (0.05 , 1, 1),
+                  (0.11 , 0, 0),
+                  (0.375, 1, 1),
+                  (0.64 , 1, 1),
+                  (0.91 , 0, 0),
+                  (1.0  , 0, 0)),
+         'blue': ((0.   , 1, 1),
+                  (0.05 , 1, 1),
+                  (0.11 , 1, 1),
+                  (0.34 , 1, 1),
+                  (0.65 , 0, 0),
+                  (1.0  , 0, 0))}
+
+
+
+
+jetMinWi2 = LinearSegmentedColormap('my_colormap2',cdict,256)
+
+
+def cmap_map(function,cmap):
+    """ Applies function (which should operate on vectors of shape 3:
+    [r, g, b], on colormap cmap. This routine will break any discontinuous
+    points in a colormap.
+    
+    Addapted from Octant: https://github.com/hetland/octant/blob/master/octant/sandbox/plotting.py
+
+    
+    """
+    cdict = cmap._segmentdata
+    step_dict = {}
+    # Firt get the list of points where the segments start or end
+    for key in ('red','green','blue'):         step_dict[key] = map(lambda x: x[0], cdict[key])
+    step_list = reduce(lambda x, y: x+y, step_dict.values())
+    step_list = _np.array(list(set(step_list)))
+    # Then compute the LUT, and apply the function to the LUT
+    reduced_cmap = lambda step : _np.array(cmap(step)[0:3])
+    old_LUT = _np.array(map( reduced_cmap, step_list))
+    new_LUT = _np.array(map( function, old_LUT))
+    # Now try to make a minimal segment definition of the new LUT
+    cdict = {}
+    for i,key in enumerate(('red','green','blue')):
+        this_cdict = {}
+        for j,step in enumerate(step_list):
+            if step in step_dict[key]:
+                this_cdict[step] = new_LUT[j,i]
+            elif new_LUT[j,i]!=old_LUT[j,i]:
+                this_cdict[step] = new_LUT[j,i]
+        colorvector=  map(lambda x: x + (x[1], ), this_cdict.items())
+        colorvector.sort()
+        cdict[key] = colorvector
+
+    return _pl.matplotlib.colors.LinearSegmentedColormap('colormap',cdict,1024)
+
+
+
+def cmap_brightened(cmap,factor=0.5):
+    """
+    
+    Brightens colormap cmap with using a saturation factor 'factor'
+    (0.5 by default).
+    Addapted from Octant: https://github.com/hetland/octant/blob/master/octant/sandbox/plotting.py
+
+    """
+    return cmap_map(lambda x: (1.-factor) + factor*x, cmap)

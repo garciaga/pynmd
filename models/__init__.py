@@ -10,6 +10,7 @@ from . import swan
 from . import ww3
 from . import xbeach
 from . import funwaveC
+from . import adcirc
 from . import parametric
 from . import fvcom
 from . import tools
