@@ -677,6 +677,58 @@ def jonswap(freq_peak,Hmo,gamma=3.3,freq_min=0.01,freq_max=1.0,
     # End of function
     return spec_jonswap,freq
 
+#===============================================================================
+# TMA Spectrum
+#===============================================================================
+def piersonMoskowitz_HsFp(freq_peak,Hs,
+                          freq_min=0.01,freq_max=1.0,freq_int=0.001,
+                          zeroth=True):
+    '''
+    Function to generate Pierson and Moskowitz spectrum based on wave height
+    and wave period.
+
+    Parameters
+    ----------
+    peak_freq    : Peak frequency [Hz]
+    Hs           : Significant wave height [m]
+
+    Optional Parameters
+    -------------------
+    freq_min     : Minimum frequency to compute the spectrum [Hz]
+    freq_max     : Maximum frequency to compute the spectrum [Hz]
+    freq_int     : Frequency inteval [Hz]
+    zeroth       : Prepend zeroth frequency (Default = True)
+
+    Default values are 0.01, 1.0, and 0.001 Hz, respectively.
+
+    Returns
+    -------
+    spec         : PM spectrum as a function of frequency.
+    freq         : Frequency axis [Hz]
+
+    References
+    ----------
+
+    '''
+    # Compute frequency vector
+    freq = np.arange(freq_min,freq_max+freq_int,freq_int)
+    
+    # Parameters
+    Tp = 1/freq_peak
+    omega = 2 * np.pi * freq
+    
+    # normalized spectrum
+    s_pm = (8.1*10**-3 * 9.81**2 * (2*np.pi)**-4 * freq**-5 * 
+            np.exp(-5/4*(freq_peak/freq)**4))
+    # Boost with wave height
+    s_pm *= (Hs**2 / 16) / np.trapz(s_pm,freq)
+    # Add zeroth frequency
+    if zeroth:
+        s_pm = np.r_[np.array([0.0]),s_pm]
+        freq = np.r_[np.array([0.0]),freq]
+
+    # End of function
+    return s_pm,freq
 
 
 #===============================================================================

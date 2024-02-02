@@ -74,7 +74,7 @@ def cross_corr(x,y,lags,norma=1.0):
     """
 
     # Quick data check
-    lags = np.int(lags)
+    lags = int(lags)
     norma = np.float(norma)
 
     if (norma != 0.0) and (norma != 1.0):
@@ -164,9 +164,9 @@ def psdraw(ts,dt=1,demean=False,window=False):
         ts -= ts.mean()
 
     # Compute record length
-    N = np.int(ts.shape[0])
-    N2 = np.int(N/2)
-    N12 = np.int((N+1)/2)
+    N = int(ts.shape[0])
+    N2 = int(N/2)
+    N12 = int((N+1)/2)
 
     # Another way that is equivalent for reference
     """
@@ -174,9 +174,9 @@ def psdraw(ts,dt=1,demean=False,window=False):
     freq = np.fft.fftshift(np.fft.fftfreq(N,dt))
 
     if np.mod(N,2) == 1:
-        zero_ind = np.int((N - 1.0)/2.0)
+        zero_ind = int((N - 1.0)/2.0)
     else:
-        zero_ind = np.int(N/2.0)
+        zero_ind = int(N/2.0)
     freq_amp = freq[zero_ind:]
 
     # Compute spectrum
@@ -249,7 +249,7 @@ def psd_subsamp(ts,dt,N_obs,window=True):
     """
 
      # Compute record length
-    N = np.int(ts.shape[0])
+    N = int(ts.shape[0])
 
     # Calculate number of samples each with length N_obs
     samples = N//N_obs
@@ -264,10 +264,10 @@ def psd_subsamp(ts,dt,N_obs,window=True):
 
     # Preallocate psd
     if np.mod(N_obs,2) == 0: #if even
-        N2 = N_obs//2       #np.int(N/2) #also works
+        N2 = N_obs//2       #int(N/2) #also works
         psd_1sided = np.zeros([N2+1,samples])
     else: #if odd
-        N2 = (N_obs+1)//2  #np.int((N+1)/2) #also works
+        N2 = (N_obs+1)//2  #int((N+1)/2) #also works
         psd_1sided = np.zeros([N2,samples])
 
     # FFT & PSD
@@ -554,10 +554,10 @@ def band_averaging(psd,freq,stencil):
     """
 
     # Make sure we are dealing with integers
-    stencil = np.int(stencil)
+    stencil = int(stencil)
 
     # Determine the size of the output arrays
-    Nout = np.int(1 + np.ceil((psd.shape[0]-1)/stencil))
+    Nout = int(1 + np.ceil((psd.shape[0]-1)/stencil))
 
     # Preallocate variables
     if np.sum(np.iscomplex(psd)) > 0:
@@ -574,8 +574,8 @@ def band_averaging(psd,freq,stencil):
     for aa in range(1,Nout-1):
 
         # Find averaging limits
-        ind_low = np.int((aa - 1.0)*stencil + 1.0)
-        ind_high = np.int(ind_low + stencil)
+        ind_low = int((aa - 1.0)*stencil + 1.0)
+        ind_high = int(ind_low + stencil)
 
         # Band averaging
         psd_ba[aa] = np.mean(psd[ind_low:ind_high])
@@ -635,14 +635,14 @@ def boxcar(y,span,nanTreat=False,endTreat=True):
 
     # Span must be an odd number
     width = span - 1 + span % 2
-    offset = np.int((width - 1.0)/2.0)
+    offset = int((width - 1.0)/2.0)
 
     # Preallocate variable
     ybox = np.zeros_like(y)
 
     # Find indices for averaging
-    first = np.int(np.ceil(width/2.0) - 1.0)
-    last = np.int(y.shape[0] - first - 1.0)
+    first = int(np.ceil(width/2.0) - 1.0)
+    last = int(y.shape[0] - first - 1.0)
 
     if nanTreat:
         for aa in range(first,last+1):
@@ -1428,7 +1428,7 @@ def essize(x,y=None):
     nstar_pdf = np.floor(nuhat_pdf*Nall)
 
     # Create output matrix
-    return [np.int64(nstar_ask),np.int64(nstar_pdf)]
+    return [int64(nstar_ask),int64(nstar_pdf)]
 
 
 #===============================================================================
@@ -1503,14 +1503,14 @@ def runVar(y,span,nanTreat=False):
 
     # Span must be an odd number
     width = span - 1 + span % 2
-    offset = np.int((width - 1.0)/2.0)
+    offset = int((width - 1.0)/2.0)
 
     # Preallocate variable
     ybox = np.zeros_like(y) * np.NAN
 
     # Find indices for averaging
-    first = np.int(np.ceil(width/2.0) - 1.0)
-    last = np.int(y.shape[0] - first - 1.0)
+    first = int(np.ceil(width/2.0) - 1.0)
+    last = int(y.shape[0] - first - 1.0)
 
     if nanTreat:
         for aa in range(first,last+1):

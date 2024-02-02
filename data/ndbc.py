@@ -437,7 +437,7 @@ def spec2nc(buoyfld,dtheta=5,fixNegative=False):
         buoyid = buoyid[0]
         
     # Info
-    print('Found ' + np.str(len(years)) + ' files')
+    print('Found ' + str(len(years)) + ' files')
     print(buoyfld)    
     
     # Create output netcdf file ------------------------------------------------
@@ -539,14 +539,14 @@ def spec2nc(buoyfld,dtheta=5,fixNegative=False):
         # Allocate time and spectral density data    
         freq_time = np.zeros((freq_spec.shape[0]))  
         for bb in range(freq_time.shape[0]):
-            tmpYear  = np.int(freq_spec[bb,0])
-            tmpMonth = np.int(freq_spec[bb,1])
-            tmpDay   = np.int(freq_spec[bb,2])
-            tmpHour  = np.int(freq_spec[bb,3])
+            tmpYear  = int(freq_spec[bb,0])
+            tmpMonth = int(freq_spec[bb,1])
+            tmpDay   = int(freq_spec[bb,2])
+            tmpHour  = int(freq_spec[bb,3])
             if freqInd0 == 4:
-                tmpMin = np.int(0)
+                tmpMin = int(0)
             else:
-                tmpMin = np.int(freq_spec[bb,4])
+                tmpMin = int(freq_spec[bb,4])
             
             if tmpYear < 100:
                 tmpYear = tmpYear + 1900
@@ -683,14 +683,14 @@ def spec2nc(buoyfld,dtheta=5,fixNegative=False):
             # Allocate date
             dir_time = np.zeros((alpha_1.shape[0]))              
             for bb in range(dir_time.shape[0]):
-                tmpYear  = np.int(alpha_1[bb,0])
-                tmpMonth = np.int(alpha_1[bb,1])
-                tmpDay   = np.int(alpha_1[bb,2])
-                tmpHour  = np.int(alpha_1[bb,3])
+                tmpYear  = int(alpha_1[bb,0])
+                tmpMonth = int(alpha_1[bb,1])
+                tmpDay   = int(alpha_1[bb,2])
+                tmpHour  = int(alpha_1[bb,3])
                 if freqInd0 == 4:
-                    tmpMin = np.int(0)
+                    tmpMin = int(0)
                 else:
-                    tmpMin = np.int(alpha_1[bb,4])
+                    tmpMin = int(alpha_1[bb,4])
                                 
                 if tmpYear < 100:
                     tmpYear = tmpYear + 1900                                
@@ -761,11 +761,11 @@ def spec2nc(buoyfld,dtheta=5,fixNegative=False):
             if fixNegative:
                 tmpSpec = wspec.copy()
                 tmpSpec[tmpSpec<0] = 0.0
-                tmpFreqSpec = np.sum(tmpSpec,axis=-1)*(dirs[2]-dirs[1])
+                tmpFreqSpec = np.sum(tmpSpec,axis=-1)*np.abs(angles[2]-angles[1])
                 posEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
             
                 # Get the total energy
-                tmpFreqSpec = np.sum(np.abs(wspec),axis=-1)*(dirs[2]-dirs[1])
+                tmpFreqSpec = np.sum(np.abs(wspec),axis=-1)*np.abs(angles[2]-angles[1])
                 totalEnergy = np.trapz(np.abs(tmpFreqSpec),freq,axis=-1)
              
                 # Scale the spectrum
