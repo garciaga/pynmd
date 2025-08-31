@@ -221,7 +221,7 @@ def guza2012(H,L,Fw,Ds=1.0):
 #===============================================================================
 def mase1989(H,L,B):
     '''
-    Estimate runup based on the parametric relation by Ruggiero et al 2001.
+    Estimate runup based on the parametric relation by Mase 1989.
 
     
     USAGE:
@@ -291,3 +291,171 @@ def mase1989(H,L,B):
     return {'Rmax':rmax,'R2':r2,'R10':r10,'R33':r33,'Rmean':rmean,
             'boreRed':boreRed,'Tmean':Tmean}
 
+def blenkinsopp2022(H,dtoe_swl,Bberm,Bsand=None,gamma=0.87,gammas_sw=0.59):
+    """
+    Estimate runup for composite beaches based on the parametric relation 
+    by Blenkinsopp et al 2022.
+
+    
+    USAGE:
+    ------
+    R = blenkinsopp2022(H,dtoe,Bberm, Bsand)
+    
+    PARAMETERS:
+    -----------
+    H        : Offshore wave height [m]
+    dtoe_swl : still water depth at cobble berm toe [m]
+    Bsand    : Cobble berm slope
+    Bbeach   : (optional) Beach slope
+    gamma    : (optional) Saturated wave breaking paramter
+               default=0.87 per Section 4.2 of paper
+    
+    RETURNS:
+    --------
+    R2_17 : Equation 17 2% Exceedance runup [m]
+    R2_21 : Equation 21 2% Exceedance runup [m]
+    R2_23 : Equation 23 2% Exceedance runup [m]
+    eta   : wave induced setup [m]
+
+    
+    NOTES:
+    ------
+    Conlin et al. (2025) found this formula performs well only when the berm
+    is on inundation regime (swash zone entirely on the berm).
+    
+    REFERENCES:
+    -----------
+    Blenkinsopp, C. E., Bayle, P. M., Mariins, K., Foss, O. W., Almeida, L. P.,
+        Kaminsky, G. M., Schimmels, S., Matsumoto, H., 2022: Wave runup on 
+        composite beaches and dynamic cobble berm revetments. Coastal
+        Engineering, 176, https://doi.org/10.1016/j.coastaleng.2022.104148
+        
+    """
+
+    # Equation 17
+    R2_17 = 4.59 * Bberm * dtoe_swl + 0.75
+
+    # Setup (Equation 17)
+    etabar = 0.75 * H
+
+    # Equations 21 and 23
+    if Bsand is not None:
+
+        # Equation 13
+        lsz = (5/3*H - dtoe_swl) / np.tan(Bsand) + dtoe_swl / np.tan(Bberm)
+
+        # Eta toe (Equation 22)
+        eta_toe = 3.33 * 10**-4 * lsz + 0.12
+
+        # Water depth at toe of structure
+        dtoe = dtoe_swl + eta_toe
+    
+        # Wave height at the toe of the structure
+        # Hm0 following the paper nomenclature
+        if dtoe_swl > 0:
+            Hm0 = np.min([H,dtoe*gamma])
+        else:
+            Hm0 = 0.0
+
+        # Equation 21
+        R2_21 = 0.19 * H + 3.11 * Hm0 * np.tan(Bberm) + 0.26
+      
+        # Equation 9 (typo in preprint refers to Equation 8)
+        Ssw = 0.23 + 6.79 * Hm0 * np.tan(Bberm)
+
+        # Equation 15 infragravity swash
+        Sig = 0.0030*lsz + 0.20
+
+        # Runup (Equation 23)
+        R2_23 = 1.1 * (etabar + 0.5 * (Ssw**2 + Sig**2)**0.5)
+        
+    else:
+        R2_21 = np.NAN
+        R2_23 = np.NAN
+    
+    return R2_17,R2_21,R2_23,etabar
+
+def conlin2025(H,L,Bberm,Bbeach):
+    """
+    Estimate runup for composite beaches based on the parametric relation 
+    by Conlin et al 2025.
+
+    
+    USAGE:
+    ------
+    R = conlin2025(H,L,Bbeach, Bberm)
+    
+    PARAMETERS:
+    -----------
+    H        : Offshore wave height [m]
+    L        : Offshore wave length [L]
+    Bberm    : Cobble berm slope
+    Bbeach   : Beach slope
+    
+    RETURNS:
+    --------
+    R2     : 2% Exceedance runup [m] (Equation 4a)
+    etabar : Wave induced setup [m]
+    S      : Swash [m]
+    
+    NOTES:
+    ------
+
+    
+    REFERENCES:
+    -----------
+    Conlin, M. P., G. Wilson, H. Bond, D. Ardag, and C. Arnowil, 2025:
+        Predicting wave runup on composite beaches. Coastal Engineering, 
+        199, 104743, https://doi.org/10.1016/j.coastaleng.2025.104743
+    """
+
+    # Average Slope
+    Bavg = 0.5 * (Bberm + Bbeach)
+
+    # Swash
+    S = 2.99 * Bavg * H + 1.28
+
+    # Setup
+    etabar = 0.92 * Bbeach * H *((H/L)**-0.3)
+
+    # Runup
+    R2 = 1.3 * (etabar + S/2)
+
+    return R2,etabar,S
+
+def poate2016(H,T,B):
+    """
+    Estimate runup for gravel beaches based on the parametric relation 
+    by Poate et al 2025.
+
+    
+    USAGE:
+    ------
+    R = conlin2025(H,dtoe,Bbeach, Bberm)
+    
+    PARAMETERS:
+    -----------
+    H        : Offshore wave height [m]
+    T        : Offshore peak wave period [s]
+    B        : Beach slope
+    
+    RETURNS:
+    --------
+    R2     : 2% Exceedance runup [m] (Equation 4a)
+    
+    NOTES:
+    ------
+
+    
+    REFERENCES:
+    -----------
+    Poate, T. G., R. T. McCall, G. Masselink, 2016: A new parameterisation
+        for runup on gravel beaches. Coastal Engineering, 117, 176-190,
+        https://doi.org/10.1016/j.coastaleng.2016.08.003
+    """
+
+    # Solves Equation 12 for peak wave period C=0.33
+
+    return 0.33 * np.tan(B)**0.5 * H * T
+
+    

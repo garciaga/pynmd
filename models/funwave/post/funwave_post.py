@@ -41,7 +41,10 @@ import os
 import numpy as np
 import pylab as pl
 from collections import defaultdict
-import imp
+try:
+    import imp
+except:
+    import importlib as imp
 
 # Custom paths
 import pynmd.physics.waves as gwaves
