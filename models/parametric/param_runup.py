@@ -336,7 +336,7 @@ def blenkinsopp2022(H,dtoe_swl,Bberm,Bsand=None,gamma=0.87,gammas_sw=0.59):
     R2_17 = 4.59 * Bberm * dtoe_swl + 0.75
 
     # Setup (Equation 17)
-    etabar = 0.75 * H
+    etabar = 0.17 * H
 
     # Equations 21 and 23
     if Bsand is not None:
@@ -383,7 +383,7 @@ def conlin2025(H,L,Bberm,Bbeach):
     
     USAGE:
     ------
-    R = conlin2025(H,L,Bbeach, Bberm)
+    R = conlin2025(H,L,Bberm, Bbeach)
     
     PARAMETERS:
     -----------
@@ -431,13 +431,13 @@ def poate2016(H,T,B):
     
     USAGE:
     ------
-    R = conlin2025(H,dtoe,Bbeach, Bberm)
+    R = poate2016(H,T,B)
     
     PARAMETERS:
     -----------
     H        : Offshore wave height [m]
     T        : Offshore peak wave period [s]
-    B        : Beach slope
+    B        : (gravel,cobble) Beach slope
     
     RETURNS:
     --------
